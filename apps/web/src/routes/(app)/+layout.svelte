@@ -6,7 +6,7 @@
 </script>
 
 <div class="flex h-dvh flex-col bg-background text-foreground">
-	<TabBar servers={data.servers} />
+	<TabBar instanceName={data.instance.name} />
 	<div class="flex min-h-0 flex-1">
 		{@render children()}
 	</div>

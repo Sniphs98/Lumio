@@ -4,12 +4,21 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
 import { db } from '#lib/server/db/index.ts';
+import { setUpInstanceIfNeeded } from '#lib/server/instance.ts';
 
 export const auth = betterAuth({
 	baseURL: ORIGIN,
 	secret: BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, { provider: 'pg' }),
 	emailAndPassword: { enabled: true },
+	databaseHooks: {
+		user: {
+			create: {
+				// The first user to sign up becomes the owner of this instance.
+				after: (user) => setUpInstanceIfNeeded(user.id, user.name)
+			}
+		}
+	},
 	plugins: [
 		sveltekitCookies(getRequestEvent) // make sure this is the last plugin in the array
 	]
