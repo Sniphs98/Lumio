@@ -1,5 +1,6 @@
 import { aliasedTable, and, asc, eq, ne } from 'drizzle-orm';
 import { directKey, type FriendUser } from '#lib/friends.ts';
+import { groupTitle } from '#lib/groups.ts';
 import { areFriends } from '#lib/server/friends.ts';
 import { db } from '#lib/server/db/index.ts';
 import { conversation, conversationMember, user } from '#lib/server/db/schema.ts';
@@ -43,26 +44,44 @@ export async function listDirectConversationIds(userId: string): Promise<Record<
 	return Object.fromEntries(rows.map((r) => [r.otherId, r.conversationId]));
 }
 
-/** Group conversations the user is a member of. */
-export async function listGroupConversations(userId: string) {
-	return db
+export type GroupSummary = { id: string; title: string; memberCount: number };
+
+/** Group conversations the user is a member of, oldest first. */
+export async function listGroupConversations(userId: string): Promise<GroupSummary[]> {
+	const me = aliasedTable(conversationMember, 'me');
+	const groups = await db
 		.select({ id: conversation.id, name: conversation.name })
 		.from(conversation)
-		.innerJoin(
-			conversationMember,
-			and(
-				eq(conversationMember.conversationId, conversation.id),
-				eq(conversationMember.userId, userId)
-			)
-		)
+		.innerJoin(me, and(eq(me.conversationId, conversation.id), eq(me.userId, userId)))
 		.where(eq(conversation.type, 'group'))
 		.orderBy(asc(conversation.createdAt));
+	if (groups.length === 0) return [];
+
+	// Names of the other members, for groups without a name of their own.
+	const others = await db
+		.select({ conversationId: conversationMember.conversationId, name: user.name })
+		.from(conversationMember)
+		.innerJoin(
+			me,
+			and(eq(me.conversationId, conversationMember.conversationId), eq(me.userId, userId))
+		)
+		.innerJoin(user, eq(user.id, conversationMember.userId))
+		.where(ne(conversationMember.userId, userId))
+		.orderBy(asc(user.name));
+	const byGroup = Map.groupBy(others, (o) => o.conversationId);
+
+	return groups.map((g) => {
+		const members = byGroup.get(g.id) ?? [];
+		return { id: g.id, title: groupTitle(g.name, members), memberCount: members.length + 1 };
+	});
 }
 
 export type ConversationDetails = {
 	id: string;
 	type: 'direct' | 'group';
 	name: string | null;
+	/** Group conversations only: the member who may remove others. */
+	ownerId: string | null;
 	/** Everyone in the conversation except the user asking. */
 	others: FriendUser[];
 };
@@ -89,6 +108,7 @@ export async function getConversation(
 		id: row.id,
 		type: row.type,
 		name: row.name,
+		ownerId: row.ownerId,
 		others: members.filter((m) => m.id !== userId)
 	};
 }

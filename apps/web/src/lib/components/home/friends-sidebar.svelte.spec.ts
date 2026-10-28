@@ -54,12 +54,19 @@ describe('FriendsSidebar', () => {
 		render(FriendsSidebar, {
 			...empty,
 			friends: [ben],
-			groups: [{ id: 'g1', name: 'Raid night' }]
+			groups: [{ id: 'g1', title: 'Raid night', memberCount: 3 }]
 		});
 
 		await expect
 			.element(page.getByRole('link', { name: 'Raid night' }))
 			.toHaveAttribute('href', '/dm/g1');
+	});
+
+	it('links to creating a group', async () => {
+		render(FriendsSidebar, empty);
+		await expect
+			.element(page.getByRole('link', { name: 'Create group' }))
+			.toHaveAttribute('href', '/groups/new');
 	});
 
 	it('shows the result of the last friend action', async () => {

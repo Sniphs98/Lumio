@@ -4,7 +4,7 @@ A self-hosted chat app for you and your friends: text channels, voice, video and
 
 Lumio runs in the browser (desktop and mobile, installable as a PWA), and there is an optional Electron desktop app. Nothing has to be installed to use it.
 
-> **Status:** early. Sign up, invite links, text channels, file sharing, friends, direct messages, voice channels and calls (with camera and screen sharing) work.
+> **Status:** early. Sign up, invite links, text channels, file sharing, friends, direct messages, group chats, voice channels and calls (with camera and screen sharing) work.
 
 ## Stack
 

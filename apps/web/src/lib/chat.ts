@@ -18,10 +18,19 @@ export type ChatMessage = {
 };
 
 /** Events sent to clients over a channel's or conversation's event stream. */
-export type ChannelEvent = { type: 'message.created'; message: ChatMessage };
+export type ChannelEvent =
+	| { type: 'message.created'; message: ChatMessage }
+	/** Someone was removed from or left a group; their stream of it closes. */
+	| { type: 'member.removed'; userId: string };
 
-/** Events sent to a single user, e.g. when their friend list changes or someone calls them. */
-export type UserEvent = { type: 'home.changed' } | CallRingingEvent;
+/**
+ * Events sent to a single user, e.g. when their friend list changes or someone calls them.
+ * `conversation.removed` tells a user they are no longer in a group.
+ */
+export type UserEvent =
+	| { type: 'home.changed' }
+	| { type: 'conversation.removed'; conversationId: string }
+	| CallRingingEvent;
 
 export type RealtimeEvent = ChannelEvent | UserEvent;
 
