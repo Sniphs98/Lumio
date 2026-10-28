@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { isJoinable } from '#lib/channels.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 import { getServerPermissions, listChannels, listVisibleChannelIds } from '#lib/server/channels.ts';
 import { getVoiceState } from '#lib/server/voice.ts';
@@ -10,7 +11,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	const [channels, permissions, voiceChannelIds, voice] = await Promise.all([
 		listChannels(),
 		getServerPermissions(locals.user.id),
-		listVisibleChannelIds(locals.user.id, 'voice'),
+		listVisibleChannelIds(locals.user.id, isJoinable),
 		getVoiceState()
 	]);
 	return {

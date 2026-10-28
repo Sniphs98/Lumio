@@ -1,4 +1,5 @@
 import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm';
+import type { ChannelType } from '#lib/channels.ts';
 import { hasPermission, Permission, resolvePermissions } from '#lib/permissions.ts';
 import { db } from '#lib/server/db/index.ts';
 import { channel, channelOverwrite, instance, role, userRole } from '#lib/server/db/schema.ts';
@@ -11,12 +12,12 @@ export async function listChannels() {
 		.orderBy(asc(channel.position), asc(channel.createdAt));
 }
 
-/** Ids of the channels of a type the user may see. */
+/** Ids of the channels the user may see whose type passes `include`, e.g. `hasChat`. */
 export async function listVisibleChannelIds(
 	userId: string,
-	type: 'text' | 'voice'
+	include: (type: ChannelType) => boolean
 ): Promise<Set<string>> {
-	const channels = (await listChannels()).filter((c) => c.type === type);
+	const channels = (await listChannels()).filter((c) => include(c.type));
 	const permissions = await Promise.all(channels.map((c) => getChannelPermissions(userId, c.id)));
 	return new Set(
 		channels

@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { hasChat } from '#lib/channels.ts';
 import { listVisibleChannelIds } from '#lib/server/channels.ts';
 import { userTopic } from '#lib/server/realtime.ts';
 import { eventStream } from '#lib/server/sse.ts';
@@ -14,7 +15,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) error(401, 'Not signed in');
 
 	// Permission changes take effect when the client reconnects.
-	const visible = await listVisibleChannelIds(locals.user.id, 'text');
+	const visible = await listVisibleChannelIds(locals.user.id, hasChat);
 	return eventStream([userTopic(locals.user.id), CHANNEL_ACTIVITY_TOPIC], request, {
 		filter: (event) =>
 			event.type !== 'message.activity' || event.channelId === null || visible.has(event.channelId)

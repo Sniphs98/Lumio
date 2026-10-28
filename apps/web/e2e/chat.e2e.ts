@@ -67,3 +67,35 @@ test('on a phone the channel list and the chat are separate screens', async ({ b
 	expect(scrollWidth).toBeLessThanOrEqual(390);
 	await context.close();
 });
+
+test('voice channels have the same chat as text channels', async ({ browser }) => {
+	const alice = await newUser(browser, 'Alice');
+	const bob = await newUser(browser, 'Bob');
+
+	await alice.page.getByRole('link', { name: 'Lounge' }).click();
+	await expect(alice.page.getByRole('heading', { name: 'Lounge', level: 1 })).toBeVisible();
+	// Joining is offered on top of the chat, but not needed to write.
+	await expect(alice.page.getByRole('button', { name: 'Join voice' })).toBeVisible();
+
+	const text = `Voice chat from Alice ${Date.now()}`;
+	await alice.page.getByLabel('Message Lounge').fill(text);
+	await alice.page.keyboard.press('Enter');
+	await expect(alice.page.getByRole('list', { name: 'Messages' }).getByText(text)).toBeVisible();
+
+	// Bob is still in #general: the Lounge counts as unread until he opens it.
+	const channels = bob.page.getByRole('complementary', { name: 'Channels' });
+	const loungeUnread = channels.getByRole('link', { name: /^Lounge/ }).getByRole('status');
+	await expect(loungeUnread).toBeVisible();
+
+	await channels.getByRole('link', { name: /^Lounge/ }).click();
+	await expect(bob.page.getByRole('list', { name: 'Messages' }).getByText(text)).toBeVisible();
+	await expect(loungeUnread).toBeHidden();
+
+	// Text channels have no join button.
+	await channels.getByRole('link', { name: /^general/ }).click();
+	await expect(bob.page.getByLabel('Message #general')).toBeVisible();
+	await expect(bob.page.getByRole('button', { name: 'Join voice' })).toHaveCount(0);
+
+	await alice.context.close();
+	await bob.context.close();
+});
