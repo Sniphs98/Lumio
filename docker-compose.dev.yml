@@ -13,7 +13,19 @@ services:
 
   livekit:
     image: livekit/livekit-server:v1.9
-    command: ['--dev', '--bind', '0.0.0.0', '--keys', 'devkey: devsecret_change_me_devsecret_change_me']
+    # --node-ip is the address LiveKit announces to browsers for media. The
+    # default 127.0.0.1 works when the browser runs on the same machine, also
+    # with Docker Desktop and WSL, where auto detection picks an unreachable
+    # container address. To join calls from another device in your network,
+    # set LIVEKIT_NODE_IP to this machine's LAN IP (in a .env next to this file).
+    command:
+      - --dev
+      - --bind
+      - 0.0.0.0
+      - --node-ip
+      - ${LIVEKIT_NODE_IP:-127.0.0.1}
+      - --keys
+      - 'devkey: devsecret_change_me_devsecret_change_me'
     ports:
       - '7880:7880'
       - '7881:7881'
