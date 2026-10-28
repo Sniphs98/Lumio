@@ -4,15 +4,23 @@ export const MAX_MESSAGE_LENGTH = 4000;
 
 export type ChatMessage = {
 	id: string;
-	channelId: string;
+	/** Set for messages in a server channel. */
+	channelId: string | null;
+	/** Set for messages in a direct or group conversation. */
+	conversationId: string | null;
 	content: string;
 	createdAt: string;
 	editedAt: string | null;
 	author: { id: string; name: string; image: string | null };
 };
 
-/** Events sent to clients over a channel's event stream. */
+/** Events sent to clients over a channel's or conversation's event stream. */
 export type ChannelEvent = { type: 'message.created'; message: ChatMessage };
+
+/** Events sent to a single user, e.g. when their friend list or conversations change. */
+export type UserEvent = { type: 'home.changed' };
+
+export type RealtimeEvent = ChannelEvent | UserEvent;
 
 /**
  * Trims a message and checks its length.

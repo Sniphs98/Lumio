@@ -147,6 +147,11 @@ export const conversation = pgTable('conversation', {
 	type: conversationType('type').notNull(),
 	/** Only used for group conversations. */
 	name: text('name'),
+	/**
+	 * Only used for direct conversations: both user ids, sorted and joined by `:`.
+	 * Unique, so two users always share exactly one direct conversation.
+	 */
+	directKey: text('direct_key').unique(),
 	...timestamps
 });
 

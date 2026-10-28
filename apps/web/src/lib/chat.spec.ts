@@ -4,6 +4,7 @@ import { addMessage, MAX_MESSAGE_LENGTH, normalizeContent, type ChatMessage } fr
 const message = (id: string, createdAt: string): ChatMessage => ({
 	id,
 	channelId: 'c1',
+	conversationId: null,
 	content: id,
 	createdAt,
 	editedAt: null,
