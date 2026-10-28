@@ -1,4 +1,4 @@
-import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, or } from 'drizzle-orm';
 import { sortFriendships, type FriendLists, type FriendUser } from '#lib/friends.ts';
 import { db } from '#lib/server/db/index.ts';
 import { friendship, user } from '#lib/server/db/schema.ts';
@@ -44,41 +44,34 @@ export async function areFriends(a: string, b: string): Promise<boolean> {
 }
 
 /**
- * Sends a friend request to the user with this email. If that user already sent us
- * a request, it is accepted instead.
+ * Makes `userId` and the owner of the friend link they opened friends right away.
+ * A pending request between the two, in either direction, is accepted.
  */
-export async function sendFriendRequest(
+export async function befriendThroughLink(
 	userId: string,
-	email: string
-): Promise<{ ok: true; friend: FriendUser; accepted: boolean } | { ok: false; error: string }> {
-	const [other] = await db
-		.select(userColumns)
-		.from(user)
-		.where(eq(sql`lower(${user.email})`, email.toLowerCase()));
-	if (!other) return { ok: false, error: 'Nobody on this Lumio uses that email address.' };
-	if (other.id === userId) return { ok: false, error: 'You cannot add yourself.' };
+	ownerId: string
+): Promise<{ ok: true; alreadyFriends: boolean } | { ok: false; error: string }> {
+	if (ownerId === userId) return { ok: false, error: 'This is your own friend link.' };
 
-	const [existing] = await db.select().from(friendship).where(pair(userId, other.id));
-	if (existing?.status === 'accepted') {
-		return { ok: false, error: `You and ${other.name} are already friends.` };
-	}
+	const [existing] = await db.select().from(friendship).where(pair(userId, ownerId));
+	if (existing?.status === 'accepted') return { ok: true, alreadyFriends: true };
 	if (existing?.status === 'blocked') {
-		return { ok: false, error: 'You cannot send a friend request to this user.' };
-	}
-	if (existing?.requesterId === userId) {
-		return { ok: false, error: `You already sent ${other.name} a friend request.` };
-	}
-	if (existing) {
-		await acceptFriendRequest(userId, other.id);
-		return { ok: true, friend: other, accepted: true };
+		return { ok: false, error: 'You cannot become friends with this user.' };
 	}
 
-	await db
-		.insert(friendship)
-		.values({ requesterId: userId, addresseeId: other.id })
-		.onConflictDoNothing();
-	notify(userId, other.id);
-	return { ok: true, friend: other, accepted: false };
+	if (existing) {
+		await db
+			.update(friendship)
+			.set({ status: 'accepted' })
+			.where(and(pair(userId, ownerId), eq(friendship.status, 'pending')));
+	} else {
+		await db
+			.insert(friendship)
+			.values({ requesterId: userId, addresseeId: ownerId, status: 'accepted' })
+			.onConflictDoNothing();
+	}
+	notify(userId, ownerId);
+	return { ok: true, alreadyFriends: false };
 }
 
 /** Accepts the pending request `requesterId` sent to `userId`. Returns false if there is none. */

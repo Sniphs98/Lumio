@@ -16,6 +16,7 @@ export function uniqueEmail(name: string) {
 export async function signUp(page: Page, name: string, inviteCode = E2E_INVITE_CODE) {
 	const email = uniqueEmail(name);
 	await page.goto(`/invite/${inviteCode}`);
+	await page.getByRole('tab', { name: 'Create account' }).click();
 	await page.getByLabel('Display name').fill(name);
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Password').fill('correct horse battery');
@@ -33,19 +34,33 @@ export async function newUser(browser: Browser, name: string, viewport?: Viewpor
 	return { context, page, email };
 }
 
-export async function addFriend(page: Page, email: string) {
-	await page.getByLabel("Friend's email").fill(email);
-	await page.getByRole('button', { name: 'Send friend request' }).click();
+/** Joins through an invite or friend link as a guest, with nothing but a name. */
+export async function joinAsGuest(page: Page, link: string, name: string) {
+	await page.goto(link);
+	await page.getByLabel('Your name').fill(name);
+	await page.getByRole('button', { name: 'Join as guest' }).click();
+	await expect(page.getByRole('link', { name: 'Guest · Create account' })).toBeVisible();
 }
 
-/** Signs up two users and makes them friends. */
+/** The personal friend link shown on the Home tab. */
+export async function friendLinkOf(page: Page) {
+	return page.getByRole('textbox', { name: 'Your friend link' }).inputValue();
+}
+
+/** Opens someone's friend link as a signed-in member, adds them and lands in the chat. */
+export async function addFriend(page: Page, link: string, ownerName: string) {
+	await page.goto(link);
+	await page.getByRole('button', { name: `Add ${ownerName}` }).click();
+	await expect(page.getByRole('heading', { name: ownerName })).toBeVisible();
+}
+
+/** Signs up two users and makes them friends through Anna's friend link. */
 export async function friends(browser: Browser, viewport?: Viewport) {
 	const anna = await newUser(browser, 'Anna', viewport);
 	const ben = await newUser(browser, 'Ben', viewport);
 
-	await addFriend(anna.page, ben.email);
-	await expect(anna.page.getByRole('status')).toHaveText('Friend request sent to Ben.');
-	await ben.page.getByRole('button', { name: 'Accept Anna' }).click();
+	await addFriend(ben.page, await friendLinkOf(anna.page), 'Anna');
+	await ben.page.goto('/');
 	await expect(ben.page.getByRole('link', { name: 'Anna', exact: true })).toBeVisible();
 	await expect(anna.page.getByRole('link', { name: 'Ben', exact: true })).toBeVisible();
 	return { anna, ben };

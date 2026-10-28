@@ -27,17 +27,24 @@ export type InviteSettings = {
 	/** Seconds until the link expires, or `null` if it never does. */
 	expiresInSeconds: number | null;
 	maxUses: number | null;
+	/** Whether people may join as a guest with only a name. */
+	allowGuests: boolean;
 };
 
 /** Reads the settings of the "create invite" form. Only the listed options are accepted. */
 export function parseInviteSettings(
 	expiry: unknown,
-	maxUses: unknown
+	maxUses: unknown,
+	allowGuests: unknown
 ): { ok: true; settings: InviteSettings } | { ok: false; error: string } {
 	const e = EXPIRY_OPTIONS.find((o) => o.value === expiry);
 	const m = MAX_USES_OPTIONS.find((o) => o.value === maxUses);
 	if (!e || !m) return { ok: false, error: 'Pick an expiry and a maximum number of uses.' };
-	return { ok: true, settings: { expiresInSeconds: e.seconds, maxUses: m.uses } };
+	return {
+		ok: true,
+		// A checkbox only sends a value when it is checked.
+		settings: { expiresInSeconds: e.seconds, maxUses: m.uses, allowGuests: allowGuests === 'on' }
+	};
 }
 
 export type InviteLimits = {

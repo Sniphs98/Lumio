@@ -6,6 +6,7 @@
 	import CopyButton from '#lib/components/invites/copy-button.svelte';
 	import InviteList from '#lib/components/invites/invite-list.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import {
@@ -48,7 +49,7 @@
 			<div>
 				<h2 id="create-invite-heading" class="font-semibold">Create an invite link</h2>
 				<p class="text-sm text-muted-foreground">
-					Anyone with the link can create an account and join {data.instance.name}.
+					Anyone with the link can join {data.instance.name}, with an account or as a guest.
 				</p>
 			</div>
 			<form method="post" action="?/create" use:enhance class="grid gap-3 sm:grid-cols-2">
@@ -68,6 +69,10 @@
 						{/each}
 					</select>
 				</div>
+				<Label class="flex items-center gap-2 font-normal sm:col-span-2">
+					<Checkbox name="allowGuests" checked />
+					Let people join as a guest with just a name
+				</Label>
 				<Button type="submit" class="sm:col-span-2">Create invite link</Button>
 			</form>
 			{#if form?.inviteError}

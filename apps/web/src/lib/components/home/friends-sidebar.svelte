@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { Check, UserPlus, Users, X } from '@lucide/svelte';
+	import { Check, RefreshCw, Users, X } from '@lucide/svelte';
+	import CopyButton from '#lib/components/invites/copy-button.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import type { FriendUser } from '#lib/friends.ts';
@@ -16,6 +17,8 @@
 		directConversationIds: Record<string, string>;
 		/** Conversation shown next to the sidebar, if any. */
 		activeConversationId?: string;
+		/** The user's personal link: whoever opens it becomes their friend. */
+		friendLinkUrl: string;
 		/** Result of the last friend action. */
 		notice?: string;
 		error?: string;
@@ -28,6 +31,7 @@
 		groups,
 		directConversationIds,
 		activeConversationId,
+		friendLinkUrl,
 		notice,
 		error
 	}: Props = $props();
@@ -50,21 +54,32 @@
 {/snippet}
 
 <section class="border-b p-3" aria-labelledby="add-friend-heading">
-	<h2 id="add-friend-heading" class={heading}>Add friend</h2>
-	<form method="post" action="/?/addFriend" class="flex gap-2 px-2" use:enhance>
+	<h2 id="add-friend-heading" class={heading}>Add friends</h2>
+	<p class="px-2 pb-2 text-sm text-muted-foreground">
+		Send your friend link. Whoever opens it becomes your friend, and newcomers can join as a guest.
+	</p>
+	<div class="flex items-center gap-1 px-2">
 		<Input
-			type="email"
-			name="email"
-			required
-			placeholder="friend@example.com"
-			aria-label="Friend's email"
-			autocomplete="off"
-			class="h-8"
+			readonly
+			value={friendLinkUrl}
+			aria-label="Your friend link"
+			class="h-8 font-mono text-xs"
+			onfocus={(e) => e.currentTarget.select()}
 		/>
-		<Button type="submit" size="sm" aria-label="Send friend request">
-			<UserPlus />
-		</Button>
-	</form>
+		<CopyButton text={friendLinkUrl} label="Copy friend link" />
+		<form method="post" action="/?/resetFriendLink" use:enhance>
+			<Button
+				type="submit"
+				size="icon"
+				variant="ghost"
+				class="size-8"
+				aria-label="Reset friend link"
+				title="Create a new link; the old one stops working"
+			>
+				<RefreshCw />
+			</Button>
+		</form>
+	</div>
 	{#if error}
 		<p class="px-2 pt-2 text-sm text-destructive" role="alert">{error}</p>
 	{:else if notice}

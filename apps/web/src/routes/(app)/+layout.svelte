@@ -5,7 +5,9 @@
 	import type { UserEvent } from '#lib/chat.ts';
 	import CallBar from '#lib/components/call/call-bar.svelte';
 	import IncomingCall from '#lib/components/call/incoming-call.svelte';
+	import AccountSuggestion from '#lib/components/guest/account-suggestion.svelte';
 	import TabBar from '#lib/components/shell/tab-bar.svelte';
+	import { startVisit } from '#lib/guests.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -26,6 +28,12 @@
 		return () => source.close();
 	});
 
+	// When a guest comes back for another visit, suggest creating an account.
+	let suggestAccount = $state(false);
+	$effect(() => {
+		if (data.user.isGuest && startVisit()) suggestAccount = true;
+	});
+
 	async function joinRinging() {
 		const ringing = call.ringing;
 		if (!ringing) return;
@@ -42,7 +50,7 @@
 </script>
 
 <div class="flex h-dvh flex-col bg-background text-foreground">
-	<TabBar instanceName={data.instance.name} />
+	<TabBar instanceName={data.instance.name} isGuest={data.user.isGuest} />
 	<div class="flex min-h-0 flex-1">
 		{@render children()}
 	</div>
@@ -54,4 +62,7 @@
 		/>
 	{/if}
 	<CallBar {call} />
+	{#if data.user.isGuest}
+		<AccountSuggestion bind:open={suggestAccount} />
+	{/if}
 </div>

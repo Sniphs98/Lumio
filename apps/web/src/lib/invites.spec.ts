@@ -13,24 +13,29 @@ const inHours = (h: number) => new Date(now.getTime() + h * 60 * 60 * 1000);
 
 describe('parseInviteSettings', () => {
 	it('accepts the listed options', () => {
-		expect(parseInviteSettings('3600', '5')).toEqual({
+		expect(parseInviteSettings('3600', '5', 'on')).toEqual({
 			ok: true,
-			settings: { expiresInSeconds: 3600, maxUses: 5 }
+			settings: { expiresInSeconds: 3600, maxUses: 5, allowGuests: true }
 		});
-		expect(parseInviteSettings('never', 'none')).toEqual({
+		expect(parseInviteSettings('never', 'none', 'on')).toEqual({
 			ok: true,
-			settings: { expiresInSeconds: null, maxUses: null }
+			settings: { expiresInSeconds: null, maxUses: null, allowGuests: true }
 		});
 	});
 
 	it('accepts the defaults', () => {
-		expect(parseInviteSettings(DEFAULT_EXPIRY, DEFAULT_MAX_USES).ok).toBe(true);
+		expect(parseInviteSettings(DEFAULT_EXPIRY, DEFAULT_MAX_USES, 'on').ok).toBe(true);
+	});
+
+	it('only allows guests when the checkbox is checked', () => {
+		const settings = parseInviteSettings('3600', '5', null);
+		expect(settings.ok && settings.settings.allowGuests).toBe(false);
 	});
 
 	it('rejects anything else', () => {
-		expect(parseInviteSettings('60', '5').ok).toBe(false);
-		expect(parseInviteSettings('3600', '-1').ok).toBe(false);
-		expect(parseInviteSettings(null, null).ok).toBe(false);
+		expect(parseInviteSettings('60', '5', 'on').ok).toBe(false);
+		expect(parseInviteSettings('3600', '-1', 'on').ok).toBe(false);
+		expect(parseInviteSettings(null, null, null).ok).toBe(false);
 	});
 });
 

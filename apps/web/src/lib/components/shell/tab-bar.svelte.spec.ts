@@ -35,4 +35,18 @@ describe('TabBar', () => {
 		await expect.element(page.getByRole('link', { name: 'Home' })).toHaveClass(active);
 		await expect.element(page.getByRole('link', { name: 'Gaming' })).not.toHaveClass(active);
 	});
+
+	it('offers guests to create an account on every page', async () => {
+		render(TabBar, { instanceName: 'Gaming', isGuest: true });
+		await expect
+			.element(page.getByRole('link', { name: 'Guest · Create account' }))
+			.toHaveAttribute('href', '/account');
+	});
+
+	it('shows no account link to members', async () => {
+		render(TabBar, { instanceName: 'Gaming' });
+		await expect
+			.element(page.getByRole('link', { name: 'Guest · Create account' }))
+			.not.toBeInTheDocument();
+	});
 });
