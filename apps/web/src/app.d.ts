@@ -7,6 +7,8 @@ declare global {
 		interface Locals {
 			user?: User;
 			session?: Session;
+			/** Invite code of a sign-up in progress, checked by the Better Auth user hook. */
+			inviteCode?: string;
 		}
 
 		// interface Error {}

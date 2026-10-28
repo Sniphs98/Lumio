@@ -2,19 +2,34 @@ import { expect, type Browser, type Page } from '@playwright/test';
 
 type Viewport = { width: number; height: number };
 
-/** Signs up a new user in a fresh browser context. */
-export async function newUser(browser: Browser, name: string, viewport?: Viewport) {
-	const context = await browser.newContext({ viewport });
-	const page = await context.newPage();
-	const email = `${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`;
+/**
+ * Invite link that every test user joins with. `e2e/setup.ts` creates it (and the instance
+ * owner, on an empty database) before the tests run.
+ */
+export const E2E_INVITE_CODE = 'e2e-shared-invite';
 
-	await page.goto('/login');
-	await page.getByRole('button', { name: 'Register' }).click();
+export function uniqueEmail(name: string) {
+	return `${name.toLowerCase().replace(/\W/g, '')}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`;
+}
+
+/** Creates an account through an invite link and returns its email. */
+export async function signUp(page: Page, name: string, inviteCode = E2E_INVITE_CODE) {
+	const email = uniqueEmail(name);
+	await page.goto(`/invite/${inviteCode}`);
 	await page.getByLabel('Display name').fill(name);
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Password').fill('correct horse battery');
-	await page.getByRole('button', { name: 'Create account' }).click();
+	await page.getByRole('button', { name: 'Create account and join' }).click();
 	await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
+	return email;
+}
+
+/** Signs up a new user in a fresh browser context and opens the Home tab. */
+export async function newUser(browser: Browser, name: string, viewport?: Viewport) {
+	const context = await browser.newContext({ viewport });
+	const page = await context.newPage();
+	const email = await signUp(page, name);
+	await page.goto('/');
 	return { context, page, email };
 }
 

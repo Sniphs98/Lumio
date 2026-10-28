@@ -1,16 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-
-async function signUp(page: Page, name: string) {
-	await page.goto('/login');
-	await page.getByRole('button', { name: 'Register' }).click();
-	await page.getByLabel('Display name').fill(name);
-	await page
-		.getByLabel('Email')
-		.fill(`${name.toLowerCase().replace(/\W/g, '')}-${Date.now()}@example.com`);
-	await page.getByLabel('Password').fill('correct horse battery');
-	await page.getByRole('button', { name: 'Create account' }).click();
-	await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
-}
+import { signUp } from './helpers.ts';
 
 async function openGeneral(page: Page) {
 	await page.getByRole('navigation', { name: 'Instances' }).getByRole('link').nth(1).click();

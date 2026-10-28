@@ -4,7 +4,7 @@ A self-hosted chat app for you and your friends: text channels, voice, video and
 
 Lumio runs in the browser (desktop and mobile, installable as a PWA), and there is an optional Electron desktop app. Nothing has to be installed to use it.
 
-> **Status:** early. Sign up, text channels, friends, direct messages, voice channels and calls (with camera and screen sharing) work.
+> **Status:** early. Sign up, invite links, text channels, friends, direct messages, voice channels and calls (with camera and screen sharing) work.
 
 ## Stack
 
@@ -53,7 +53,7 @@ pnpm test:unit   # Vitest: unit tests and component tests in a real browser
 pnpm test:e2e    # Playwright: end-to-end tests, needs the dev Postgres and a migrated database
 ```
 
-Run `pnpm --filter @lumio/web exec playwright install chromium` once to download the browser. CI runs lint, type checks, unit and end-to-end tests on every pull request.
+Run `pnpm --filter @lumio/web exec playwright install chromium` once to download the browser. Before the end-to-end tests run, `apps/web/e2e/setup.ts` creates the server owner on an empty database and a shared invite link (valid for one day) that the test users sign up with. CI runs lint, type checks, unit and end-to-end tests on every pull request.
 
 ### AI coding tools
 
@@ -76,6 +76,8 @@ git clone https://github.com/Sniphs98/Lumio.git && cd Lumio
 cp deploy/.env.example .env    # fill in domains and secrets
 docker compose up -d
 ```
+
+Open the app and create an account: the first account becomes the owner of the server. After that, registration is closed and people join through invite links. Create one under **Invite people** in the server tab, choose how long it stays valid and how often it can be used, and send it to your friends. Links can be revoked there at any time.
 
 Open these ports in your firewall: `80/tcp`, `443/tcp+udp` (HTTPS), `7881/tcp`, `3478/udp` and `50000-60000/udp` (LiveKit media). Missing UDP ports are the most common reason calls do not connect.
 

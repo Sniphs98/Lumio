@@ -16,17 +16,34 @@ export async function getChannel(channelId: string) {
 	return row ?? null;
 }
 
-/** Effective permission mask of a user in a channel. */
-export async function getChannelPermissions(userId: string, channelId: string): Promise<bigint> {
+async function isInstanceOwner(userId: string): Promise<boolean> {
 	const [inst] = await db.select({ ownerId: instance.ownerId }).from(instance);
-	const isOwner = inst?.ownerId === userId;
-	if (isOwner) return resolvePermissions({ isOwner, rolePermissions: [] });
+	return inst?.ownerId === userId;
+}
 
-	const roles = await db
+/** The `@everyone` role plus every role the user has. */
+async function getUserRoles(userId: string) {
+	return db
 		.select({ id: role.id, permissions: role.permissions })
 		.from(role)
 		.leftJoin(userRole, and(eq(userRole.roleId, role.id), eq(userRole.userId, userId)))
 		.where(or(eq(role.name, EVERYONE_ROLE_NAME), eq(userRole.userId, userId)));
+}
+
+/** Permission mask of a user outside any channel, e.g. for creating invites. */
+export async function getServerPermissions(userId: string): Promise<bigint> {
+	const isOwner = await isInstanceOwner(userId);
+	if (isOwner) return resolvePermissions({ isOwner, rolePermissions: [] });
+	const roles = await getUserRoles(userId);
+	return resolvePermissions({ isOwner, rolePermissions: roles.map((r) => r.permissions) });
+}
+
+/** Effective permission mask of a user in a channel. */
+export async function getChannelPermissions(userId: string, channelId: string): Promise<bigint> {
+	const isOwner = await isInstanceOwner(userId);
+	if (isOwner) return resolvePermissions({ isOwner, rolePermissions: [] });
+
+	const roles = await getUserRoles(userId);
 
 	const roleIds = roles.map((r) => r.id);
 	const overwrites = await db
