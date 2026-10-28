@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	return {
 		channel: { id: channel.id, name: channel.name, topic: channel.topic },
-		messages: await listMessages(channel.id),
+		messages: await listMessages({ channelId: channel.id }),
 		canSend: hasPermission(permissions, Permission.SendMessages)
 	};
 };
@@ -40,7 +40,7 @@ export const actions: Actions = {
 		const result = normalizeContent(form.get('content'));
 		if (!result.ok) return fail(400, { error: result.error });
 
-		const message = await createMessage(channel.id, locals.user.id, result.content);
+		const message = await createMessage({ channelId: channel.id }, locals.user.id, result.content);
 		publish(channel.id, { type: 'message.created', message });
 		return { message };
 	}

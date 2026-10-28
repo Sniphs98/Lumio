@@ -6,7 +6,8 @@
 
 	let { instanceName }: { instanceName: string } = $props();
 
-	const homeActive = $derived(page.url.pathname === '/');
+	// Home holds the friend list and every direct or group conversation.
+	const homeActive = $derived(!page.url.pathname.startsWith('/channels'));
 	const instanceActive = $derived(page.url.pathname.startsWith('/channels'));
 
 	const tabClass = (active: boolean) =>
@@ -24,7 +25,7 @@
 	class="flex h-10 shrink-0 items-end gap-1 overflow-x-auto border-b bg-muted/40 px-2 pt-[env(safe-area-inset-top)]"
 	aria-label="Instances"
 >
-	<a href={resolve('/(app)')} class={tabClass(homeActive)}>
+	<a href={resolve('/(app)/(home)')} class={tabClass(homeActive)}>
 		<House class="size-4" />
 		Home
 	</a>

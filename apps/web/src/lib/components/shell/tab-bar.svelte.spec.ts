@@ -3,9 +3,10 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import TabBar from './tab-bar.svelte';
 
-vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/channels') } }));
+const state = vi.hoisted(() => ({ page: { url: new URL('http://localhost/channels') } }));
+vi.mock('$app/state', () => state);
 vi.mock('$app/paths', () => ({
-	resolve: (route: string) => route.replace('/(app)', '') || '/'
+	resolve: (route: string) => route.replace(/\/\([^)]+\)/g, '') || '/'
 }));
 
 describe('TabBar', () => {
@@ -24,5 +25,14 @@ describe('TabBar', () => {
 		const active = /(^|\s)bg-background(\s|$)/;
 		await expect.element(page.getByRole('link', { name: 'Gaming' })).toHaveClass(active);
 		await expect.element(page.getByRole('link', { name: 'Home' })).not.toHaveClass(active);
+	});
+
+	it('keeps the Home tab active in direct messages', async () => {
+		state.page.url = new URL('http://localhost/dm/c1');
+		render(TabBar, { instanceName: 'Gaming' });
+
+		const active = /(^|\s)bg-background(\s|$)/;
+		await expect.element(page.getByRole('link', { name: 'Home' })).toHaveClass(active);
+		await expect.element(page.getByRole('link', { name: 'Gaming' })).not.toHaveClass(active);
 	});
 });

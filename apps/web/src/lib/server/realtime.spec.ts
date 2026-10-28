@@ -7,6 +7,7 @@ const event = (channelId: string): ChannelEvent => ({
 	message: {
 		id: 'm1',
 		channelId,
+		conversationId: null,
 		content: 'hi',
 		createdAt: '2026-01-01T10:00:00Z',
 		editedAt: null,
