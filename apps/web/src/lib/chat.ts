@@ -43,13 +43,13 @@ export type ChannelEvent =
 	| { type: 'member.removed'; userId: string };
 
 /**
- * Someone wrote in a channel or conversation; clients reload their unread counts.
- * Carries no content, so it can go to everyone. Sent to each member for conversations and
- * on `CHANNEL_ACTIVITY_TOPIC` for channels.
+ * Someone wrote in a channel or conversation; clients reload their unread counts and may
+ * play the message sound. Carries no content, so it can go to everyone. Sent to each member
+ * for conversations and on `CHANNEL_ACTIVITY_TOPIC` for channels.
  */
-export type ActivityEvent =
-	| { type: 'message.activity'; channelId: string; conversationId: null }
-	| { type: 'message.activity'; channelId: null; conversationId: string };
+export type ActivityEvent = { type: 'message.activity'; authorId: string; mentionIds: string[] } & (
+	{ channelId: string; conversationId: null } | { channelId: null; conversationId: string }
+);
 
 /**
  * Events sent to a single user, e.g. when their friend list changes or someone calls them.
