@@ -8,7 +8,8 @@ const message = (id: string, createdAt: string): ChatMessage => ({
 	content: id,
 	createdAt,
 	editedAt: null,
-	author: { id: 'u1', name: 'Lukas', image: null }
+	author: { id: 'u1', name: 'Lukas', image: null },
+	attachments: []
 });
 
 describe('normalizeContent', () => {
@@ -19,6 +20,11 @@ describe('normalizeContent', () => {
 	it('rejects empty and missing messages', () => {
 		expect(normalizeContent('   ').ok).toBe(false);
 		expect(normalizeContent(undefined).ok).toBe(false);
+	});
+
+	it('allows an empty text when the message has files', () => {
+		expect(normalizeContent('  ', { allowEmpty: true })).toEqual({ ok: true, content: '' });
+		expect(normalizeContent(null, { allowEmpty: true })).toEqual({ ok: true, content: '' });
 	});
 
 	it('rejects messages over the length limit', () => {

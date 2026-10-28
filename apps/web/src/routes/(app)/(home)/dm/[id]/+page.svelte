@@ -84,4 +84,6 @@
 	canSend={data.canSend}
 	cannotSendText="You can only message your friends."
 	error={form?.error}
+	uploadTarget="conversation:{data.conversation.id}"
+	maxUploadSize={data.maxUploadSize}
 />

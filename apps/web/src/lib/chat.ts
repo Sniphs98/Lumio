@@ -1,4 +1,5 @@
 /** Shared chat types and rules, used on the server and in the browser. */
+import type { Attachment } from '#lib/attachments.ts';
 import type { CallRingingEvent } from '#lib/calls.ts';
 
 export const MAX_MESSAGE_LENGTH = 4000;
@@ -13,6 +14,7 @@ export type ChatMessage = {
 	createdAt: string;
 	editedAt: string | null;
 	author: { id: string; name: string; image: string | null };
+	attachments: Attachment[];
 };
 
 /** Events sent to clients over a channel's or conversation's event stream. */
@@ -24,15 +26,17 @@ export type UserEvent = { type: 'home.changed' } | CallRingingEvent;
 export type RealtimeEvent = ChannelEvent | UserEvent;
 
 /**
- * Trims a message and checks its length.
+ * Trims a message and checks its length. A message with files may have no text (`allowEmpty`).
  * Returns the cleaned content, or an error text for the user.
  */
 export function normalizeContent(
-	raw: unknown
+	raw: unknown,
+	{ allowEmpty = false } = {}
 ): { ok: true; content: string } | { ok: false; error: string } {
+	if (raw === null && allowEmpty) return { ok: true, content: '' };
 	if (typeof raw !== 'string') return { ok: false, error: 'Message is missing.' };
 	const content = raw.replace(/\r\n/g, '\n').trim();
-	if (content.length === 0) return { ok: false, error: 'Message is empty.' };
+	if (content.length === 0 && !allowEmpty) return { ok: false, error: 'Message is empty.' };
 	if (content.length > MAX_MESSAGE_LENGTH) {
 		return { ok: false, error: `Message is longer than ${MAX_MESSAGE_LENGTH} characters.` };
 	}

@@ -9,5 +9,9 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		listChannels(),
 		getServerPermissions(locals.user.id)
 	]);
-	return { channels, canInvite: hasPermission(permissions, Permission.CreateInvite) };
+	return {
+		channels,
+		canInvite: hasPermission(permissions, Permission.CreateInvite),
+		canManageServer: hasPermission(permissions, Permission.ManageServer)
+	};
 };

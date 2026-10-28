@@ -1,5 +1,6 @@
 import { aliasedTable, and, asc, eq, ne } from 'drizzle-orm';
 import { directKey, type FriendUser } from '#lib/friends.ts';
+import { areFriends } from '#lib/server/friends.ts';
 import { db } from '#lib/server/db/index.ts';
 import { conversation, conversationMember, user } from '#lib/server/db/schema.ts';
 
@@ -90,4 +91,13 @@ export async function getConversation(
 		name: row.name,
 		others: members.filter((m) => m.id !== userId)
 	};
+}
+
+/** Direct messages need an accepted friendship; group members can always write. */
+export async function canSendInConversation(
+	details: ConversationDetails,
+	userId: string
+): Promise<boolean> {
+	if (details.type === 'group') return true;
+	return details.others.length === 1 && areFriends(userId, details.others[0].id);
 }

@@ -10,7 +10,8 @@ RUN pnpm --filter @lumio/web build
 
 FROM node:22-alpine
 WORKDIR /app
-ENV NODE_ENV=production PORT=3000
+# Uploads arrive in 8 MB pieces (UPLOAD_CHUNK_SIZE), so allow request bodies a bit larger than that.
+ENV NODE_ENV=production PORT=3000 BODY_SIZE_LIMIT=16M UPLOAD_DIR=/app/data/uploads
 COPY --from=build /repo/node_modules /node_modules
 COPY --from=build /repo/apps/web/node_modules ./node_modules
 COPY --from=build /repo/apps/web/build ./build
