@@ -11,6 +11,9 @@
 		"desktop": "pnpm --filter @lumio/desktop dev",
 		"db:push": "pnpm --filter @lumio/web db:push",
 		"db:generate": "pnpm --filter @lumio/web db:generate",
-		"db:migrate": "pnpm --filter @lumio/web db:migrate"
+		"db:migrate": "pnpm --filter @lumio/web db:migrate",
+		"test": "pnpm --filter @lumio/web test",
+		"test:unit": "pnpm --filter @lumio/web test:unit --run",
+		"test:e2e": "pnpm --filter @lumio/web test:e2e"
 	}
 }
