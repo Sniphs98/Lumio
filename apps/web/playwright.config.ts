@@ -11,7 +11,11 @@ export default defineConfig({
 	},
 	use: {
 		baseURL: 'http://localhost:4173',
-		// PW_CHROMIUM_PATH lets you use an already installed Chromium.
-		launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH }
+		launchOptions: {
+			// PW_CHROMIUM_PATH lets you use an already installed Chromium.
+			executablePath: process.env.PW_CHROMIUM_PATH,
+			// Calls use a fake microphone and camera and skip the permission prompt.
+			args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
+		}
 	}
 });

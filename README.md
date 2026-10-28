@@ -4,7 +4,7 @@ A self-hosted chat app for you and your friends: text channels, voice, video and
 
 Lumio runs in the browser (desktop and mobile, installable as a PWA), and there is an optional Electron desktop app. Nothing has to be installed to use it.
 
-> **Status:** early. Sign up, text channels, friends and direct messages work; voice and calls are next.
+> **Status:** early. Sign up, text channels, friends, direct messages, voice channels and calls (with camera and screen sharing) work.
 
 ## Stack
 
@@ -78,6 +78,8 @@ docker compose up -d
 ```
 
 Open these ports in your firewall: `80/tcp`, `443/tcp+udp` (HTTPS), `7881/tcp`, `3478/udp` and `50000-60000/udp` (LiveKit media). Missing UDP ports are the most common reason calls do not connect.
+
+Browsers only allow microphone, camera and screen access on HTTPS (or `localhost`), so calls need the HTTPS setup above. Screen sharing works in desktop browsers and the desktop app; most mobile browsers can join calls but cannot share their screen.
 
 ### Tracing
 

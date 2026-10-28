@@ -1,41 +1,5 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
-
-async function newUser(
-	browser: Browser,
-	name: string,
-	viewport?: { width: number; height: number }
-) {
-	const context = await browser.newContext({ viewport });
-	const page = await context.newPage();
-	const email = `${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`;
-
-	await page.goto('/login');
-	await page.getByRole('button', { name: 'Register' }).click();
-	await page.getByLabel('Display name').fill(name);
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Password').fill('correct horse battery');
-	await page.getByRole('button', { name: 'Create account' }).click();
-	await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
-	return { context, page, email };
-}
-
-async function addFriend(page: Page, email: string) {
-	await page.getByLabel("Friend's email").fill(email);
-	await page.getByRole('button', { name: 'Send friend request' }).click();
-}
-
-/** Signs up two users and makes them friends. */
-async function friends(browser: Browser, viewport?: { width: number; height: number }) {
-	const anna = await newUser(browser, 'Anna', viewport);
-	const ben = await newUser(browser, 'Ben', viewport);
-
-	await addFriend(anna.page, ben.email);
-	await expect(anna.page.getByRole('status')).toHaveText('Friend request sent to Ben.');
-	await ben.page.getByRole('button', { name: 'Accept Anna' }).click();
-	await expect(ben.page.getByRole('link', { name: 'Anna' })).toBeVisible();
-	await expect(anna.page.getByRole('link', { name: 'Ben' })).toBeVisible();
-	return { anna, ben };
-}
+import { expect, test } from '@playwright/test';
+import { addFriend, friends, newUser } from './helpers.ts';
 
 test('a friend request shows up live and can be accepted', async ({ browser }) => {
 	const anna = await newUser(browser, 'Anna');
@@ -46,8 +10,8 @@ test('a friend request shows up live and can be accepted', async ({ browser }) =
 
 	// Ben sees the request without reloading, and accepting it updates Anna's list too.
 	await ben.page.getByRole('button', { name: 'Accept Anna' }).click();
-	await expect(ben.page.getByRole('link', { name: 'Anna' })).toBeVisible();
-	await expect(anna.page.getByRole('link', { name: 'Ben' })).toBeVisible();
+	await expect(ben.page.getByRole('link', { name: 'Anna', exact: true })).toBeVisible();
+	await expect(anna.page.getByRole('link', { name: 'Ben', exact: true })).toBeVisible();
 	await expect(anna.page.getByRole('region', { name: 'Sent requests' })).toBeHidden();
 
 	await anna.context.close();
@@ -86,11 +50,11 @@ test('a declined request disappears for both users', async ({ browser }) => {
 test('clicking a friend opens the direct messages with live updates', async ({ browser }) => {
 	const { anna, ben } = await friends(browser);
 
-	await anna.page.getByRole('link', { name: 'Ben' }).click();
+	await anna.page.getByRole('link', { name: 'Ben', exact: true }).click();
 	await expect(anna.page.getByRole('heading', { name: 'Ben' })).toBeVisible();
 	await expect(anna.page.getByRole('button', { name: 'Start call' })).toBeVisible();
 
-	await ben.page.getByRole('link', { name: 'Anna' }).click();
+	await ben.page.getByRole('link', { name: 'Anna', exact: true }).click();
 	await expect(ben.page.getByRole('heading', { name: 'Anna' })).toBeVisible();
 	// Both land in the same conversation.
 	expect(new URL(ben.page.url()).pathname).toBe(new URL(anna.page.url()).pathname);
@@ -109,7 +73,7 @@ test('clicking a friend opens the direct messages with live updates', async ({ b
 
 test('other users cannot open a direct conversation', async ({ browser }) => {
 	const { anna, ben } = await friends(browser);
-	await anna.page.getByRole('link', { name: 'Ben' }).click();
+	await anna.page.getByRole('link', { name: 'Ben', exact: true }).click();
 	await expect(anna.page.getByRole('heading', { name: 'Ben' })).toBeVisible();
 	const dmPath = new URL(anna.page.url()).pathname;
 
@@ -131,7 +95,7 @@ test('on a phone the friend list and the chat are separate screens', async ({ br
 	const { anna, ben } = await friends(browser, viewport);
 	const { page } = anna;
 
-	await page.getByRole('link', { name: 'Ben' }).click();
+	await page.getByRole('link', { name: 'Ben', exact: true }).click();
 	await expect(page.getByRole('complementary', { name: 'Friends and groups' })).toBeHidden();
 	await expect(page.getByLabel('Message Ben')).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Start call' })).toBeVisible();

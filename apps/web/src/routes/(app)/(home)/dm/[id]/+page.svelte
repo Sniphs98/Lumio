@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { ArrowLeft, Phone, Users } from '@lucide/svelte';
+	import { ArrowLeft, Phone, PhoneOff, Users } from '@lucide/svelte';
+	import { call } from '#lib/call.svelte.ts';
+	import CallStage from '#lib/components/call/call-stage.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import type { PageProps } from './$types';
@@ -12,6 +14,15 @@
 			? (data.conversation.name ?? data.conversation.others.map((u) => u.name).join(', '))
 			: (data.conversation.others[0]?.name ?? 'Deleted user')
 	);
+	const inCall = $derived(call.isIn('conversation', data.conversation.id));
+
+	function startCall() {
+		call.join({
+			kind: 'conversation',
+			id: data.conversation.id,
+			name: title
+		});
+	}
 </script>
 
 <svelte:head>
@@ -30,18 +41,40 @@
 		<Users class="size-4 shrink-0 text-muted-foreground" />
 	{/if}
 	<h1 class="min-w-0 flex-1 truncate font-semibold">{title}</h1>
-	<!-- Calls start from the top right of a chat. Joining the LiveKit room comes with the call bar. -->
-	<Button
-		variant="ghost"
-		size="icon"
-		class="size-8"
-		aria-label="Start call"
-		title="Calls are coming soon"
-		disabled
-	>
-		<Phone />
-	</Button>
+	<!-- Calls start from the top right of a chat; the call bar then follows the user across tabs. -->
+	{#if inCall}
+		<Button
+			variant="ghost"
+			size="icon"
+			class="size-8 text-destructive hover:text-destructive"
+			aria-label="Leave call"
+			onclick={() => call.leave()}
+		>
+			<PhoneOff />
+		</Button>
+	{:else}
+		<Button
+			variant="ghost"
+			size="icon"
+			class="size-8"
+			aria-label={call.ringing?.conversationId === data.conversation.id
+				? 'Join call'
+				: 'Start call'}
+			title={data.canSend ? undefined : 'You can only call your friends.'}
+			disabled={!data.canSend}
+			onclick={startCall}
+		>
+			<Phone />
+		</Button>
+	{/if}
 </header>
+
+{#if inCall}
+	<CallStage
+		participants={call.participants}
+		class="max-h-[45%] shrink-0 overflow-y-auto border-b"
+	/>
+{/if}
 
 <ChatView
 	messages={data.messages}

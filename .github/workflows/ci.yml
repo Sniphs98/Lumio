@@ -39,4 +39,11 @@ jobs:
       - run: pnpm check
       - run: pnpm test:unit
       - run: pnpm --filter @lumio/web exec node scripts/migrate.js
+      # LiveKit for the call tests, same as in docker-compose.dev.yml. Service containers
+      # cannot take a command, so it is started here.
+      - name: Start LiveKit
+        run: |
+          docker run -d --name livekit --network host livekit/livekit-server:v1.9 \
+            --dev --bind 0.0.0.0 --keys "devkey: devsecret_change_me_devsecret_change_me"
+          timeout 60 sh -c 'until curl -sf http://localhost:7880 > /dev/null; do sleep 1; done'
       - run: pnpm test:e2e

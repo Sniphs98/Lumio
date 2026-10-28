@@ -1,4 +1,5 @@
 /** Shared chat types and rules, used on the server and in the browser. */
+import type { CallRingingEvent } from '#lib/calls.ts';
 
 export const MAX_MESSAGE_LENGTH = 4000;
 
@@ -17,8 +18,8 @@ export type ChatMessage = {
 /** Events sent to clients over a channel's or conversation's event stream. */
 export type ChannelEvent = { type: 'message.created'; message: ChatMessage };
 
-/** Events sent to a single user, e.g. when their friend list or conversations change. */
-export type UserEvent = { type: 'home.changed' };
+/** Events sent to a single user, e.g. when their friend list changes or someone calls them. */
+export type UserEvent = { type: 'home.changed' } | CallRingingEvent;
 
 export type RealtimeEvent = ChannelEvent | UserEvent;
 
