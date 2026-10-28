@@ -72,5 +72,7 @@
 		canSend={data.canSend}
 		cannotSendText="You cannot send messages in this channel."
 		error={form?.error}
+		uploadTarget={data.canAttach ? `channel:${data.channel.id}` : undefined}
+		maxUploadSize={data.maxUploadSize}
 	/>
 {/if}

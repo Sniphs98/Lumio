@@ -35,6 +35,10 @@ export const instance = pgTable('instance', {
 	ownerId: text('owner_id')
 		.notNull()
 		.references(() => user.id, { onDelete: 'restrict' }),
+	/** Largest file members may upload, in bytes. Set by the owner in the server settings. */
+	maxUploadSize: bigint('max_upload_size', { mode: 'number' })
+		.notNull()
+		.default(2 * 1024 ** 3),
 	...timestamps
 });
 
@@ -198,16 +202,34 @@ export const message = pgTable(
 	]
 );
 
-export const attachment = pgTable('attachment', {
-	id: uuid('id').primaryKey().defaultRandom(),
-	messageId: uuid('message_id')
-		.notNull()
-		.references(() => message.id, { onDelete: 'cascade' }),
-	url: text('url').notNull(),
-	fileName: text('file_name').notNull(),
-	mimeType: text('mime_type').notNull(),
-	size: integer('size').notNull()
-});
+/**
+ * A file shared in a chat. The row is created when its upload finishes, before the message is sent:
+ * `messageId` stays empty until the uploader sends a message with it. The file itself lives in the
+ * upload store (a folder on the instance or an S3 bucket) under the attachment's id.
+ */
+export const attachment = pgTable(
+	'attachment',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		messageId: uuid('message_id').references(() => message.id, { onDelete: 'cascade' }),
+		uploaderId: text('uploader_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		/** The chat the file was uploaded for; it can only be sent there. */
+		channelId: uuid('channel_id').references(() => channel.id, { onDelete: 'cascade' }),
+		conversationId: uuid('conversation_id').references(() => conversation.id, {
+			onDelete: 'cascade'
+		}),
+		fileName: text('file_name').notNull(),
+		mimeType: text('mime_type').notNull(),
+		size: bigint('size', { mode: 'number' }).notNull(),
+		...timestamps
+	},
+	(t) => [
+		index('attachment_message_idx').on(t.messageId),
+		index('attachment_uploader_idx').on(t.uploaderId)
+	]
+);
 
 export const reaction = pgTable(
 	'reaction',
@@ -260,4 +282,8 @@ export const messageRelations = relations(message, ({ one, many }) => ({
 	author: one(user, { fields: [message.authorId], references: [user.id] }),
 	attachments: many(attachment),
 	reactions: many(reaction)
+}));
+
+export const attachmentRelations = relations(attachment, ({ one }) => ({
+	message: one(message, { fields: [attachment.messageId], references: [message.id] })
 }));

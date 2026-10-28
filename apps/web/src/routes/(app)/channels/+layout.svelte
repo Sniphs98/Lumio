@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Hash, MicOff, UserPlus, Volume2 } from '@lucide/svelte';
+	import { Hash, MicOff, Settings, UserPlus, Volume2 } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
 	import { cn } from '#lib/utils.ts';
 	import type { LayoutProps } from './$types';
@@ -11,8 +11,9 @@
 	const textChannels = $derived(data.channels.filter((c) => c.type === 'text'));
 	const voiceChannels = $derived(data.channels.filter((c) => c.type === 'voice'));
 	const invitesOpen = $derived(page.route.id === '/(app)/channels/invites');
+	const settingsOpen = $derived(page.route.id === '/(app)/channels/settings');
 	// On phones either the channel list or the open page is shown, never both.
-	const channelOpen = $derived(Boolean(page.params.id) || invitesOpen);
+	const channelOpen = $derived(Boolean(page.params.id) || invitesOpen || settingsOpen);
 </script>
 
 <aside
@@ -22,19 +23,34 @@
 	)}
 	aria-label="Channels"
 >
-	{#if data.canInvite}
-		<a
-			href={resolve('/(app)/channels/invites')}
-			class={cn(
-				'mb-3 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-				invitesOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
-			)}
-			aria-current={invitesOpen ? 'page' : undefined}
-		>
-			<UserPlus class="size-4 shrink-0" />
-			<span class="truncate">Invite people</span>
-		</a>
-	{/if}
+	<div class="grid gap-0.5 pb-3 empty:hidden">
+		{#if data.canInvite}
+			<a
+				href={resolve('/(app)/channels/invites')}
+				class={cn(
+					'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+					invitesOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
+				)}
+				aria-current={invitesOpen ? 'page' : undefined}
+			>
+				<UserPlus class="size-4 shrink-0" />
+				<span class="truncate">Invite people</span>
+			</a>
+		{/if}
+		{#if data.canManageServer}
+			<a
+				href={resolve('/(app)/channels/settings')}
+				class={cn(
+					'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+					settingsOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
+				)}
+				aria-current={settingsOpen ? 'page' : undefined}
+			>
+				<Settings class="size-4 shrink-0" />
+				<span class="truncate">Server settings</span>
+			</a>
+		{/if}
+	</div>
 	<h2 class="px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
 		Text channels
 	</h2>

@@ -1,8 +1,9 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { parseAttachmentIds } from '#lib/attachments.ts';
 import { normalizeContent } from '#lib/chat.ts';
-import { getConversation } from '#lib/server/conversations.ts';
-import { areFriends } from '#lib/server/friends.ts';
-import { createMessage, listMessages } from '#lib/server/messages.ts';
+import { getMaxUploadSize } from '#lib/server/attachments.ts';
+import { canSendInConversation, getConversation } from '#lib/server/conversations.ts';
+import { attachmentError, createMessage, listMessages } from '#lib/server/messages.ts';
 import { publish } from '#lib/server/realtime.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -10,11 +11,7 @@ async function loadConversation(userId: string, conversationId: string) {
 	const conversation = await getConversation(conversationId, userId);
 	if (!conversation) error(404, 'Conversation not found');
 
-	// Direct messages need an accepted friendship; group members can always write.
-	const canSend =
-		conversation.type === 'group' ||
-		(conversation.others.length === 1 && (await areFriends(userId, conversation.others[0].id)));
-	return { conversation, canSend };
+	return { conversation, canSend: await canSendInConversation(conversation, userId) };
 }
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -25,7 +22,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		conversation,
 		messages: await listMessages({ conversationId: conversation.id }),
-		canSend
+		canSend,
+		maxUploadSize: await getMaxUploadSize()
 	};
 };
 
@@ -36,14 +34,20 @@ export const actions: Actions = {
 		if (!canSend) return fail(403, { error: 'You can only message your friends.' });
 
 		const form = await request.formData();
-		const result = normalizeContent(form.get('content'));
+		const attachments = parseAttachmentIds(form.getAll('attachment'));
+		if (!attachments.ok) return fail(400, { error: attachments.error });
+		const result = normalizeContent(form.get('content'), {
+			allowEmpty: attachments.ids.length > 0
+		});
 		if (!result.ok) return fail(400, { error: result.error });
 
 		const message = await createMessage(
 			{ conversationId: conversation.id },
 			locals.user.id,
-			result.content
-		);
+			result.content,
+			attachments.ids
+		).catch(attachmentError);
+		if (!message) return fail(400, { error: 'A file is missing or still uploading.' });
 		publish(conversation.id, { type: 'message.created', message });
 		return { message };
 	}
