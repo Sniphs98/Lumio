@@ -4,18 +4,18 @@ A self-hosted chat app for you and your friends: text channels, voice, video and
 
 Lumio runs in the browser (desktop and mobile, installable as a PWA), and there is an optional Electron desktop app. Nothing has to be installed to use it.
 
-> **Status:** early. Sign up, invite links, guest access, text channels, file sharing, friends (added through personal friend links), direct messages, voice channels and calls (with camera and screen sharing) work. Messages support emoji reactions, replies and @-mentions, and unread counters show up on channels, chats and tabs.
+> **Status:** early. Sign up, invite links, guest access, text channels, file sharing, friends (added through personal friend links), direct messages, group chats, voice channels and calls (with camera and screen sharing) work. Messages support emoji reactions, replies and @-mentions, and unread counters show up on channels, chats and tabs.
 
 ## Stack
 
-| Part | Choice |
-| --- | --- |
-| Web app | [SvelteKit](https://svelte.dev/docs/kit) + [shadcn-svelte](https://shadcn-svelte.com) + Tailwind CSS |
-| Auth | [Better Auth](https://www.better-auth.com) (email and password) |
-| Database | PostgreSQL + [Drizzle ORM](https://orm.drizzle.team) |
-| Voice, video, screen sharing | [LiveKit](https://livekit.io) (self-hosted SFU) |
-| Desktop | Electron, a thin shell around the web app |
-| Deployment | Docker Compose + Caddy (automatic HTTPS) |
+| Part                         | Choice                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Web app                      | [SvelteKit](https://svelte.dev/docs/kit) + [shadcn-svelte](https://shadcn-svelte.com) + Tailwind CSS |
+| Auth                         | [Better Auth](https://www.better-auth.com) (email and password)                                      |
+| Database                     | PostgreSQL + [Drizzle ORM](https://orm.drizzle.team)                                                 |
+| Voice, video, screen sharing | [LiveKit](https://livekit.io) (self-hosted SFU)                                                      |
+| Desktop                      | Electron, a thin shell around the web app                                                            |
+| Deployment                   | Docker Compose + Caddy (automatic HTTPS)                                                             |
 
 ## Repository layout
 
@@ -39,6 +39,8 @@ cp apps/web/.env.example apps/web/.env            # set BETTER_AUTH_SECRET
 pnpm db:migrate
 pnpm dev                                          # http://localhost:5173
 ```
+
+The dev LiveKit server announces `127.0.0.1` as its media address, so calls work when the browser runs on the same machine, including Docker Desktop and WSL. To join calls from another device in your network (for example a phone), put `LIVEKIT_NODE_IP=<your LAN IP>` into a `.env` file in the repository root, restart LiveKit with `docker compose -f docker-compose.dev.yml up -d livekit` and set `LIVEKIT_URL` in `apps/web/.env` to `ws://<your LAN IP>:7880`. Browsers only allow microphone and camera access on HTTPS or `localhost`, so other devices can join calls but may not be able to send audio or video.
 
 Desktop app against the local dev server:
 

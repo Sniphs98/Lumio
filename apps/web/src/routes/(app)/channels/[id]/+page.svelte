@@ -3,14 +3,18 @@
 	import { ArrowLeft, Hash, Phone, Volume2 } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
 	import CallStage from '#lib/components/call/call-stage.svelte';
+	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { getUnreadContext } from '#lib/unread-context.ts';
+	import { getVoiceContext } from '#lib/voice-context.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	const unread = getUnreadContext();
+	const voice = getVoiceContext();
+	const members = $derived(voice.channels[data.channel.id] ?? []);
 
 	const inCall = $derived(data.kind === 'voice' && call.isIn('channel', data.channel.id));
 
@@ -55,8 +59,19 @@
 				<Volume2 class="size-7 text-muted-foreground" />
 			</span>
 			<h2 class="text-lg font-semibold">{data.channel.name}</h2>
+			{#if members.length > 0}
+				<VoiceMembers
+					{members}
+					label="People in {data.channel.name}"
+					class="w-56 max-w-full rounded-lg border p-2 text-left"
+				/>
+			{/if}
 			{#if data.canConnect}
-				<p class="text-sm text-muted-foreground">Talk, share your screen or turn on your camera.</p>
+				<p class="text-sm text-muted-foreground">
+					{members.length > 0
+						? 'Jump in and say hi.'
+						: 'Talk, share your screen or turn on your camera.'}
+				</p>
 				<Button onclick={joinVoice} disabled={call.status === 'connecting'}>
 					<Phone />
 					Join voice

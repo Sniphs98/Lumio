@@ -168,6 +168,11 @@ export const conversation = pgTable('conversation', {
 	/** Only used for group conversations. */
 	name: text('name'),
 	/**
+	 * Only used for group conversations: the member who may remove others. Passes to the
+	 * longest-standing member when the owner leaves.
+	 */
+	ownerId: text('owner_id').references(() => user.id, { onDelete: 'set null' }),
+	/**
 	 * Only used for direct conversations: both user ids, sorted and joined by `:`.
 	 * Unique, so two users always share exactly one direct conversation.
 	 */
@@ -183,7 +188,8 @@ export const conversationMember = pgTable(
 			.references(() => conversation.id, { onDelete: 'cascade' }),
 		userId: text('user_id')
 			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' })
+			.references(() => user.id, { onDelete: 'cascade' }),
+		joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull()
 	},
 	(t) => [
 		primaryKey({ columns: [t.conversationId, t.userId] }),

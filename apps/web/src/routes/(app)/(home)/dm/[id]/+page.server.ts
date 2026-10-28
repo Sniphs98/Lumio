@@ -23,9 +23,11 @@ async function loadConversation(userId: string, conversationId: string) {
 	return { conversation, canSend: await canSendInConversation(conversation, userId) };
 }
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, depends }) => {
 	// Server loads run in parallel with the layout's auth check, so check again here.
 	if (!locals.user) redirect(302, '/login');
+	// Group name and members change live, see `notify` in `#lib/server/groups.ts`.
+	depends('app:home');
 	const { conversation, canSend } = await loadConversation(locals.user.id, params.id);
 
 	const target = { conversationId: conversation.id };

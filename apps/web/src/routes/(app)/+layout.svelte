@@ -36,8 +36,8 @@
 		}, 500);
 	}
 
-	// Events for the signed-in user on every tab: friend list changes, incoming calls and
-	// new messages in other chats.
+	// Events for the signed-in user on every tab: friend and group list changes, incoming
+	// calls and new messages in other chats.
 	$effect(() => {
 		const source = new EventSource('/api/me/events');
 		let opened = false;
@@ -57,6 +57,13 @@
 			reloadUnread();
 		});
 		source.addEventListener('home.changed', () => invalidate('app:home'));
+		source.addEventListener('conversation.removed', async (e) => {
+			const event = JSON.parse((e as MessageEvent<string>).data) as UserEvent;
+			if (event.type !== 'conversation.removed') return;
+			// Removed from or left the group that is open: go back to the Home start page.
+			if (page.params.id === event.conversationId) await goto(resolve('/(app)/(home)'));
+			invalidate('app:home');
+		});
 		source.addEventListener('call.ringing', (e) => {
 			const event = JSON.parse((e as MessageEvent<string>).data) as UserEvent;
 			if (event.type === 'call.ringing') call.ring(event);

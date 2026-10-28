@@ -1,17 +1,51 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Hash, MicOff, Settings, UserPlus, Volume2 } from '@lucide/svelte';
+	import { Hash, Settings, UserPlus, Volume2 } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
+	import { applyVoiceEvent, type VoiceEvent, type VoiceMember } from '#lib/calls.ts';
+	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
 	import { getUnreadContext } from '#lib/unread-context.ts';
 	import { NO_UNREAD } from '#lib/unread.ts';
 	import { cn } from '#lib/utils.ts';
+	import { setVoiceContext } from '#lib/voice-context.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
 
 	const unread = getUnreadContext();
+
+	// Who is in which voice channel, live for everyone, also without joining.
+	let voice = $derived(data.voice);
+	setVoiceContext({
+		get channels() {
+			return voice;
+		}
+	});
+	$effect(() => {
+		const source = new EventSource('/api/voice/events');
+		const onEvent = (e: Event) => {
+			voice = applyVoiceEvent(voice, JSON.parse((e as MessageEvent<string>).data) as VoiceEvent);
+		};
+		source.addEventListener('voice.state', onEvent);
+		source.addEventListener('voice.changed', onEvent);
+		return () => source.close();
+	});
+
+	function membersOf(channelId: string): (VoiceMember & { speaking?: boolean })[] {
+		// In the call itself LiveKit tells us more, e.g. who is speaking, and without delay.
+		if (call.isIn('channel', channelId)) {
+			return call.participants.map((p) => ({
+				id: p.identity,
+				name: p.name,
+				muted: p.micMuted,
+				streaming: p.screen !== null,
+				speaking: p.speaking
+			}));
+		}
+		return voice[channelId] ?? [];
+	}
 
 	const textChannels = $derived(data.channels.filter((c) => c.type === 'text'));
 	const voiceChannels = $derived(data.channels.filter((c) => c.type === 'voice'));
@@ -84,6 +118,7 @@
 	</h2>
 	<ul class="grid gap-0.5">
 		{#each voiceChannels as c (c.id)}
+			{@const members = membersOf(c.id)}
 			<li>
 				<a
 					href={resolve('/(app)/channels/[id]', { id: c.id })}
@@ -96,22 +131,8 @@
 					<Volume2 class="size-4 shrink-0" />
 					<span class="truncate">{c.name}</span>
 				</a>
-				{#if call.isIn('channel', c.id)}
-					<!-- Who is in the voice channel, while the user is in it too. -->
-					<ul class="grid gap-0.5 py-0.5 pl-8" aria-label="In {c.name}">
-						{#each call.participants as p (p.identity)}
-							<li class="flex items-center gap-1.5 text-sm text-muted-foreground">
-								<span
-									class={cn(
-										'size-2 shrink-0 rounded-full',
-										p.speaking ? 'bg-emerald-500' : 'bg-muted-foreground/40'
-									)}
-								></span>
-								<span class="truncate">{p.name}</span>
-								{#if p.micMuted}<MicOff class="size-3 shrink-0" aria-label="Muted" />{/if}
-							</li>
-						{/each}
-					</ul>
+				{#if members.length > 0}
+					<VoiceMembers {members} label="In {c.name}" class="py-0.5 pl-8" />
 				{/if}
 			</li>
 		{/each}

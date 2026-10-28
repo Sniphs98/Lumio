@@ -19,6 +19,7 @@
 	import ReactionBar from '#lib/components/chat/reaction-bar.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Progress } from '#lib/components/ui/progress/index.ts';
+	import { Textarea } from '#lib/components/ui/textarea/index.ts';
 	import {
 		addMessage,
 		MAX_MESSAGE_LENGTH,
@@ -84,7 +85,7 @@
 	let uploads: PendingUpload[] = $state([]);
 	let uploadError = $state('');
 	let dragging = $state(false);
-	let textarea: HTMLTextAreaElement | undefined = $state();
+	let textarea: HTMLTextAreaElement | null = $state(null);
 	let replyingTo: ChatMessage | null = $state(null);
 	/** Users picked from the suggestions for the current draft; sent as `<@id>`. */
 	let picked: ChatUser[] = [];
@@ -588,9 +589,9 @@
 						<Paperclip />
 					</Button>
 				{/if}
-				<textarea
+				<Textarea
 					name="content"
-					bind:this={textarea}
+					bind:ref={textarea}
 					bind:value={content}
 					onkeydown={onKeydown}
 					oninput={updateMention}
@@ -600,12 +601,12 @@
 					}}
 					onblur={() => (mention = null)}
 					onpaste={onPaste}
-					rows="1"
+					rows={1}
 					maxlength={MAX_MESSAGE_LENGTH}
 					placeholder="Message {label}"
 					aria-label="Message {label}"
-					class="field-sizing-content max-h-40 min-h-9 flex-1 resize-none rounded-md border bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-				></textarea>
+					class="max-h-40 min-h-9 flex-1 resize-none"
+				/>
 				<Button type="submit" size="icon" disabled={!canSubmit} aria-label="Send">
 					<SendHorizontal />
 				</Button>

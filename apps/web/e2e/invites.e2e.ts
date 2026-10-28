@@ -7,9 +7,14 @@ async function openInvites(page: Page) {
 	await expect(page.getByRole('heading', { name: 'Invite people' })).toBeVisible();
 }
 
+async function pickOption(page: Page, label: string, option: string) {
+	await page.getByLabel(label).click();
+	await page.getByRole('option', { name: option, exact: true }).click();
+}
+
 async function createInvite(page: Page, options: { expiry?: string; maxUses?: string } = {}) {
-	if (options.expiry) await page.getByLabel('Expire after').selectOption(options.expiry);
-	if (options.maxUses) await page.getByLabel('Max number of uses').selectOption(options.maxUses);
+	if (options.expiry) await pickOption(page, 'Expire after', options.expiry);
+	if (options.maxUses) await pickOption(page, 'Max number of uses', options.maxUses);
 	await page.getByRole('button', { name: 'Create invite link' }).click();
 	const link = page.getByLabel('Your new invite link');
 	await expect(link).toHaveValue(/\/invite\/\w+$/);

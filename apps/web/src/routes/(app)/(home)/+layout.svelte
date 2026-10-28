@@ -9,8 +9,9 @@
 
 	const unread = getUnreadContext();
 
-	// On phones either the lists or the open chat is shown, never both.
-	const chatOpen = $derived(Boolean(page.params.id));
+	// On phones either the lists or the open page (a chat, creating a group, ...) is shown,
+	// never both. Only the Home start page leaves the lists on screen.
+	const chatOpen = $derived(page.route.id !== '/(app)/(home)');
 
 	// Friend requests show up without a reload: the app layout invalidates `app:home` on events.
 </script>

@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { ArrowLeft, Phone, PhoneOff, Users } from '@lucide/svelte';
+	import { ArrowLeft, Phone, PhoneOff, Settings, Users } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
 	import CallStage from '#lib/components/call/call-stage.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
-	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
+	import { groupTitle } from '#lib/groups.ts';
 	import { getUnreadContext } from '#lib/unread-context.ts';
 	import type { PageProps } from './$types';
 
@@ -14,7 +15,7 @@
 
 	const title = $derived(
 		data.conversation.type === 'group'
-			? (data.conversation.name ?? data.conversation.others.map((u) => u.name).join(', '))
+			? groupTitle(data.conversation.name, data.conversation.others)
 			: (data.conversation.others[0]?.name ?? 'Deleted user')
 	);
 	const inCall = $derived(call.isIn('conversation', data.conversation.id));
@@ -44,6 +45,16 @@
 		<Users class="size-4 shrink-0 text-muted-foreground" />
 	{/if}
 	<h1 class="min-w-0 flex-1 truncate font-semibold">{title}</h1>
+	{#if data.conversation.type === 'group'}
+		<a
+			href={resolve('/(app)/(home)/dm/[id]/settings', { id: data.conversation.id })}
+			class={buttonVariants({ variant: 'ghost', size: 'icon', class: 'size-8' })}
+			aria-label="Group settings"
+			title="Members and settings"
+		>
+			<Settings />
+		</a>
+	{/if}
 	<!-- Calls start from the top right of a chat; the call bar then follows the user across tabs. -->
 	{#if inCall}
 		<Button

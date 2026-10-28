@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { cn } from '#lib/utils.ts';
+	import { cn, type WithElementRef } from '#lib/utils.ts';
 	import type { HTMLTextareaAttributes } from 'svelte/elements';
 
 	let {
+		ref = $bindable(null),
 		class: className,
 		value = $bindable(),
 		...restProps
-	}: Omit<HTMLTextareaAttributes, 'children'> = $props();
+	}: WithElementRef<Omit<HTMLTextareaAttributes, 'children'>, HTMLTextAreaElement> = $props();
 </script>
 
 <textarea
+	bind:this={ref}
 	bind:value
 	data-slot="input"
 	class={cn(

@@ -28,7 +28,7 @@ function toRecord(rows: { id: string | null; count: number; mentions: number }[]
 
 /**
  * Unread messages from others in every channel the user can see and every conversation they are
- * in. Without a read marker, messages since the user signed up count.
+ * in. Without a read marker, messages since the user signed up (or joined the group) count.
  */
 export async function getUnreadCounts(userId: string): Promise<UnreadCounts> {
 	const readSince = sql`coalesce(${readState.lastReadAt}, (select ${user.createdAt} from ${user} where ${user.id} = ${userId}))`;
@@ -69,7 +69,12 @@ export async function getUnreadCounts(userId: string): Promise<UnreadCounts> {
 				and(eq(readState.userId, userId), eq(readState.conversationId, message.conversationId))
 			)
 			.leftJoin(messageMention, mentionsMe)
-			.where(and(ne(message.authorId, userId), sql`${message.createdAt} > ${readSince}`))
+			.where(
+				and(
+					ne(message.authorId, userId),
+					sql`${message.createdAt} > coalesce(${readState.lastReadAt}, ${conversationMember.joinedAt})`
+				)
+			)
 			.groupBy(message.conversationId),
 		listVisibleChannelIds(userId, 'text')
 	]);

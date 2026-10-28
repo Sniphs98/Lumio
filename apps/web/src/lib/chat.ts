@@ -1,6 +1,6 @@
 /** Shared chat types and rules, used on the server and in the browser. */
 import type { Attachment } from '#lib/attachments.ts';
-import type { CallRingingEvent } from '#lib/calls.ts';
+import type { CallRingingEvent, VoiceEvent } from '#lib/calls.ts';
 import type { Reaction } from '#lib/reactions.ts';
 
 export const MAX_MESSAGE_LENGTH = 4000;
@@ -38,7 +38,9 @@ export type ChatMessage = {
 /** Events sent to clients over a channel's or conversation's event stream. */
 export type ChannelEvent =
 	| { type: 'message.created'; message: ChatMessage }
-	| { type: 'reaction.changed'; messageId: string; reactions: Reaction[] };
+	| { type: 'reaction.changed'; messageId: string; reactions: Reaction[] }
+	/** Someone was removed from or left a group; their stream of it closes. */
+	| { type: 'member.removed'; userId: string };
 
 /**
  * Someone wrote in a channel or conversation; clients reload their unread counts.
@@ -49,10 +51,17 @@ export type ActivityEvent =
 	| { type: 'message.activity'; channelId: string; conversationId: null }
 	| { type: 'message.activity'; channelId: null; conversationId: string };
 
-/** Events sent to a single user, e.g. when their friend list changes or someone calls them. */
-export type UserEvent = { type: 'home.changed' } | CallRingingEvent | ActivityEvent;
+/**
+ * Events sent to a single user, e.g. when their friend list changes or someone calls them.
+ * `conversation.removed` tells a user they are no longer in a group.
+ */
+export type UserEvent =
+	| { type: 'home.changed' }
+	| { type: 'conversation.removed'; conversationId: string }
+	| CallRingingEvent
+	| ActivityEvent;
 
-export type RealtimeEvent = ChannelEvent | UserEvent;
+export type RealtimeEvent = ChannelEvent | UserEvent | VoiceEvent;
 
 /**
  * Trims a message and checks its length. A message with files may have no text (`allowEmpty`).

@@ -9,6 +9,7 @@
 	import { Checkbox } from '#lib/components/ui/checkbox/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
 	import {
 		DEFAULT_EXPIRY,
 		DEFAULT_MAX_USES,
@@ -23,8 +24,10 @@
 	const invites = $derived(data.invites.map((i) => ({ ...i, url: inviteUrl(i.code) })));
 	const createdUrl = $derived(form?.createdCode ? inviteUrl(form.createdCode) : null);
 
-	const selectClass =
-		'h-9 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm dark:bg-input/30';
+	let expiry = $state<string>(DEFAULT_EXPIRY);
+	let maxUses = $state<string>(DEFAULT_MAX_USES);
+	const expiryLabel = $derived(EXPIRY_OPTIONS.find((o) => o.value === expiry)?.label);
+	const maxUsesLabel = $derived(MAX_USES_OPTIONS.find((o) => o.value === maxUses)?.label);
 </script>
 
 <svelte:head>
@@ -55,19 +58,29 @@
 			<form method="post" action="?/create" use:enhance class="grid gap-3 sm:grid-cols-2">
 				<div class="grid gap-2">
 					<Label for="expiry">Expire after</Label>
-					<select id="expiry" name="expiry" class={selectClass} value={DEFAULT_EXPIRY}>
-						{#each EXPIRY_OPTIONS as option (option.value)}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" name="expiry" bind:value={expiry}>
+						<Select.Trigger id="expiry" class="w-full data-[size=default]:h-9"
+							>{expiryLabel}</Select.Trigger
+						>
+						<Select.Content>
+							{#each EXPIRY_OPTIONS as option (option.value)}
+								<Select.Item value={option.value} label={option.label} />
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 				<div class="grid gap-2">
 					<Label for="max-uses">Max number of uses</Label>
-					<select id="max-uses" name="maxUses" class={selectClass} value={DEFAULT_MAX_USES}>
-						{#each MAX_USES_OPTIONS as option (option.value)}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" name="maxUses" bind:value={maxUses}>
+						<Select.Trigger id="max-uses" class="w-full data-[size=default]:h-9"
+							>{maxUsesLabel}</Select.Trigger
+						>
+						<Select.Content>
+							{#each MAX_USES_OPTIONS as option (option.value)}
+								<Select.Item value={option.value} label={option.label} />
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 				<Label class="flex items-center gap-2 font-normal sm:col-span-2">
 					<Checkbox name="allowGuests" checked />
