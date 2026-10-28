@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { Check, RefreshCw, Users, X } from '@lucide/svelte';
+	import { Check, Plus, RefreshCw, Users, X } from '@lucide/svelte';
+	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import CopyButton from '#lib/components/invites/copy-button.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
@@ -12,7 +13,7 @@
 		friends: FriendUser[];
 		incoming: FriendUser[];
 		outgoing: FriendUser[];
-		groups: { id: string; name: string | null }[];
+		groups: { id: string; title: string; memberCount: number }[];
 		/** Friend id to the id of the direct conversation with them, if there is one. */
 		directConversationIds: Record<string, string>;
 		/** Conversation shown next to the sidebar, if any. */
@@ -39,19 +40,6 @@
 	const heading = 'px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase';
 	const row = 'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm';
 </script>
-
-{#snippet avatar(user: FriendUser)}
-	{#if user.image}
-		<img src={user.image} alt="" class="size-6 shrink-0 rounded-full object-cover" />
-	{:else}
-		<span
-			class="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground uppercase"
-			aria-hidden="true"
-		>
-			{user.name.slice(0, 1)}
-		</span>
-	{/if}
-{/snippet}
 
 <section class="border-b p-3" aria-labelledby="add-friend-heading">
 	<h2 id="add-friend-heading" class={heading}>Add friends</h2>
@@ -93,7 +81,7 @@
 		<ul class="grid gap-0.5">
 			{#each incoming as user (user.id)}
 				<li class={row}>
-					{@render avatar(user)}
+					<UserAvatar {user} />
 					<span class="min-w-0 flex-1 truncate">{user.name}</span>
 					<form method="post" action="/?/accept" use:enhance>
 						<input type="hidden" name="userId" value={user.id} />
@@ -145,7 +133,7 @@
 						)}
 						aria-current={active ? 'page' : undefined}
 					>
-						{@render avatar(user)}
+						<UserAvatar {user} />
 						<span class="truncate">{user.name}</span>
 					</a>
 				</li>
@@ -160,7 +148,7 @@
 		<ul class="grid gap-0.5">
 			{#each outgoing as user (user.id)}
 				<li class="{row} text-muted-foreground">
-					{@render avatar(user)}
+					<UserAvatar {user} />
 					<span class="min-w-0 flex-1 truncate">{user.name}</span>
 					<form method="post" action="/?/remove" use:enhance>
 						<input type="hidden" name="userId" value={user.id} />
@@ -181,7 +169,17 @@
 {/if}
 
 <section class="p-3" aria-labelledby="groups-heading">
-	<h2 id="groups-heading" class={heading}>Groups</h2>
+	<div class="flex items-center justify-between pr-1">
+		<h2 id="groups-heading" class={heading}>Groups</h2>
+		<a
+			href={resolve('/(app)/(home)/groups/new')}
+			class="-mt-2 flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+			aria-label="Create group"
+			title="Create group"
+		>
+			<Plus class="size-4" />
+		</a>
+	</div>
 	{#if groups.length === 0}
 		<p class="px-2 text-sm text-muted-foreground">No group chats yet.</p>
 	{:else}
@@ -200,7 +198,8 @@
 						aria-current={group.id === activeConversationId ? 'page' : undefined}
 					>
 						<Users class="size-4 shrink-0" />
-						<span class="truncate">{group.name ?? 'Group chat'}</span>
+						<span class="min-w-0 flex-1 truncate">{group.title}</span>
+						<span class="shrink-0 text-xs" aria-hidden="true">{group.memberCount}</span>
 					</a>
 				</li>
 			{/each}

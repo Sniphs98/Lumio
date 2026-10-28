@@ -48,4 +48,20 @@ describe('eventStream', () => {
 		abort.abort();
 		expect(onClose).toHaveBeenCalledOnce();
 	});
+
+	it('ends without forwarding the event `until` matches', async () => {
+		const res = eventStream('sse-until', new Request('http://x'), {
+			until: (event) => event.type === 'member.removed' && event.userId === 'me'
+		});
+		const text = new Response(res.body).text();
+
+		publish('sse-until', { type: 'member.removed', userId: 'someone-else' });
+		publish('sse-until', { type: 'member.removed', userId: 'me' });
+		publish('sse-until', { type: 'member.removed', userId: 'after-close' });
+
+		const body = await text;
+		expect(body).toContain('"userId":"someone-else"');
+		expect(body).not.toContain('"userId":"me"');
+		expect(body).not.toContain('after-close');
+	});
 });

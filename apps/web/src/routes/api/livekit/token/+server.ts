@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { AccessToken, TrackSource } from 'livekit-server-sdk';
 import { LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL } from '$app/env/private';
 import { parseRoomName, roomName, type CallRingingEvent, type CallSource } from '#lib/calls.ts';
+import { groupTitle } from '#lib/groups.ts';
 import { getCallAccess } from '#lib/server/calls.ts';
 import { publish, userTopic } from '#lib/server/realtime.ts';
 import type { RequestHandler } from './$types';
@@ -48,9 +49,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			// The conversation's title as this member sees it.
 			const others = [caller, ...conversation.others.filter((o) => o.id !== member.id)];
 			const title =
-				conversation.type === 'group'
-					? (conversation.name ?? others.map((u) => u.name).join(', '))
-					: caller.name;
+				conversation.type === 'group' ? groupTitle(conversation.name, others) : caller.name;
 			const event: CallRingingEvent = {
 				type: 'call.ringing',
 				conversationId: conversation.id,

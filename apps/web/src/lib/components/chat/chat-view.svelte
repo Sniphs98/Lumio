@@ -99,7 +99,7 @@
 		});
 		source.addEventListener('message.created', (e) => {
 			const event = JSON.parse((e as MessageEvent<string>).data) as ChannelEvent;
-			receive(event.message);
+			if (event.type === 'message.created') receive(event.message);
 		});
 
 		return () => source.close();
