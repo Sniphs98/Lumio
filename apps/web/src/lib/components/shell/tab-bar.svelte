@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { House, MessagesSquare, Plus, UserRound } from '@lucide/svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { cn } from '#lib/utils.ts';
 
 	let { instanceName, isGuest = false }: { instanceName: string; isGuest?: boolean } = $props();
@@ -33,15 +34,17 @@
 		<MessagesSquare class="size-4" />
 		<span class="truncate">{instanceName}</span>
 	</a>
-	<button
+	<Button
 		type="button"
-		class="mb-1 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-background/60"
+		variant="ghost"
+		size="icon"
+		class="mb-1 size-7 shrink-0 text-muted-foreground hover:bg-background/60"
 		aria-label="Connect another instance"
 		disabled
 		title="Connecting more instances is coming soon"
 	>
 		<Plus class="size-4" />
-	</button>
+	</Button>
 	{#if isGuest}
 		<!-- Guests are reminded on every page that their access only lives in this browser. -->
 		<a
