@@ -3,6 +3,7 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import { DEFAULT_AUDIO_SETTINGS } from '#lib/audio-settings.ts';
 import type { AudioControls } from '#lib/call.svelte.ts';
+import { sounds } from '#lib/sound-player.svelte.ts';
 import AudioSettingsDialog from './audio-settings-dialog.svelte';
 import UserPanel from './user-panel.svelte';
 
@@ -95,6 +96,16 @@ describe('AudioSettingsDialog', () => {
 		await expect.element(noise).toBeChecked();
 		await noise.click();
 		expect(audio.updateSettings).toHaveBeenCalledWith({ noiseSuppression: false });
+	});
+
+	it('turns sound effects off', async () => {
+		render(AudioSettingsDialog, { open: true, listDevices, audio: fakeAudio() });
+		const toggle = page.getByRole('switch', { name: 'Sound effects' });
+		await expect.element(toggle).toBeChecked();
+		await toggle.click();
+		await expect.element(toggle).not.toBeChecked();
+		expect(sounds.enabled).toBe(false);
+		sounds.update({ enabled: true });
 	});
 
 	it('explains when the browser cannot pick speakers', async () => {

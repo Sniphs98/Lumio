@@ -15,6 +15,7 @@
 	import { Separator } from '#lib/components/ui/separator/index.ts';
 	import { Slider } from '#lib/components/ui/slider/index.ts';
 	import { Switch } from '#lib/components/ui/switch/index.ts';
+	import { sounds } from '#lib/sound-player.svelte.ts';
 
 	type Props = {
 		audio: AudioControls;
@@ -237,6 +238,45 @@
 					/>
 				</div>
 			{/each}
+		</section>
+
+		<Separator />
+
+		<section class="grid gap-4" aria-labelledby="sound-effects-heading">
+			<h3 id="sound-effects-heading" class="text-xs font-semibold text-muted-foreground uppercase">
+				Sounds
+			</h3>
+			<div class="flex items-start justify-between gap-4">
+				<div class="grid gap-1">
+					<Label for="audio-sounds">Sound effects</Label>
+					<p class="text-xs text-muted-foreground">
+						Joining and leaving calls, muting and new messages.
+					</p>
+				</div>
+				<Switch
+					id="audio-sounds"
+					checked={sounds.enabled}
+					onCheckedChange={(enabled) => sounds.update({ enabled })}
+				/>
+			</div>
+			<div class="grid gap-3">
+				<div class="flex items-center justify-between">
+					<Label id="sound-volume-label">Sound volume</Label>
+					<span class="text-xs text-muted-foreground tabular-nums">
+						{Math.round(sounds.volume * 100)}%
+					</span>
+				</div>
+				<Slider
+					type="single"
+					value={Math.round(sounds.volume * 100)}
+					onValueChange={(v) => sounds.update({ volume: v / 100 })}
+					onValueCommit={() => sounds.play('message')}
+					max={100}
+					step={1}
+					disabled={!sounds.enabled}
+					aria-labelledby="sound-volume-label"
+				/>
+			</div>
 		</section>
 	</Dialog.Content>
 </Dialog.Root>

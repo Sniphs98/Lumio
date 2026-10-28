@@ -90,6 +90,8 @@ export async function notifyActivity(sent: ChatMessage): Promise<void> {
 	if (sent.channelId !== null) {
 		publish(CHANNEL_ACTIVITY_TOPIC, {
 			type: 'message.activity',
+			authorId: sent.author.id,
+			mentionIds: sent.mentions.map((u) => u.id),
 			channelId: sent.channelId,
 			conversationId: null
 		});
@@ -104,6 +106,8 @@ export async function notifyActivity(sent: ChatMessage): Promise<void> {
 		if (userId === sent.author.id) continue;
 		publish(userTopic(userId), {
 			type: 'message.activity',
+			authorId: sent.author.id,
+			mentionIds: sent.mentions.map((u) => u.id),
 			channelId: null,
 			conversationId: sent.conversationId
 		});

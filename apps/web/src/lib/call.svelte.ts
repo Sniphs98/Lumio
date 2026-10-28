@@ -26,6 +26,7 @@ import {
 	saveAudioSettings,
 	type AudioSettings
 } from '#lib/audio-settings.ts';
+import { sounds } from '#lib/sound-player.svelte.ts';
 
 export type CallStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting';
 
@@ -218,6 +219,7 @@ export class Call implements CallControls, AudioControls {
 		if (this.#room !== room) return;
 
 		this.status = 'connected';
+		sounds.play('call.join');
 		this.audioBlocked = !room.canPlaybackAudio;
 		if (this.canPublish('microphone')) {
 			try {
@@ -234,6 +236,7 @@ export class Call implements CallControls, AudioControls {
 
 	async leave(): Promise<void> {
 		const room = this.#room;
+		if (room && this.status !== 'connecting') sounds.play('call.leave');
 		this.#reset();
 		await room?.disconnect();
 	}
@@ -255,12 +258,14 @@ export class Call implements CallControls, AudioControls {
 		}
 		// Unmuting while deafened undeafens too, like in Discord.
 		this.#set(!muted && this.deafened ? { muted, deafened: false } : { muted });
+		sounds.play(muted ? 'mute' : 'unmute');
 		this.#applyVolumes();
 		this.#sync();
 	}
 
 	toggleDeafen(): void {
 		const room = this.#room;
+		sounds.play(this.deafened ? 'unmute' : 'mute');
 		if (!this.deafened) {
 			this.#mutedBeforeDeafen = this.muted;
 			if (room && !this.muted) void this.#enableMicrophone(room, false).catch(() => {});
@@ -345,8 +350,16 @@ export class Call implements CallControls, AudioControls {
 			if (this.#room === room) this.#sync();
 		};
 		room
-			.on(RoomEvent.ParticipantConnected, sync)
-			.on(RoomEvent.ParticipantDisconnected, sync)
+			.on(RoomEvent.ParticipantConnected, () => {
+				if (this.#room !== room) return;
+				sounds.play('participant.join');
+				this.#sync();
+			})
+			.on(RoomEvent.ParticipantDisconnected, () => {
+				if (this.#room !== room) return;
+				sounds.play('participant.leave');
+				this.#sync();
+			})
 			.on(RoomEvent.ParticipantNameChanged, sync)
 			.on(RoomEvent.ActiveSpeakersChanged, sync)
 			.on(RoomEvent.TrackMuted, sync)
@@ -376,6 +389,7 @@ export class Call implements CallControls, AudioControls {
 			.on(RoomEvent.Disconnected, () => {
 				// Dropped by the server or the network. Hanging up clears #room first.
 				if (this.#room !== room) return;
+				sounds.play('call.leave');
 				this.#reset();
 				this.error = 'The call was disconnected.';
 			});
