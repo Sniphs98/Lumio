@@ -1,11 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import { auth } from '#lib/server/auth.ts';
+import { getInstance } from '#lib/server/instance.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = (event) => {
+export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) redirect(302, '/');
-	return {};
+	// Only the first user can register here and becomes the owner; everyone else needs an invite link.
+	return { registrationOpen: !(await getInstance()) };
 };
 
 export const actions: Actions = {

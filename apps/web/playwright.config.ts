@@ -1,9 +1,16 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
 
-// Needs Postgres (docker-compose.dev.yml) and a migrated database.
+// Needs Postgres (docker-compose.dev.yml) and a migrated database. The setup project
+// connects to it directly, so load DATABASE_URL from .env when it is not set already.
+if (!process.env.DATABASE_URL && existsSync('.env')) process.loadEnvFile('.env');
+
 export default defineConfig({
 	testDir: 'e2e',
-	testMatch: '**/*.e2e.ts',
+	projects: [
+		{ name: 'setup', testMatch: 'setup.ts' },
+		{ name: 'e2e', testMatch: '**/*.e2e.ts', dependencies: ['setup'] }
+	],
 	webServer: {
 		command: 'pnpm build && pnpm preview',
 		port: 4173,

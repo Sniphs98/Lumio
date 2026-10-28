@@ -6,7 +6,7 @@
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import type { PageProps } from './$types';
 
-	let { form }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	let mode = $state<'signIn' | 'signUp'>('signIn');
 </script>
 
@@ -15,7 +15,9 @@
 		<Card.Header>
 			<Card.Title>{mode === 'signIn' ? 'Welcome back' : 'Create an account'}</Card.Title>
 			<Card.Description>
-				{mode === 'signIn' ? 'Sign in to your Lumio server.' : 'Join this Lumio server.'}
+				{mode === 'signIn'
+					? 'Sign in to your Lumio server.'
+					: 'You are the first one here, so your account will own this Lumio server.'}
 			</Card.Description>
 		</Card.Header>
 		<Card.Content>
@@ -50,7 +52,9 @@
 			</form>
 		</Card.Content>
 		<Card.Footer class="justify-center text-sm text-muted-foreground">
-			{#if mode === 'signIn'}
+			{#if mode === 'signIn' && !data.registrationOpen}
+				New here? Ask a member for an invite link.
+			{:else if mode === 'signIn'}
 				No account yet?
 				<Button variant="link" class="px-1" onclick={() => (mode = 'signUp')}>Register</Button>
 			{:else}
