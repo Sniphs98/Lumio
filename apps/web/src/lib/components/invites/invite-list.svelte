@@ -12,6 +12,8 @@
 		uses: number;
 		maxUses: number | null;
 		expiresAt: Date | null;
+		/** Whether people can join as a guest. Defaults to true. */
+		allowGuests?: boolean;
 		canRevoke: boolean;
 	};
 
@@ -21,7 +23,8 @@
 		[
 			showCreator ? invite.createdByName : null,
 			describeUses(invite.uses, invite.maxUses),
-			describeExpiry(invite.expiresAt)
+			describeExpiry(invite.expiresAt),
+			invite.allowGuests === false ? 'Accounts only' : null
 		]
 			.filter(Boolean)
 			.join(' · ');

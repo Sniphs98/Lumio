@@ -13,9 +13,29 @@ const ben = { id: 'ben', name: 'Ben', image: null };
 const cleo = { id: 'cleo', name: 'Cleo', image: null };
 const dave = { id: 'dave', name: 'Dave', image: null };
 
-const empty = { friends: [], incoming: [], outgoing: [], groups: [], directConversationIds: {} };
+const empty = {
+	friends: [],
+	incoming: [],
+	outgoing: [],
+	groups: [],
+	directConversationIds: {},
+	friendLinkUrl: 'https://lumio.example/add/abc123'
+};
 
 describe('FriendsSidebar', () => {
+	it('shows the friend link to copy and reset instead of an email form', async () => {
+		render(FriendsSidebar, empty);
+
+		await expect
+			.element(page.getByRole('textbox', { name: 'Your friend link' }))
+			.toHaveValue('https://lumio.example/add/abc123');
+		await expect.element(page.getByRole('button', { name: 'Copy friend link' })).toBeVisible();
+		await expect.element(page.getByRole('button', { name: 'Reset friend link' })).toBeVisible();
+		await expect
+			.element(page.getByRole('textbox', { name: "Friend's email" }))
+			.not.toBeInTheDocument();
+	});
+
 	it('shows empty friends and groups lists', async () => {
 		render(FriendsSidebar, empty);
 

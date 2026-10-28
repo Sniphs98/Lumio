@@ -47,17 +47,3 @@ export function sortFriendships(
 export function directKey(a: string, b: string): string {
 	return a < b ? `${a}:${b}` : `${b}:${a}`;
 }
-
-/** Checks the email typed into the "Add friend" form. */
-export function normalizeFriendEmail(
-	raw: unknown
-): { ok: true; email: string } | { ok: false; error: string } {
-	if (typeof raw !== 'string' || raw.trim() === '') {
-		return { ok: false, error: 'Enter the email address of your friend.' };
-	}
-	const email = raw.trim().toLowerCase();
-	if (!/^[^\s@]+@[^\s@]+$/.test(email)) {
-		return { ok: false, error: 'This is not an email address.' };
-	}
-	return { ok: true, email };
-}

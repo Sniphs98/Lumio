@@ -29,7 +29,7 @@ test('a friend joins with a single-use invite link on a phone', async ({ browser
 	const phone = await browser.newContext({ viewport: { width: 390, height: 800 } });
 	const ben = await phone.newPage();
 	await ben.goto(`/invite/${code}`);
-	await expect(ben.getByText('Anna invited you. Create an account to join.')).toBeVisible();
+	await expect(ben.getByText('Anna invited you.')).toBeVisible();
 	const scrollWidth = await ben.evaluate(() => document.documentElement.scrollWidth);
 	expect(scrollWidth).toBeLessThanOrEqual(390);
 	await signUp(ben, 'Ben', code);

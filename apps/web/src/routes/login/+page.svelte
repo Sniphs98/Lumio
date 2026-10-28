@@ -1,13 +1,36 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance, type SubmitFunction } from '$app/forms';
+	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
+	import { forgetGuest, loadGuest, type StoredGuest } from '#lib/guests.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	let mode = $state<'signIn' | 'signUp'>('signIn');
+
+	// Keeps `?redirectTo=` when posting, so signing in can continue where the user came from.
+	const redirectTo = $derived(page.url.searchParams.get('redirectTo'));
+	const action = (name: string) =>
+		redirectTo ? `?/${name}&redirectTo=${encodeURIComponent(redirectTo)}` : `?/${name}`;
+
+	// A guest whose session cookie is gone can continue with the session kept in this browser.
+	let storedGuest = $state<StoredGuest | null>(null);
+	onMount(() => {
+		storedGuest = loadGuest();
+	});
+	const guest = $derived(form?.guestExpired ? null : storedGuest);
+
+	/** An expired guest session cannot come back, so it is removed from this browser. */
+	const continueAsGuest: SubmitFunction = () => {
+		return async ({ result, update }) => {
+			if (result.type === 'failure') forgetGuest();
+			await update();
+		};
+	};
 </script>
 
 <main class="flex min-h-screen items-center justify-center bg-background p-4 text-foreground">
@@ -20,8 +43,25 @@
 					: 'You are the first one here, so your account will own this Lumio server.'}
 			</Card.Description>
 		</Card.Header>
-		<Card.Content>
-			<form method="post" action="?/{mode}" use:enhance class="grid gap-4">
+		<Card.Content class="grid gap-6">
+			{#if guest}
+				<form
+					method="post"
+					action={action('continueAsGuest')}
+					use:enhance={continueAsGuest}
+					class="grid gap-2"
+				>
+					<input type="hidden" name="token" value={guest.token} />
+					<Button type="submit" variant="secondary" class="w-full">
+						Continue as {guest.name} (guest)
+					</Button>
+				</form>
+			{:else if form?.guestExpired}
+				<p class="text-sm text-destructive" role="alert">
+					Your guest access has expired. Ask a member for a new invite link.
+				</p>
+			{/if}
+			<form method="post" action={action(mode)} use:enhance class="grid gap-4">
 				{#if mode === 'signUp'}
 					<div class="grid gap-2">
 						<Label for="name">Display name</Label>

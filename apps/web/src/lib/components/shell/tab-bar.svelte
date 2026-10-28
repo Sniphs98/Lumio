@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { House, MessagesSquare, Plus } from '@lucide/svelte';
+	import { House, MessagesSquare, Plus, UserRound } from '@lucide/svelte';
 	import { cn } from '#lib/utils.ts';
 
-	let { instanceName }: { instanceName: string } = $props();
+	let { instanceName, isGuest = false }: { instanceName: string; isGuest?: boolean } = $props();
 
 	// Home holds the friend list and every direct or group conversation.
 	const homeActive = $derived(!page.url.pathname.startsWith('/channels'));
@@ -42,4 +42,14 @@
 	>
 		<Plus class="size-4" />
 	</button>
+	{#if isGuest}
+		<!-- Guests are reminded on every page that their access only lives in this browser. -->
+		<a
+			href={resolve('/(app)/account')}
+			class="mb-1 ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground hover:bg-background/60 hover:text-foreground"
+		>
+			<UserRound class="size-3.5" />
+			Guest · Create account
+		</a>
+	{/if}
 </nav>

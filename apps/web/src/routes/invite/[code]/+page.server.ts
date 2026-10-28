@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { APIError } from 'better-auth/api';
-import { auth } from '#lib/server/auth.ts';
+import { parseGuestName } from '#lib/guests.ts';
+import { signInAsGuest, signUpWithAccount } from '#lib/server/guests.ts';
 import { getInstance } from '#lib/server/instance.ts';
 import { getValidInvite } from '#lib/server/invites.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -12,28 +12,35 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const [inst, invite] = await Promise.all([getInstance(), getValidInvite(params.code)]);
 	return {
 		instanceName: inst?.name ?? 'Lumio',
-		invite: invite ? { inviterName: invite.createdByName } : null
+		invite: invite ? { inviterName: invite.createdByName, allowGuests: invite.allowGuests } : null
 	};
 };
 
 export const actions: Actions = {
-	default: async (event) => {
+	guest: async (event) => {
+		const name = parseGuestName((await event.request.formData()).get('name'));
+		if (!name.ok) return fail(400, { message: name.error });
+
+		const result = await signInAsGuest(event, name.name, {
+			kind: 'invite',
+			code: event.params.code
+		});
+		if (!result.ok) return fail(400, { message: result.error });
+		// The browser keeps the guest, then continues to the server.
+		return { guest: result.guest, redirectTo: '/channels' };
+	},
+	account: async (event) => {
 		const formData = await event.request.formData();
-		const email = formData.get('email')?.toString() ?? '';
-		const password = formData.get('password')?.toString() ?? '';
-		const name = formData.get('name')?.toString() ?? '';
-
-		// Read by the Better Auth user hook, which uses up one join of the invite.
-		event.locals.inviteCode = event.params.code;
-		try {
-			await auth.api.signUpEmail({ body: { email, password, name } });
-		} catch (error) {
-			if (error instanceof APIError) {
-				return fail(400, { message: error.message || 'Registration failed' });
-			}
-			return fail(500, { message: 'Unexpected error' });
-		}
-
+		const details = {
+			email: formData.get('email')?.toString() ?? '',
+			password: formData.get('password')?.toString() ?? '',
+			name: formData.get('name')?.toString() ?? ''
+		};
+		const result = await signUpWithAccount(event, details, {
+			kind: 'invite',
+			code: event.params.code
+		});
+		if (!result.ok) return fail(400, { message: result.error });
 		redirect(302, '/channels');
 	}
 };

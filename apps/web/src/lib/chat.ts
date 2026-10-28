@@ -1,6 +1,6 @@
 /** Shared chat types and rules, used on the server and in the browser. */
 import type { Attachment } from '#lib/attachments.ts';
-import type { CallRingingEvent } from '#lib/calls.ts';
+import type { CallRingingEvent, VoiceEvent } from '#lib/calls.ts';
 
 export const MAX_MESSAGE_LENGTH = 4000;
 
@@ -32,7 +32,7 @@ export type UserEvent =
 	| { type: 'conversation.removed'; conversationId: string }
 	| CallRingingEvent;
 
-export type RealtimeEvent = ChannelEvent | UserEvent;
+export type RealtimeEvent = ChannelEvent | UserEvent | VoiceEvent;
 
 /**
  * Trims a message and checks its length. A message with files may have no text (`allowEmpty`).

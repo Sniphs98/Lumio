@@ -9,7 +9,12 @@ export const load: LayoutServerLoad = async (event) => {
 	const inst = await getInstance();
 
 	return {
-		user: { id: user.id, name: user.name, image: user.image ?? null },
+		user: {
+			id: user.id,
+			name: user.name,
+			image: user.image ?? null,
+			isGuest: user.isAnonymous === true
+		},
 		instance: { name: inst?.name ?? 'Lumio' }
 	};
 };

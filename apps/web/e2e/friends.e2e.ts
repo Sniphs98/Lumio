@@ -1,50 +1,52 @@
 import { expect, test } from '@playwright/test';
-import { addFriend, friends, newUser } from './helpers.ts';
+import { friendLinkOf, friends, newUser } from './helpers.ts';
 
-test('a friend request shows up live and can be accepted', async ({ browser }) => {
+test('opening a friend link makes both users friends right away', async ({ browser }) => {
 	const anna = await newUser(browser, 'Anna');
 	const ben = await newUser(browser, 'Ben');
 
-	await addFriend(anna.page, ben.email);
-	await expect(anna.page.getByRole('region', { name: 'Sent requests' })).toContainText('Ben');
+	const link = await friendLinkOf(anna.page);
+	expect(new URL(link).pathname).toMatch(/^\/add\/\w+$/);
+	await ben.page.goto(link);
+	await expect(ben.page.getByText('Add Anna as a friend', { exact: true })).toBeVisible();
+	await ben.page.getByRole('button', { name: 'Add Anna' }).click();
 
-	// Ben sees the request without reloading, and accepting it updates Anna's list too.
-	await ben.page.getByRole('button', { name: 'Accept Anna' }).click();
-	await expect(ben.page.getByRole('link', { name: 'Anna', exact: true })).toBeVisible();
+	// Ben lands in the chat with Anna; Anna's list updates without a reload.
+	await expect(ben.page.getByRole('heading', { name: 'Anna' })).toBeVisible();
+	await expect(ben.page.getByLabel('Message Anna')).toBeVisible();
 	await expect(anna.page.getByRole('link', { name: 'Ben', exact: true })).toBeVisible();
-	await expect(anna.page.getByRole('region', { name: 'Sent requests' })).toBeHidden();
+
+	// Opening the link again goes straight to the chat.
+	await ben.page.goto(link);
+	await expect(ben.page.getByRole('heading', { name: 'Anna' })).toBeVisible();
 
 	await anna.context.close();
 	await ben.context.close();
 });
 
-test('adding yourself or an unknown email shows an error', async ({ browser }) => {
+test('your own friend link is explained, and a reset link stops working', async ({ browser }) => {
 	const anna = await newUser(browser, 'Anna');
+	const oldLink = await friendLinkOf(anna.page);
 
-	await addFriend(anna.page, anna.email);
-	await expect(anna.page.getByRole('alert')).toHaveText('You cannot add yourself.');
+	await anna.page.goto(oldLink);
+	await expect(anna.page.getByText('This is your friend link', { exact: true })).toBeVisible();
 
-	await addFriend(anna.page, `nobody-${Date.now()}@example.com`);
-	await expect(anna.page.getByRole('alert')).toHaveText(
-		'Nobody on this Lumio uses that email address.'
-	);
+	await anna.page.goto('/');
+	await anna.page.getByRole('button', { name: 'Reset friend link' }).click();
+	await expect(
+		anna.page.getByText('New friend link created. The old one no longer works.')
+	).toBeVisible();
+	const newLink = await friendLinkOf(anna.page);
+	expect(newLink).not.toBe(oldLink);
+
+	const visitor = await browser.newPage();
+	await visitor.goto(oldLink);
+	await expect(
+		visitor.getByText('This friend link is no longer valid', { exact: true })
+	).toBeVisible();
 
 	await anna.context.close();
-});
-
-test('a declined request disappears for both users', async ({ browser }) => {
-	const anna = await newUser(browser, 'Anna');
-	const ben = await newUser(browser, 'Ben');
-
-	await addFriend(anna.page, ben.email);
-	await ben.page.getByRole('button', { name: 'Decline Anna' }).click();
-
-	await expect(ben.page.getByRole('region', { name: 'Friend requests' })).toBeHidden();
-	await expect(anna.page.getByRole('region', { name: 'Sent requests' })).toBeHidden();
-	await expect(anna.page.getByText('No friends added yet.')).toBeVisible();
-
-	await anna.context.close();
-	await ben.context.close();
+	await visitor.context().close();
 });
 
 test('clicking a friend opens the direct messages with live updates', async ({ browser }) => {

@@ -6,13 +6,23 @@ const HEARTBEAT_MS = 25_000;
 /**
  * Server-Sent Events response that forwards every event published to `topic`.
  * The browser's EventSource reconnects on its own; pages reload their data after a
- * reconnect to fill any gap. The stream ends without forwarding the event when `until`
- * returns true for it, e.g. when the user lost access to the topic.
+ * reconnect to fill any gap, unless the stream starts with the current state (`initial`).
+ * The stream ends without forwarding the event when `until` returns true for it, e.g. when
+ * the user lost access to the topic.
  */
 export function eventStream(
 	topic: string,
 	request: Request,
-	{ until }: { until?: (event: RealtimeEvent) => boolean } = {}
+	options: {
+		/** Events sent first, e.g. the current state. Topic events wait until they are sent. */
+		initial?: () => Promise<RealtimeEvent[]>;
+		/** Leaves out topic events this client may not see. */
+		filter?: (event: RealtimeEvent) => boolean;
+		/** Ends the stream instead of sending this event. */
+		until?: (event: RealtimeEvent) => boolean;
+		/** Called once when the client goes away. */
+		onClose?: () => void;
+	} = {}
 ): Response {
 	const encoder = new TextEncoder();
 	let cleanup = () => {};
@@ -27,6 +37,9 @@ export function eventStream(
 				}
 			};
 
+			const sendEvent = (event: RealtimeEvent) =>
+				send(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+
 			const close = () => {
 				cleanup();
 				try {
@@ -37,16 +50,33 @@ export function eventStream(
 			};
 
 			send('retry: 3000\n\n');
+			// Subscribe before reading the initial state, so no change in between is lost.
+			let queue: RealtimeEvent[] | null = options.initial ? [] : null;
 			const unsubscribe = subscribe(topic, (event) => {
-				if (until?.(event)) close();
-				else send(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+				if (options.until?.(event)) return close();
+				if (options.filter && !options.filter(event)) return;
+				if (queue) queue.push(event);
+				else sendEvent(event);
 			});
+			if (options.initial) {
+				const flush = (events: RealtimeEvent[]) => {
+					const queued = queue ?? [];
+					queue = null;
+					for (const event of [...events, ...queued]) sendEvent(event);
+				};
+				options.initial().then(flush, () => flush([]));
+			}
 			const heartbeat = setInterval(() => send(': ping\n\n'), HEARTBEAT_MS);
 
+			let closed = false;
 			cleanup = () => {
+				if (closed) return;
+				closed = true;
 				clearInterval(heartbeat);
 				unsubscribe();
+				options.onClose?.();
 			};
+			if (request.signal.aborted) cleanup();
 			request.signal.addEventListener('abort', close);
 		},
 		cancel() {

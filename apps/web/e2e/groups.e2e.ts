@@ -1,12 +1,12 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { addFriend, friends, newUser } from './helpers.ts';
+import { addFriend, friendLinkOf, friends, newUser } from './helpers.ts';
 
 /** Anna is friends with Ben and Carl; Ben and Carl do not know each other. */
 async function threeFriends(browser: Browser, viewport?: { width: number; height: number }) {
 	const { anna, ben } = await friends(browser, viewport);
 	const carl = await newUser(browser, 'Carl', viewport);
-	await addFriend(anna.page, carl.email);
-	await carl.page.getByRole('button', { name: 'Accept Anna' }).click();
+	await addFriend(carl.page, await friendLinkOf(anna.page), 'Anna');
+	await carl.page.goto('/');
 	await expect(anna.page.getByRole('link', { name: 'Carl', exact: true })).toBeVisible();
 	return {
 		anna,

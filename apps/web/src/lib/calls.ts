@@ -69,6 +69,35 @@ export type CallRingingEvent = {
 	caller: { id: string; name: string };
 };
 
+/** Someone in a voice channel, as everyone who can see the channel sees them without joining. */
+export type VoiceMember = {
+	id: string;
+	name: string;
+	muted: boolean;
+	/** Sharing their screen. */
+	streaming: boolean;
+};
+
+/** Who is in which voice channel, by channel id. Empty channels are left out. */
+export type VoiceState = Record<string, VoiceMember[]>;
+
+/**
+ * Sent over `/api/voice/events`: the whole state right after connecting, then one
+ * `voice.changed` per voice channel whose members changed.
+ */
+export type VoiceEvent =
+	| { type: 'voice.state'; channels: VoiceState }
+	| { type: 'voice.changed'; channelId: string; members: VoiceMember[] };
+
+/** Applies a voice event to the state a client knows. */
+export function applyVoiceEvent(state: VoiceState, event: VoiceEvent): VoiceState {
+	if (event.type === 'voice.state') return event.channels;
+	const next = { ...state };
+	if (event.members.length > 0) next[event.channelId] = event.members;
+	else delete next[event.channelId];
+	return next;
+}
+
 /** Two-letter initials for avatars, e.g. `Anna Berg` becomes `AB`. */
 export function initials(name: string): string {
 	const parts = name.trim().split(/\s+/).filter(Boolean);

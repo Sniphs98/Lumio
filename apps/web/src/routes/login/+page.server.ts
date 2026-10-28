@@ -1,11 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import { auth } from '#lib/server/auth.ts';
+import { restoreGuestSession } from '#lib/server/guests.ts';
 import { getInstance } from '#lib/server/instance.ts';
 import type { Actions, PageServerLoad } from './$types';
 
+/** Where to go after signing in: a local path from `?redirectTo=`, or Home. */
+function target(url: URL): string {
+	const to = url.searchParams.get('redirectTo');
+	return to?.startsWith('/') && !to.startsWith('//') && !to.startsWith('/\\') ? to : '/';
+}
+
 export const load: PageServerLoad = async (event) => {
-	if (event.locals.user) redirect(302, '/');
+	if (event.locals.user) redirect(302, target(event.url));
 	// Only the first user can register here and becomes the owner; everyone else needs an invite link.
 	return { registrationOpen: !(await getInstance()) };
 };
@@ -25,7 +32,7 @@ export const actions: Actions = {
 			return fail(500, { message: 'Unexpected error' });
 		}
 
-		redirect(302, '/');
+		redirect(302, target(event.url));
 	},
 	signUp: async (event) => {
 		const formData = await event.request.formData();
@@ -43,5 +50,13 @@ export const actions: Actions = {
 		}
 
 		redirect(302, '/');
+	},
+	/** Signs a guest back in with the session their browser kept in `localStorage`. */
+	continueAsGuest: async (event) => {
+		const token = (await event.request.formData()).get('token');
+		if (typeof token !== 'string' || !(await restoreGuestSession(event, token))) {
+			return fail(400, { guestExpired: true });
+		}
+		redirect(302, target(event.url));
 	}
 };
