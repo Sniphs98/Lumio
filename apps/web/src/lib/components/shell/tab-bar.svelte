@@ -2,9 +2,28 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { House, MessagesSquare, Plus, UserRound } from '@lucide/svelte';
+	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
+	import { sumUnread, type UnreadCounts } from '#lib/unread.ts';
 	import { cn } from '#lib/utils.ts';
 
-	let { instanceName, isGuest = false }: { instanceName: string; isGuest?: boolean } = $props();
+	type Props = {
+		instanceName: string;
+		isGuest?: boolean;
+		/** Unread counts, summed up on each tab. */
+		unread?: UnreadCounts;
+		/** The open channel or conversation; its messages are being read. */
+		openChatId?: string;
+	};
+
+	let {
+		instanceName,
+		isGuest = false,
+		unread = { channels: {}, conversations: {} },
+		openChatId
+	}: Props = $props();
+
+	const homeUnread = $derived(sumUnread(unread.conversations, openChatId));
+	const instanceUnread = $derived(sumUnread(unread.channels, openChatId));
 
 	// Home holds the friend list and every direct or group conversation.
 	const homeActive = $derived(!page.url.pathname.startsWith('/channels'));
@@ -28,10 +47,12 @@
 	<a href={resolve('/(app)/(home)')} class={tabClass(homeActive)}>
 		<House class="size-4" />
 		Home
+		<UnreadBadge unread={homeUnread} />
 	</a>
 	<a href={resolve('/(app)/channels')} class={tabClass(instanceActive)}>
 		<MessagesSquare class="size-4" />
 		<span class="truncate">{instanceName}</span>
+		<UnreadBadge unread={instanceUnread} />
 	</a>
 	<button
 		type="button"

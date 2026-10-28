@@ -5,9 +5,12 @@
 	import CallStage from '#lib/components/call/call-stage.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
+	import { getUnreadContext } from '#lib/unread-context.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	const unread = getUnreadContext();
 
 	const inCall = $derived(data.kind === 'voice' && call.isIn('channel', data.channel.id));
 
@@ -74,5 +77,9 @@
 		error={form?.error}
 		uploadTarget={data.canAttach ? `channel:${data.channel.id}` : undefined}
 		maxUploadSize={data.maxUploadSize}
+		meId={data.user.id}
+		mentionable={data.mentionable}
+		canReact={data.canReact}
+		onread={() => unread.clear(data.channel.id)}
 	/>
 {/if}

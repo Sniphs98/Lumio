@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { call } from '#lib/call.svelte.ts';
 	import type { UserEvent } from '#lib/chat.ts';
 	import CallBar from '#lib/components/call/call-bar.svelte';
@@ -8,24 +9,63 @@
 	import AccountSuggestion from '#lib/components/guest/account-suggestion.svelte';
 	import TabBar from '#lib/components/shell/tab-bar.svelte';
 	import { startVisit } from '#lib/guests.ts';
+	import { setUnreadContext } from '#lib/unread-context.ts';
+	import { clearUnread } from '#lib/unread.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
 
-	// Events for the signed-in user on every tab: friend list changes and incoming calls.
+	// Unread counts for the tabs and sidebars. Reloaded from the server on activity; a chat
+	// the user reads is cleared right away.
+	let unread = $derived(data.unread);
+	setUnreadContext({
+		get counts() {
+			return unread;
+		},
+		clear(chatId) {
+			unread = clearUnread(unread, chatId);
+		}
+	});
+
+	// Activity often comes in bursts, so the counts are reloaded at most every half second.
+	let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+	function reloadUnread() {
+		reloadTimer ??= setTimeout(() => {
+			reloadTimer = undefined;
+			invalidate('app:unread');
+		}, 500);
+	}
+
+	// Events for the signed-in user on every tab: friend list changes, incoming calls and
+	// new messages in other chats.
 	$effect(() => {
 		const source = new EventSource('/api/me/events');
 		let opened = false;
 		source.addEventListener('open', () => {
-			if (opened) invalidate('app:home');
+			if (opened) {
+				invalidate('app:home');
+				invalidate('app:unread');
+			}
 			opened = true;
+		});
+		source.addEventListener('message.activity', (e) => {
+			const event = JSON.parse((e as MessageEvent<string>).data) as UserEvent;
+			if (event.type !== 'message.activity') return;
+			// The open chat marks new messages as read itself.
+			const chatId = event.channelId ?? event.conversationId;
+			if (chatId === page.params.id && document.visibilityState === 'visible') return;
+			reloadUnread();
 		});
 		source.addEventListener('home.changed', () => invalidate('app:home'));
 		source.addEventListener('call.ringing', (e) => {
 			const event = JSON.parse((e as MessageEvent<string>).data) as UserEvent;
 			if (event.type === 'call.ringing') call.ring(event);
 		});
-		return () => source.close();
+		return () => {
+			source.close();
+			clearTimeout(reloadTimer);
+			reloadTimer = undefined;
+		};
 	});
 
 	// When a guest comes back for another visit, suggest creating an account.
@@ -50,7 +90,12 @@
 </script>
 
 <div class="flex h-dvh flex-col bg-background text-foreground">
-	<TabBar instanceName={data.instance.name} isGuest={data.user.isGuest} />
+	<TabBar
+		instanceName={data.instance.name}
+		isGuest={data.user.isGuest}
+		{unread}
+		openChatId={page.params.id}
+	/>
 	<div class="flex min-h-0 flex-1">
 		{@render children()}
 	</div>

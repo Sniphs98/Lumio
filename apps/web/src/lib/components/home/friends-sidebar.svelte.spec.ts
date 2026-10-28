@@ -82,6 +82,31 @@ describe('FriendsSidebar', () => {
 			.toHaveAttribute('href', '/dm/g1');
 	});
 
+	it('shows unread counts of direct and group chats, except the open one', async () => {
+		render(FriendsSidebar, {
+			...empty,
+			friends: [ben, cleo],
+			groups: [{ id: 'g1', name: 'Raid night' }],
+			directConversationIds: { ben: 'c-ben', cleo: 'c-cleo' },
+			activeConversationId: 'c-cleo',
+			unread: {
+				'c-ben': { count: 2, mentions: 0 },
+				'c-cleo': { count: 4, mentions: 0 },
+				g1: { count: 7, mentions: 1 }
+			}
+		});
+
+		await expect
+			.element(page.getByRole('link', { name: 'Ben' }).getByRole('status'))
+			.toHaveAccessibleName('2 unread messages');
+		await expect
+			.element(page.getByRole('link', { name: 'Cleo' }).getByRole('status'))
+			.not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('link', { name: 'Raid night' }).getByRole('status'))
+			.toHaveTextContent('@1');
+	});
+
 	it('shows the result of the last friend action', async () => {
 		render(FriendsSidebar, { ...empty, error: 'You cannot add yourself.' });
 		await expect.element(page.getByRole('alert')).toHaveTextContent('You cannot add yourself.');

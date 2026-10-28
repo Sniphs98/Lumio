@@ -49,4 +49,21 @@ describe('TabBar', () => {
 			.element(page.getByRole('link', { name: 'Guest · Create account' }))
 			.not.toBeInTheDocument();
 	});
+
+	it('sums up unread messages on each tab, leaving out the open chat', async () => {
+		render(TabBar, {
+			instanceName: 'Gaming',
+			openChatId: 'general',
+			unread: {
+				channels: { general: { count: 5, mentions: 1 }, memes: { count: 2, mentions: 0 } },
+				conversations: { dm1: { count: 1, mentions: 0 }, group1: { count: 3, mentions: 2 } }
+			}
+		});
+		await expect
+			.element(page.getByRole('link', { name: 'Gaming' }).getByRole('status'))
+			.toHaveAccessibleName('2 unread messages');
+		await expect
+			.element(page.getByRole('link', { name: 'Home' }).getByRole('status'))
+			.toHaveAccessibleName('4 unread messages, 2 mentions');
+	});
 });

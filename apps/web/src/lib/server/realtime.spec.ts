@@ -12,7 +12,10 @@ const event = (channelId: string): ChannelEvent => ({
 		createdAt: '2026-01-01T10:00:00Z',
 		editedAt: null,
 		author: { id: 'u1', name: 'Lukas', image: null },
-		attachments: []
+		attachments: [],
+		replyTo: null,
+		mentions: [],
+		reactions: []
 	}
 });
 

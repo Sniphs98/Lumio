@@ -3,11 +3,12 @@ import { subscribe } from '#lib/server/realtime.ts';
 const HEARTBEAT_MS = 25_000;
 
 /**
- * Server-Sent Events response that forwards every event published to `topic`.
+ * Server-Sent Events response that forwards every event published to `topic` (or to any of
+ * several topics).
  * The browser's EventSource reconnects on its own; pages reload their data after a
  * reconnect to fill any gap.
  */
-export function eventStream(topic: string, request: Request): Response {
+export function eventStream(topic: string | string[], request: Request): Response {
 	const encoder = new TextEncoder();
 	let cleanup = () => {};
 
@@ -22,14 +23,16 @@ export function eventStream(topic: string, request: Request): Response {
 			};
 
 			send('retry: 3000\n\n');
-			const unsubscribe = subscribe(topic, (event) => {
-				send(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
-			});
+			const unsubscribes = [topic].flat().map((t) =>
+				subscribe(t, (event) => {
+					send(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+				})
+			);
 			const heartbeat = setInterval(() => send(': ping\n\n'), HEARTBEAT_MS);
 
 			cleanup = () => {
 				clearInterval(heartbeat);
-				unsubscribe();
+				for (const unsubscribe of unsubscribes) unsubscribe();
 			};
 			request.signal.addEventListener('abort', () => {
 				cleanup();

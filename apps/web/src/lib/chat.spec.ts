@@ -9,7 +9,10 @@ const message = (id: string, createdAt: string): ChatMessage => ({
 	createdAt,
 	editedAt: null,
 	author: { id: 'u1', name: 'Lukas', image: null },
-	attachments: []
+	attachments: [],
+	replyTo: null,
+	mentions: [],
+	reactions: []
 });
 
 describe('normalizeContent', () => {

@@ -3,10 +3,15 @@
 	import { page } from '$app/state';
 	import { Hash, MicOff, Settings, UserPlus, Volume2 } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
+	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
+	import { getUnreadContext } from '#lib/unread-context.ts';
+	import { NO_UNREAD } from '#lib/unread.ts';
 	import { cn } from '#lib/utils.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+
+	const unread = getUnreadContext();
 
 	const textChannels = $derived(data.channels.filter((c) => c.type === 'text'));
 	const voiceChannels = $derived(data.channels.filter((c) => c.type === 'voice'));
@@ -67,6 +72,9 @@
 				>
 					<Hash class="size-4 shrink-0" />
 					<span class="truncate">{c.name}</span>
+					{#if page.params.id !== c.id}
+						<UnreadBadge unread={unread.counts.channels[c.id] ?? NO_UNREAD} />
+					{/if}
 				</a>
 			</li>
 		{/each}
