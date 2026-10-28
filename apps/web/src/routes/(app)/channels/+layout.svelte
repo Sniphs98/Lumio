@@ -4,6 +4,7 @@
 	import { Hash, Settings, UserPlus, Volume2 } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
 	import { applyVoiceEvent, type VoiceEvent, type VoiceMember } from '#lib/calls.ts';
+	import UserPanel from '#lib/components/audio/user-panel.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
 	import { getUnreadContext } from '#lib/unread-context.ts';
@@ -57,86 +58,89 @@
 
 <aside
 	class={cn(
-		'w-full shrink-0 flex-col overflow-y-auto p-3 md:flex md:w-60 md:border-r',
+		'w-full shrink-0 flex-col md:flex md:w-60 md:border-r',
 		channelOpen ? 'hidden' : 'flex'
 	)}
 	aria-label="Channels"
 >
-	<div class="grid gap-0.5 pb-3 empty:hidden">
-		{#if data.canInvite}
-			<a
-				href={resolve('/(app)/channels/invites')}
-				class={cn(
-					'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-					invitesOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
-				)}
-				aria-current={invitesOpen ? 'page' : undefined}
-			>
-				<UserPlus class="size-4 shrink-0" />
-				<span class="truncate">Invite people</span>
-			</a>
-		{/if}
-		{#if data.canManageServer}
-			<a
-				href={resolve('/(app)/channels/settings')}
-				class={cn(
-					'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-					settingsOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
-				)}
-				aria-current={settingsOpen ? 'page' : undefined}
-			>
-				<Settings class="size-4 shrink-0" />
-				<span class="truncate">Server settings</span>
-			</a>
-		{/if}
-	</div>
-	<h2 class="px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-		Text channels
-	</h2>
-	<ul class="grid gap-0.5 pb-4">
-		{#each textChannels as c (c.id)}
-			<li>
+	<div class="min-h-0 flex-1 overflow-y-auto p-3">
+		<div class="grid gap-0.5 pb-3 empty:hidden">
+			{#if data.canInvite}
 				<a
-					href={resolve('/(app)/channels/[id]', { id: c.id })}
+					href={resolve('/(app)/channels/invites')}
 					class={cn(
 						'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-						page.params.id === c.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
+						invitesOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
 					)}
-					aria-current={page.params.id === c.id ? 'page' : undefined}
+					aria-current={invitesOpen ? 'page' : undefined}
 				>
-					<Hash class="size-4 shrink-0" />
-					<span class="truncate">{c.name}</span>
-					{#if page.params.id !== c.id}
-						<UnreadBadge unread={unread.counts.channels[c.id] ?? NO_UNREAD} />
+					<UserPlus class="size-4 shrink-0" />
+					<span class="truncate">Invite people</span>
+				</a>
+			{/if}
+			{#if data.canManageServer}
+				<a
+					href={resolve('/(app)/channels/settings')}
+					class={cn(
+						'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+						settingsOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
+					)}
+					aria-current={settingsOpen ? 'page' : undefined}
+				>
+					<Settings class="size-4 shrink-0" />
+					<span class="truncate">Server settings</span>
+				</a>
+			{/if}
+		</div>
+		<h2 class="px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+			Text channels
+		</h2>
+		<ul class="grid gap-0.5 pb-4">
+			{#each textChannels as c (c.id)}
+				<li>
+					<a
+						href={resolve('/(app)/channels/[id]', { id: c.id })}
+						class={cn(
+							'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+							page.params.id === c.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
+						)}
+						aria-current={page.params.id === c.id ? 'page' : undefined}
+					>
+						<Hash class="size-4 shrink-0" />
+						<span class="truncate">{c.name}</span>
+						{#if page.params.id !== c.id}
+							<UnreadBadge unread={unread.counts.channels[c.id] ?? NO_UNREAD} />
+						{/if}
+					</a>
+				</li>
+			{/each}
+		</ul>
+		<h2 class="px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+			Voice channels
+		</h2>
+		<ul class="grid gap-0.5">
+			{#each voiceChannels as c (c.id)}
+				{@const members = membersOf(c.id)}
+				<li>
+					<a
+						href={resolve('/(app)/channels/[id]', { id: c.id })}
+						class={cn(
+							'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+							page.params.id === c.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
+						)}
+						aria-current={page.params.id === c.id ? 'page' : undefined}
+					>
+						<Volume2 class="size-4 shrink-0" />
+						<span class="truncate">{c.name}</span>
+					</a>
+					{#if members.length > 0}
+						<VoiceMembers {members} label="In {c.name}" class="py-0.5 pl-8" />
 					{/if}
-				</a>
-			</li>
-		{/each}
-	</ul>
-	<h2 class="px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-		Voice channels
-	</h2>
-	<ul class="grid gap-0.5">
-		{#each voiceChannels as c (c.id)}
-			{@const members = membersOf(c.id)}
-			<li>
-				<a
-					href={resolve('/(app)/channels/[id]', { id: c.id })}
-					class={cn(
-						'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-						page.params.id === c.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
-					)}
-					aria-current={page.params.id === c.id ? 'page' : undefined}
-				>
-					<Volume2 class="size-4 shrink-0" />
-					<span class="truncate">{c.name}</span>
-				</a>
-				{#if members.length > 0}
-					<VoiceMembers {members} label="In {c.name}" class="py-0.5 pl-8" />
-				{/if}
-			</li>
-		{/each}
-	</ul>
+				</li>
+			{/each}
+		</ul>
+	</div>
+	<UserPanel user={data.user} audio={call} />
 </aside>
 
 <div class={cn('min-w-0 flex-1 flex-col md:flex', channelOpen ? 'flex' : 'hidden')}>

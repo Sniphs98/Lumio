@@ -75,6 +75,9 @@
 		};
 	});
 
+	// Mute, deafen and the audio devices are stored in this browser.
+	$effect(() => call.restoreSettings());
+
 	// When a guest comes back for another visit, suggest creating an account.
 	let suggestAccount = $state(false);
 	$effect(() => {

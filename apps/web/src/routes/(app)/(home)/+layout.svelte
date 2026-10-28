@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { call } from '#lib/call.svelte.ts';
+	import UserPanel from '#lib/components/audio/user-panel.svelte';
 	import FriendsSidebar from '#lib/components/home/friends-sidebar.svelte';
 	import { getUnreadContext } from '#lib/unread-context.ts';
 	import { cn } from '#lib/utils.ts';
@@ -18,24 +20,24 @@
 
 <!-- Home tab: friends and group chats as separate lists. -->
 <aside
-	class={cn(
-		'w-full shrink-0 flex-col overflow-y-auto md:flex md:w-64 md:border-r',
-		chatOpen ? 'hidden' : 'flex'
-	)}
+	class={cn('w-full shrink-0 flex-col md:flex md:w-64 md:border-r', chatOpen ? 'hidden' : 'flex')}
 	aria-label="Friends and groups"
 >
-	<FriendsSidebar
-		friends={data.friends}
-		incoming={data.incoming}
-		outgoing={data.outgoing}
-		groups={data.groups}
-		directConversationIds={data.directConversationIds}
-		activeConversationId={page.params.id}
-		unread={unread.counts.conversations}
-		friendLinkUrl={new URL(`/add/${data.friendLinkCode}`, page.url.origin).href}
-		notice={page.form?.friendNotice}
-		error={page.form?.friendError}
-	/>
+	<div class="min-h-0 flex-1 overflow-y-auto">
+		<FriendsSidebar
+			friends={data.friends}
+			incoming={data.incoming}
+			outgoing={data.outgoing}
+			groups={data.groups}
+			directConversationIds={data.directConversationIds}
+			activeConversationId={page.params.id}
+			unread={unread.counts.conversations}
+			friendLinkUrl={new URL(`/add/${data.friendLinkCode}`, page.url.origin).href}
+			notice={page.form?.friendNotice}
+			error={page.form?.friendError}
+		/>
+	</div>
+	<UserPanel user={data.user} audio={call} />
 </aside>
 
 <div class={cn('min-w-0 flex-1 flex-col md:flex', chatOpen ? 'flex' : 'hidden')}>
