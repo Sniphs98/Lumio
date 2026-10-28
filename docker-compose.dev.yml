@@ -13,11 +13,20 @@ services:
 
   livekit:
     image: livekit/livekit-server:v1.9
-    command: --dev --bind 0.0.0.0 --keys 'devkey: devsecret_change_me_devsecret_change_me'
+    command: ['--dev', '--bind', '0.0.0.0', '--keys', 'devkey: devsecret_change_me_devsecret_change_me']
     ports:
       - '7880:7880'
       - '7881:7881'
       - '7882:7882/udp'
+
+  # Optional trace viewer: docker compose -f docker-compose.dev.yml --profile tracing up -d
+  # UI on http://localhost:16686, OTLP/HTTP on port 4318.
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    profiles: [tracing]
+    ports:
+      - '16686:16686'
+      - '4318:4318'
 
 volumes:
   postgres-dev:

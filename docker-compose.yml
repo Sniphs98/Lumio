@@ -12,6 +12,8 @@ services:
       LIVEKIT_URL: wss://${LIVEKIT_DOMAIN}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      # Optional tracing, off when empty. See "Tracing" in the README.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,6 +60,16 @@ services:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+
+  # Optional trace viewer, only started with the "tracing" profile. The UI is
+  # bound to localhost; open it through an SSH tunnel (ssh -L 16686:localhost:16686).
+  # Traces are kept in memory and are lost on restart.
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    restart: unless-stopped
+    profiles: [tracing]
+    ports:
+      - '127.0.0.1:16686:16686'
 
 volumes:
   postgres:
