@@ -19,6 +19,13 @@ import {
 	type CallSource,
 	type ScreenShareQuality
 } from '#lib/calls.ts';
+import {
+	captureOptions,
+	DEFAULT_AUDIO_SETTINGS,
+	loadAudioSettings,
+	saveAudioSettings,
+	type AudioSettings
+} from '#lib/audio-settings.ts';
 import { sounds } from '#lib/sound-player.svelte.ts';
 
 export type CallStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting';
@@ -46,6 +53,21 @@ export type CallParticipant = {
 	screen: AttachableTrack | null;
 };
 
+/**
+ * Mute, deafen and the audio settings, also usable outside of a call: the choice carries
+ * over to the next call. Lets component tests pass a fake.
+ */
+export interface AudioControls {
+	readonly muted: boolean;
+	readonly deafened: boolean;
+	readonly settings: AudioSettings;
+	/** Whether this browser can choose the speakers, see `HTMLMediaElement.setSinkId`. */
+	readonly outputSelectionSupported: boolean;
+	toggleMute(): Promise<void>;
+	toggleDeafen(): void;
+	updateSettings(patch: Partial<AudioSettings>): Promise<void>;
+}
+
 /** What the call bar and call pages need from a call. Lets component tests pass a fake. */
 export interface CallControls {
 	readonly status: CallStatus;
@@ -70,12 +92,11 @@ export interface CallControls {
 	dismissError(): void;
 }
 
-export class Call implements CallControls {
+export class Call implements CallControls, AudioControls {
 	status = $state<CallStatus>('idle');
 	target = $state.raw<CallTarget | null>(null);
 	participants = $state.raw<CallParticipant[]>([]);
-	muted = $state(false);
-	deafened = $state(false);
+	settings = $state.raw<AudioSettings>({ ...DEFAULT_AUDIO_SETTINGS });
 	cameraOn = $state(false);
 	screenSharing = $state(false);
 	audioBlocked = $state(false);
@@ -89,6 +110,55 @@ export class Call implements CallControls {
 	/** Mute state from before deafening, restored when undeafening. */
 	#mutedBeforeDeafen = false;
 	#ringTimer: ReturnType<typeof setTimeout> | undefined;
+	/** The settings as stored. A call can mute without storing it, e.g. without a microphone. */
+	#saved: AudioSettings = { ...DEFAULT_AUDIO_SETTINGS };
+
+	get muted(): boolean {
+		return this.settings.muted;
+	}
+
+	get deafened(): boolean {
+		return this.settings.deafened;
+	}
+
+	get outputSelectionSupported(): boolean {
+		return typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
+	}
+
+	/** Loads the stored settings. Called in the browser after hydration. */
+	restoreSettings(): void {
+		this.#saved = loadAudioSettings();
+		this.settings = { ...this.#saved };
+	}
+
+	async updateSettings(patch: Partial<AudioSettings>): Promise<void> {
+		const before = this.settings;
+		this.#set(patch);
+		const room = this.#room;
+		if (!room) return;
+		const after = this.settings;
+		if (after.outputVolume !== before.outputVolume) {
+			for (const p of room.remoteParticipants.values()) this.#applyVolume(p);
+		}
+		try {
+			if (after.outputDeviceId !== before.outputDeviceId) {
+				await room.switchActiveDevice('audiooutput', after.outputDeviceId);
+			}
+			if (
+				after.inputDeviceId !== before.inputDeviceId ||
+				after.noiseSuppression !== before.noiseSuppression ||
+				after.echoCancellation !== before.echoCancellation ||
+				after.autoGainControl !== before.autoGainControl
+			) {
+				// A new microphone track with the new device and processing. Without a track yet,
+				// unmuting picks up the settings.
+				const mic = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+				await mic?.audioTrack?.restartTrack(captureOptions(after));
+			}
+		} catch {
+			this.error = 'Could not switch the audio device.';
+		}
+	}
 
 	get screenShareSupported(): boolean {
 		// Most mobile browsers cannot capture the screen.
@@ -115,11 +185,8 @@ export class Call implements CallControls {
 		const room = new Room({
 			adaptiveStream: true,
 			dynacast: true,
-			audioCaptureDefaults: {
-				echoCancellation: true,
-				noiseSuppression: true,
-				autoGainControl: true
-			}
+			audioCaptureDefaults: captureOptions(this.settings),
+			audioOutput: { deviceId: this.settings.outputDeviceId }
 		});
 		this.#room = room;
 		this.#listen(room);
@@ -156,13 +223,13 @@ export class Call implements CallControls {
 		this.audioBlocked = !room.canPlaybackAudio;
 		if (this.canPublish('microphone')) {
 			try {
-				await room.localParticipant.setMicrophoneEnabled(!this.muted);
+				if (!this.muted) await this.#enableMicrophone(room, true);
 			} catch {
-				this.muted = true;
+				this.#set({ muted: true }, false);
 				this.error = 'No microphone access. Others cannot hear you.';
 			}
 		} else {
-			this.muted = true;
+			this.#set({ muted: true }, false);
 		}
 		this.#sync();
 	}
@@ -176,36 +243,43 @@ export class Call implements CallControls {
 
 	async toggleMute(): Promise<void> {
 		const room = this.#room;
-		if (!room || !this.canPublish('microphone')) return;
 		const muted = !this.muted;
-		try {
-			await room.localParticipant.setMicrophoneEnabled(!muted);
-			this.muted = muted;
-			this.error = null;
-			sounds.play(muted ? 'mute' : 'unmute');
-			// Unmuting while deafened undeafens too, like in Discord.
-			if (!muted && this.deafened) this.#setDeafened(false);
-		} catch {
-			this.error = 'No microphone access. Others cannot hear you.';
+		// Outside of a call this only sets how the next call starts.
+		if (room) {
+			if (!this.canPublish('microphone')) return;
+			try {
+				await this.#enableMicrophone(room, !muted);
+				this.error = null;
+			} catch {
+				this.error = 'No microphone access. Others cannot hear you.';
+				this.#sync();
+				return;
+			}
 		}
+		// Unmuting while deafened undeafens too, like in Discord.
+		this.#set(!muted && this.deafened ? { muted, deafened: false } : { muted });
+		sounds.play(muted ? 'mute' : 'unmute');
+		this.#applyVolumes();
 		this.#sync();
 	}
 
 	toggleDeafen(): void {
-		if (!this.#room) return;
-		const deafened = !this.deafened;
-		this.#setDeafened(deafened);
-		sounds.play(deafened ? 'mute' : 'unmute');
-		if (deafened) {
+		const room = this.#room;
+		sounds.play(this.deafened ? 'unmute' : 'mute');
+		if (!this.deafened) {
 			this.#mutedBeforeDeafen = this.muted;
-			if (!this.muted) void this.#room.localParticipant.setMicrophoneEnabled(false).catch(() => {});
-			this.muted = true;
-		} else if (!this.#mutedBeforeDeafen && this.canPublish('microphone')) {
-			this.muted = false;
-			void this.#room.localParticipant.setMicrophoneEnabled(true).catch(() => {
-				this.muted = true;
-			});
+			if (room && !this.muted) void this.#enableMicrophone(room, false).catch(() => {});
+			this.#set({ deafened: true, muted: true });
+		} else {
+			const unmute = !this.#mutedBeforeDeafen && (!room || this.canPublish('microphone'));
+			this.#set({ deafened: false, muted: !unmute && this.muted });
+			if (room && unmute) {
+				void this.#enableMicrophone(room, true).catch(() => {
+					this.#set({ muted: true }, false);
+				});
+			}
 		}
+		this.#applyVolumes();
 		this.#sync();
 	}
 
@@ -329,18 +403,32 @@ export class Call implements CallControls {
 			document.body.append(this.#audio);
 		}
 		this.#audio.append(track.attach());
-		if (this.deafened) this.#applyVolume(participant);
+		this.#applyVolume(participant);
 	}
 
 	#applyVolume(participant: RemoteParticipant) {
-		const volume = this.deafened ? 0 : 1;
+		const volume = this.deafened ? 0 : this.settings.outputVolume;
 		participant.setVolume(volume, Track.Source.Microphone);
 		participant.setVolume(volume, Track.Source.ScreenShareAudio);
 	}
 
-	#setDeafened(deafened: boolean) {
-		this.deafened = deafened;
+	#applyVolumes() {
 		for (const p of this.#room?.remoteParticipants.values() ?? []) this.#applyVolume(p);
+	}
+
+	#enableMicrophone(room: Room, enabled: boolean) {
+		return room.localParticipant.setMicrophoneEnabled(
+			enabled,
+			enabled ? captureOptions(this.settings) : undefined
+		);
+	}
+
+	/** Changes the settings and stores them, unless `persist` is false. */
+	#set(patch: Partial<AudioSettings>, persist = true) {
+		this.settings = { ...this.settings, ...patch };
+		if (!persist) return;
+		this.#saved = { ...this.#saved, ...patch };
+		saveAudioSettings(this.#saved);
 	}
 
 	#sync() {
@@ -369,8 +457,8 @@ export class Call implements CallControls {
 		this.status = 'idle';
 		this.target = null;
 		this.participants = [];
-		this.muted = false;
-		this.deafened = false;
+		// Back to what the user chose, e.g. after the call muted them for lack of a microphone.
+		this.settings = { ...this.settings, muted: this.#saved.muted, deafened: this.#saved.deafened };
 		this.cameraOn = false;
 		this.screenSharing = false;
 		this.audioBlocked = false;
