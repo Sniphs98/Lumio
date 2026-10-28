@@ -6,9 +6,9 @@ import { createMessage, listMessages } from '#lib/server/messages.ts';
 import { publish } from '#lib/server/realtime.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-async function loadTextChannel(userId: string, channelId: string) {
+async function loadChannel(userId: string, channelId: string) {
 	const channel = await getChannel(channelId).catch(() => null);
-	if (!channel || channel.type !== 'text') error(404, 'Channel not found');
+	if (!channel || channel.type === 'category') error(404, 'Channel not found');
 
 	const permissions = await getChannelPermissions(userId, channel.id);
 	if (!hasPermission(permissions, Permission.ViewChannel)) error(404, 'Channel not found');
@@ -19,9 +19,17 @@ async function loadTextChannel(userId: string, channelId: string) {
 export const load: PageServerLoad = async ({ params, locals }) => {
 	// Server loads run in parallel with the layout's auth check, so check again here.
 	if (!locals.user) redirect(302, '/login');
-	const { channel, permissions } = await loadTextChannel(locals.user.id, params.id);
+	const { channel, permissions } = await loadChannel(locals.user.id, params.id);
 
+	if (channel.type === 'voice') {
+		return {
+			kind: 'voice' as const,
+			channel: { id: channel.id, name: channel.name, topic: channel.topic },
+			canConnect: hasPermission(permissions, Permission.Connect)
+		};
+	}
 	return {
+		kind: 'text' as const,
 		channel: { id: channel.id, name: channel.name, topic: channel.topic },
 		messages: await listMessages({ channelId: channel.id }),
 		canSend: hasPermission(permissions, Permission.SendMessages)
@@ -31,7 +39,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 export const actions: Actions = {
 	send: async ({ params, locals, request }) => {
 		if (!locals.user) error(401, 'Not signed in');
-		const { channel, permissions } = await loadTextChannel(locals.user.id, params.id);
+		const { channel, permissions } = await loadChannel(locals.user.id, params.id);
+		if (channel.type !== 'text') error(404, 'Channel not found');
 		if (!hasPermission(permissions, Permission.SendMessages)) {
 			return fail(403, { error: 'You cannot send messages in this channel.' });
 		}

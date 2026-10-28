@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Hash, Volume2 } from '@lucide/svelte';
+	import { Hash, MicOff, Volume2 } from '@lucide/svelte';
+	import { call } from '#lib/call.svelte.ts';
 	import { cn } from '#lib/utils.ts';
 	import type { LayoutProps } from './$types';
 
@@ -45,9 +46,35 @@
 	</h2>
 	<ul class="grid gap-0.5">
 		{#each voiceChannels as c (c.id)}
-			<li class="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
-				<Volume2 class="size-4 shrink-0" />
-				<span class="truncate">{c.name}</span>
+			<li>
+				<a
+					href={resolve('/(app)/channels/[id]', { id: c.id })}
+					class={cn(
+						'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+						page.params.id === c.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
+					)}
+					aria-current={page.params.id === c.id ? 'page' : undefined}
+				>
+					<Volume2 class="size-4 shrink-0" />
+					<span class="truncate">{c.name}</span>
+				</a>
+				{#if call.isIn('channel', c.id)}
+					<!-- Who is in the voice channel, while the user is in it too. -->
+					<ul class="grid gap-0.5 py-0.5 pl-8" aria-label="In {c.name}">
+						{#each call.participants as p (p.identity)}
+							<li class="flex items-center gap-1.5 text-sm text-muted-foreground">
+								<span
+									class={cn(
+										'size-2 shrink-0 rounded-full',
+										p.speaking ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+									)}
+								></span>
+								<span class="truncate">{p.name}</span>
+								{#if p.micMuted}<MicOff class="size-3 shrink-0" aria-label="Muted" />{/if}
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			</li>
 		{/each}
 	</ul>

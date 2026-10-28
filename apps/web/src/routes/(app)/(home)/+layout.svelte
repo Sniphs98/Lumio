@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { invalidate } from '$app/navigation';
 	import { page } from '$app/state';
 	import FriendsSidebar from '#lib/components/home/friends-sidebar.svelte';
 	import { cn } from '#lib/utils.ts';
@@ -10,17 +9,7 @@
 	// On phones either the lists or the open chat is shown, never both.
 	const chatOpen = $derived(Boolean(page.params.id));
 
-	// Friend requests and accepted requests show up without a reload.
-	$effect(() => {
-		const source = new EventSource('/api/me/events');
-		let opened = false;
-		source.addEventListener('open', () => {
-			if (opened) invalidate('app:home');
-			opened = true;
-		});
-		source.addEventListener('home.changed', () => invalidate('app:home'));
-		return () => source.close();
-	});
+	// Friend requests show up without a reload: the app layout invalidates `app:home` on events.
 </script>
 
 <!-- Home tab: friends and group chats as separate lists. -->
