@@ -40,6 +40,8 @@ pnpm db:migrate
 pnpm dev                                          # http://localhost:5173
 ```
 
+The dev LiveKit server announces `127.0.0.1` as its media address, so calls work when the browser runs on the same machine, including Docker Desktop and WSL. To join calls from another device in your network (for example a phone), put `LIVEKIT_NODE_IP=<your LAN IP>` into a `.env` file in the repository root, restart LiveKit with `docker compose -f docker-compose.dev.yml up -d livekit` and set `LIVEKIT_URL` in `apps/web/.env` to `ws://<your LAN IP>:7880`. Browsers only allow microphone and camera access on HTTPS or `localhost`, so other devices can join calls but may not be able to send audio or video.
+
 Desktop app against the local dev server:
 
 ```sh
