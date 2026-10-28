@@ -1,0 +1,24 @@
+{
+	"name": "@lumio/desktop",
+	"private": true,
+	"version": "0.0.1",
+	"description": "Lumio desktop app: a thin Electron shell around the Lumio web app.",
+	"type": "module",
+	"main": "src/main.js",
+	"scripts": {
+		"dev": "electron .",
+		"dist": "electron-builder"
+	},
+	"devDependencies": {
+		"electron": "^39.0.0",
+		"electron-builder": "^26.0.0"
+	},
+	"build": {
+		"appId": "app.lumio.desktop",
+		"productName": "Lumio",
+		"files": ["src/**/*"],
+		"linux": { "target": ["AppImage"] },
+		"win": { "target": ["nsis"] },
+		"mac": { "target": ["dmg"] }
+	}
+}

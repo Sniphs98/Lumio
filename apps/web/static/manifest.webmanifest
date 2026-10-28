@@ -1,0 +1,11 @@
+{
+	"name": "Lumio",
+	"short_name": "Lumio",
+	"description": "Self-hosted chat, voice and screen sharing for you and your friends.",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"background_color": "#09090b",
+	"theme_color": "#09090b",
+	"icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

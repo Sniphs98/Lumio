@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
+		<title>Lumio</title>
+		<style>
+			body {
+				margin: 0;
+				min-height: 100vh;
+				display: grid;
+				place-items: center;
+				background: #09090b;
+				color: #fafafa;
+				font: 14px system-ui, sans-serif;
+			}
+			form { display: grid; gap: 12px; width: 320px; }
+			input, button { padding: 10px 12px; border-radius: 8px; border: 1px solid #27272a; font: inherit; }
+			input { background: #18181b; color: inherit; }
+			button { background: #fafafa; color: #09090b; cursor: pointer; }
+			p { color: #a1a1aa; margin: 0; }
+			.error { color: #f87171; }
+		</style>
+	</head>
+	<body>
+		<form id="setup">
+			<h1>Connect to a Lumio server</h1>
+			<p>Enter the address of your server, e.g. https://chat.example.com</p>
+			<input id="url" type="url" required placeholder="https://" autofocus />
+			<button type="submit">Connect</button>
+			<p id="error" class="error"></p>
+		</form>
+		<script>
+			document.getElementById('setup').addEventListener('submit', async (e) => {
+				e.preventDefault();
+				try {
+					await window.lumio.setServerUrl(document.getElementById('url').value);
+				} catch (err) {
+					document.getElementById('error').textContent = err.message;
+				}
+			});
+		</script>
+	</body>
+</html>

@@ -1,0 +1,23 @@
+# Services for local development. Run: docker compose -f docker-compose.dev.yml up -d
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: lumio
+      POSTGRES_PASSWORD: lumio
+      POSTGRES_DB: lumio
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-dev:/var/lib/postgresql/data
+
+  livekit:
+    image: livekit/livekit-server:v1.9
+    command: --dev --bind 0.0.0.0 --keys 'devkey: devsecret_change_me_devsecret_change_me'
+    ports:
+      - '7880:7880'
+      - '7881:7881'
+      - '7882:7882/udp'
+
+volumes:
+  postgres-dev:

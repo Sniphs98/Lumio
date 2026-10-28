@@ -1,0 +1,16 @@
+{
+	"name": "lumio",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@10.28.0",
+	"scripts": {
+		"dev": "pnpm --filter @lumio/web dev",
+		"build": "pnpm --filter @lumio/web build",
+		"check": "pnpm --filter @lumio/web check",
+		"lint": "pnpm --filter @lumio/web lint",
+		"desktop": "pnpm --filter @lumio/desktop dev",
+		"db:push": "pnpm --filter @lumio/web db:push",
+		"db:generate": "pnpm --filter @lumio/web db:generate",
+		"db:migrate": "pnpm --filter @lumio/web db:migrate"
+	}
+}

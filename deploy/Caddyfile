@@ -1,0 +1,8 @@
+{$LUMIO_DOMAIN} {
+	reverse_proxy app:3000
+}
+
+# LiveKit signaling (WebSocket). Media goes directly over UDP, not through Caddy.
+{$LIVEKIT_DOMAIN} {
+	reverse_proxy host.docker.internal:7880
+}
