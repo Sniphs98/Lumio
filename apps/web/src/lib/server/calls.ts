@@ -1,4 +1,5 @@
 import { allowedSources, type CallKind, type CallSource } from '#lib/calls.ts';
+import { isJoinable } from '#lib/channels.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 import { getChannel, getChannelPermissions } from '#lib/server/channels.ts';
 import { getConversation, type ConversationDetails } from '#lib/server/conversations.ts';
@@ -20,7 +21,7 @@ export async function getCallAccess(
 ): Promise<CallAccess | null> {
 	if (target.kind === 'channel') {
 		const channel = await getChannel(target.id).catch(() => null);
-		if (!channel || channel.type !== 'voice') return null;
+		if (!channel || !isJoinable(channel.type)) return null;
 		const permissions = await getChannelPermissions(userId, channel.id);
 		if (
 			!hasPermission(permissions, Permission.ViewChannel) ||

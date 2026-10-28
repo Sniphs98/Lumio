@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, lt } from 'drizzle-orm';
 import { DEFAULT_MAX_UPLOAD_SIZE, type Attachment, type UploadTarget } from '#lib/attachments.ts';
+import { hasChat } from '#lib/channels.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 import { getChannel, getChannelPermissions } from '#lib/server/channels.ts';
 import { canSendInConversation, getConversation } from '#lib/server/conversations.ts';
@@ -30,7 +31,7 @@ export async function setMaxUploadSize(bytes: number): Promise<void> {
 export async function canUploadTo(userId: string, target: UploadTarget): Promise<boolean> {
 	if ('channelId' in target) {
 		const channel = await getChannel(target.channelId).catch(() => null);
-		if (!channel || channel.type !== 'text') return false;
+		if (!channel || !hasChat(channel.type)) return false;
 		const permissions = await getChannelPermissions(userId, channel.id);
 		return (
 			hasPermission(permissions, Permission.ViewChannel) &&

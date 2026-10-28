@@ -1,5 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { parseAttachmentIds } from '#lib/attachments.ts';
+import { hasChat, isJoinable } from '#lib/channels.ts';
 import { normalizeContent, parseReplyTo } from '#lib/chat.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 import { getMaxUploadSize } from '#lib/server/attachments.ts';
@@ -17,9 +18,10 @@ import { notifyActivity } from '#lib/server/unread.ts';
 import { parseEmoji } from '#lib/reactions.ts';
 import type { Actions, PageServerLoad } from './$types';
 
+/** A text or voice channel the user may see. Both have the same chat. */
 async function loadChannel(userId: string, channelId: string) {
 	const channel = await getChannel(channelId).catch(() => null);
-	if (!channel || channel.type === 'category') error(404, 'Channel not found');
+	if (!channel || !hasChat(channel.type)) error(404, 'Channel not found');
 
 	const permissions = await getChannelPermissions(userId, channel.id);
 	if (!hasPermission(permissions, Permission.ViewChannel)) error(404, 'Channel not found');
@@ -32,21 +34,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!locals.user) redirect(302, '/login');
 	const { channel, permissions } = await loadChannel(locals.user.id, params.id);
 
-	if (channel.type === 'voice') {
-		return {
-			kind: 'voice' as const,
-			channel: { id: channel.id, name: channel.name, topic: channel.topic },
-			canConnect: hasPermission(permissions, Permission.Connect)
-		};
-	}
 	const target = { channelId: channel.id };
 	const [messages, mentionable] = await Promise.all([
 		listMessages(target),
 		listMentionable(target)
 	]);
 	return {
-		kind: 'text' as const,
-		channel: { id: channel.id, name: channel.name, topic: channel.topic },
+		channel: { id: channel.id, type: channel.type, name: channel.name, topic: channel.topic },
 		messages,
 		mentionable,
 		canSend: hasPermission(permissions, Permission.SendMessages),
@@ -54,7 +48,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		canAttach:
 			hasPermission(permissions, Permission.SendMessages) &&
 			hasPermission(permissions, Permission.AttachFiles),
-		maxUploadSize: await getMaxUploadSize()
+		maxUploadSize: await getMaxUploadSize(),
+		/** Voice channels can additionally be joined to talk. */
+		canConnect: isJoinable(channel.type) && hasPermission(permissions, Permission.Connect)
 	};
 };
 
@@ -62,7 +58,6 @@ export const actions: Actions = {
 	send: async ({ params, locals, request }) => {
 		if (!locals.user) error(401, 'Not signed in');
 		const { channel, permissions } = await loadChannel(locals.user.id, params.id);
-		if (channel.type !== 'text') error(404, 'Channel not found');
 		if (!hasPermission(permissions, Permission.SendMessages)) {
 			return fail(403, { error: 'You cannot send messages in this channel.' });
 		}
@@ -92,7 +87,6 @@ export const actions: Actions = {
 	react: async ({ params, locals, request }) => {
 		if (!locals.user) error(401, 'Not signed in');
 		const { channel, permissions } = await loadChannel(locals.user.id, params.id);
-		if (channel.type !== 'text') error(404, 'Channel not found');
 		if (!hasPermission(permissions, Permission.AddReactions)) {
 			return fail(403, { error: 'You cannot add reactions in this channel.' });
 		}

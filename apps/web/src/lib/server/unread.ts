@@ -1,4 +1,5 @@
 import { and, eq, isNotNull, ne, sql } from 'drizzle-orm';
+import { hasChat } from '#lib/channels.ts';
 import type { ChatMessage } from '#lib/chat.ts';
 import type { UnreadCount, UnreadCounts } from '#lib/unread.ts';
 import { listVisibleChannelIds } from '#lib/server/channels.ts';
@@ -76,7 +77,7 @@ export async function getUnreadCounts(userId: string): Promise<UnreadCounts> {
 				)
 			)
 			.groupBy(message.conversationId),
-		listVisibleChannelIds(userId, 'text')
+		listVisibleChannelIds(userId, hasChat)
 	]);
 
 	return {

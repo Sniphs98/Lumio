@@ -130,6 +130,9 @@
 				>
 					<Volume2 class="size-4 shrink-0" />
 					<span class="truncate">{c.name}</span>
+					{#if page.params.id !== c.id}
+						<UnreadBadge unread={unread.counts.channels[c.id] ?? NO_UNREAD} />
+					{/if}
 				</a>
 				{#if members.length > 0}
 					<VoiceMembers {members} label="In {c.name}" class="py-0.5 pl-8" />
