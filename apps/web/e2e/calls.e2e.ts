@@ -120,8 +120,8 @@ test.describe('with LiveKit', () => {
 		await panel.getByRole('button', { name: 'Mute' }).click();
 		await expect(panel.getByRole('button', { name: 'Unmute' })).toBeVisible();
 
-		await panel.getByRole('button', { name: 'Audio settings' }).click();
-		const dialog = page.getByRole('dialog', { name: 'Audio settings' });
+		await panel.getByRole('button', { name: 'Settings' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Settings' });
 		await dialog.getByRole('switch', { name: 'Noise suppression' }).click();
 		await expect(dialog.getByRole('switch', { name: 'Noise suppression' })).not.toBeChecked();
 		await page.keyboard.press('Escape');
@@ -130,7 +130,7 @@ test.describe('with LiveKit', () => {
 		// Both are kept in this browser.
 		await page.reload();
 		await expect(panel.getByRole('button', { name: 'Unmute' })).toBeVisible();
-		await panel.getByRole('button', { name: 'Audio settings' }).click();
+		await panel.getByRole('button', { name: 'Settings' }).click();
 		await expect(dialog.getByRole('switch', { name: 'Noise suppression' })).not.toBeChecked();
 		await page.keyboard.press('Escape');
 

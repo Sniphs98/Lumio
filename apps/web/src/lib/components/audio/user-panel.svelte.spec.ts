@@ -3,8 +3,6 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import { DEFAULT_AUDIO_SETTINGS } from '#lib/audio-settings.ts';
 import type { AudioControls } from '#lib/call.svelte.ts';
-import { sounds } from '#lib/sound-player.svelte.ts';
-import AudioSettingsDialog from './audio-settings-dialog.svelte';
 import UserPanel from './user-panel.svelte';
 
 vi.mock('$app/paths', () => ({
@@ -56,67 +54,11 @@ describe('UserPanel', () => {
 		await expect.element(page.getByRole('region', { name: 'You' })).toHaveTextContent('Deafened');
 	});
 
-	it('opens the audio settings', async () => {
+	it('opens the settings on Audio & Mic', async () => {
 		render(UserPanel, { user, audio: fakeAudio() });
-		await page.getByRole('button', { name: 'Audio settings' }).click();
-		await expect.element(page.getByRole('dialog', { name: 'Audio settings' })).toBeVisible();
-	});
-});
-
-describe('AudioSettingsDialog', () => {
-	const listDevices = async () => [
-		{ deviceId: 'mic-1', kind: 'audioinput' as const, label: 'Headset microphone' },
-		{ deviceId: 'out-1', kind: 'audiooutput' as const, label: 'Headset' }
-	];
-
-	it('shows the chosen devices', async () => {
-		render(AudioSettingsDialog, {
-			open: true,
-			listDevices,
-			audio: fakeAudio({ settings: { ...DEFAULT_AUDIO_SETTINGS, inputDeviceId: 'mic-1' } })
-		});
-		await expect
-			.element(page.getByLabelText('Microphone', { exact: true }))
-			.toHaveTextContent('Headset microphone');
-		await expect.element(page.getByLabelText('Speakers')).toHaveTextContent('Default');
-	});
-
-	it('picks another microphone', async () => {
-		const audio = fakeAudio();
-		render(AudioSettingsDialog, { open: true, listDevices, audio });
-		await page.getByLabelText('Microphone', { exact: true }).click();
-		await page.getByRole('option', { name: 'Headset microphone' }).click();
-		expect(audio.updateSettings).toHaveBeenCalledWith({ inputDeviceId: 'mic-1' });
-	});
-
-	it('switches voice processing', async () => {
-		const audio = fakeAudio();
-		render(AudioSettingsDialog, { open: true, listDevices, audio });
-		const noise = page.getByRole('switch', { name: 'Noise suppression' });
-		await expect.element(noise).toBeChecked();
-		await noise.click();
-		expect(audio.updateSettings).toHaveBeenCalledWith({ noiseSuppression: false });
-	});
-
-	it('turns sound effects off', async () => {
-		render(AudioSettingsDialog, { open: true, listDevices, audio: fakeAudio() });
-		const toggle = page.getByRole('switch', { name: 'Sound effects' });
-		await expect.element(toggle).toBeChecked();
-		await toggle.click();
-		await expect.element(toggle).not.toBeChecked();
-		expect(sounds.enabled).toBe(false);
-		sounds.update({ enabled: true });
-	});
-
-	it('explains when the browser cannot pick speakers', async () => {
-		render(AudioSettingsDialog, {
-			open: true,
-			listDevices,
-			audio: fakeAudio({ outputSelectionSupported: false })
-		});
-		await expect.element(page.getByLabelText('Speakers')).toBeDisabled();
-		await expect
-			.element(page.getByText(/always plays through the system's speakers/))
-			.toBeVisible();
+		await page.getByRole('button', { name: 'Settings' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Settings' });
+		await expect.element(dialog).toBeVisible();
+		await expect.element(dialog.getByRole('heading', { name: 'Audio & Mic' })).toBeVisible();
 	});
 });

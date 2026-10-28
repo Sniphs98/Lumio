@@ -4,7 +4,7 @@
 	import type { AudioControls } from '#lib/call.svelte.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { cn } from '#lib/utils.ts';
-	import AudioSettingsDialog from './audio-settings-dialog.svelte';
+	import SettingsDialog from '#lib/components/settings/settings-dialog.svelte';
 
 	type Props = {
 		user: { name: string; image: string | null; isGuest: boolean };
@@ -23,7 +23,7 @@
 		cn('size-8', off && 'text-destructive hover:text-destructive');
 </script>
 
-<!-- Bottom left of the sidebars, like in Discord: who is signed in, mute, deafen and audio settings. -->
+<!-- Bottom left of the sidebars, like in Discord: who is signed in, mute, deafen and the settings. -->
 <section class="flex shrink-0 items-center gap-1 border-t bg-muted/40 p-2" aria-label="You">
 	<a
 		href={resolve('/(app)/account')}
@@ -68,12 +68,12 @@
 		variant="ghost"
 		size="icon"
 		class="size-8"
-		aria-label="Audio settings"
-		title="Audio settings"
+		aria-label="Settings"
+		title="Settings"
 		onclick={() => (settingsOpen = true)}
 	>
 		<Settings />
 	</Button>
 </section>
 
-<AudioSettingsDialog {audio} bind:open={settingsOpen} />
+<SettingsDialog {audio} bind:open={settingsOpen} section="audio" />
