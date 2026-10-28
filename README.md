@@ -79,6 +79,17 @@ docker compose up -d
 
 Open these ports in your firewall: `80/tcp`, `443/tcp+udp` (HTTPS), `7881/tcp`, `3478/udp` and `50000-60000/udp` (LiveKit media). Missing UDP ports are the most common reason calls do not connect.
 
+### Tracing
+
+Lumio can send [OpenTelemetry](https://opentelemetry.io) traces, which help to find slow requests and errors. It is off by default and costs nothing while off. SvelteKit records a span for every request, `handle` hook, `load` function, form action and `+server` handler; failed ones are marked as errors with the exception attached. Database queries do not get their own spans yet.
+
+To turn it on, set `OTEL_EXPORTER_OTLP_ENDPOINT` to any OTLP/HTTP receiver (Jaeger, Grafana Tempo, an OpenTelemetry Collector, ...). The other standard variables work too, for example `OTEL_SERVICE_NAME` (default `lumio`), `OTEL_EXPORTER_OTLP_HEADERS` and `OTEL_RESOURCE_ATTRIBUTES`.
+
+The compose files ship an optional Jaeger in the `tracing` profile:
+
+- **Development:** run `docker compose -f docker-compose.dev.yml --profile tracing up -d`, set `OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"` in `apps/web/.env` and open http://localhost:16686.
+- **Self-hosted:** add `COMPOSE_PROFILES=tracing` and `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318` to `.env`, run `docker compose up -d`, and open the UI through an SSH tunnel: `ssh -L 16686:localhost:16686 your-server`, then http://localhost:16686. Jaeger keeps traces in memory, so they are gone after a restart.
+
 ## Roadmap
 
 1. **MVP:** servers with invite links, text channels, real-time chat over WebSockets, file uploads, voice channels, screen sharing, simple roles, friends and direct chats with calls.

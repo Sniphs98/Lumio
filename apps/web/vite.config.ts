@@ -13,7 +13,10 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			adapter: adapter(),
+			// Emits OpenTelemetry spans. They are no-ops unless src/instrumentation.server.ts
+			// registers an exporter, which it only does when an OTLP endpoint is configured.
+			tracing: { server: true }
 		})
 	],
 	test: {
