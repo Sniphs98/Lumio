@@ -135,4 +135,34 @@ test.describe('with LiveKit', () => {
 
 		await context.close();
 	});
+
+	test('everyone sees who is in the Lounge without joining', async ({ browser }) => {
+		const anna = await newUser(browser, 'Anna');
+		const ben = await newUser(browser, 'Ben');
+		await openLounge(anna.page);
+		await openLounge(ben.page);
+		const benList = ben.page.getByRole('list', { name: 'In Lounge', exact: true });
+		const benPage = ben.page.getByRole('list', { name: 'People in Lounge' });
+
+		await anna.page.getByRole('button', { name: 'Join voice' }).click();
+		const annaBar = anna.page.getByRole('region', { name: 'Call' });
+		await expect(annaBar.getByRole('status')).toHaveText('Voice connected');
+
+		// Ben has not joined, yet sees Anna in the channel list and on the channel page.
+		await expect(benList).toContainText('Anna');
+		await expect(benPage).toContainText('Anna');
+		await expect(ben.page.getByRole('region', { name: 'Call' })).toBeHidden();
+
+		await annaBar.getByRole('button', { name: 'Mute' }).click();
+		await expect(
+			benList.getByRole('listitem').filter({ hasText: 'Anna' }).getByLabel('Muted')
+		).toBeVisible();
+
+		await annaBar.getByRole('button', { name: 'Hang up' }).click();
+		await expect(benList).toBeHidden();
+		await expect(benPage).toBeHidden();
+
+		await anna.context.close();
+		await ben.context.close();
+	});
 });

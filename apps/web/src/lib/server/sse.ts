@@ -1,3 +1,4 @@
+import type { RealtimeEvent } from '#lib/chat.ts';
 import { subscribe } from '#lib/server/realtime.ts';
 
 const HEARTBEAT_MS = 25_000;
@@ -5,9 +6,20 @@ const HEARTBEAT_MS = 25_000;
 /**
  * Server-Sent Events response that forwards every event published to `topic`.
  * The browser's EventSource reconnects on its own; pages reload their data after a
- * reconnect to fill any gap.
+ * reconnect to fill any gap, unless the stream starts with the current state (`initial`).
  */
-export function eventStream(topic: string, request: Request): Response {
+export function eventStream(
+	topic: string,
+	request: Request,
+	options: {
+		/** Events sent first, e.g. the current state. Topic events wait until they are sent. */
+		initial?: () => Promise<RealtimeEvent[]>;
+		/** Leaves out topic events this client may not see. */
+		filter?: (event: RealtimeEvent) => boolean;
+		/** Called once when the client goes away. */
+		onClose?: () => void;
+	} = {}
+): Response {
 	const encoder = new TextEncoder();
 	let cleanup = () => {};
 
@@ -21,16 +33,36 @@ export function eventStream(topic: string, request: Request): Response {
 				}
 			};
 
-			send('retry: 3000\n\n');
-			const unsubscribe = subscribe(topic, (event) => {
+			const sendEvent = (event: RealtimeEvent) =>
 				send(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+
+			send('retry: 3000\n\n');
+			// Subscribe before reading the initial state, so no change in between is lost.
+			let queue: RealtimeEvent[] | null = options.initial ? [] : null;
+			const unsubscribe = subscribe(topic, (event) => {
+				if (options.filter && !options.filter(event)) return;
+				if (queue) queue.push(event);
+				else sendEvent(event);
 			});
+			if (options.initial) {
+				const flush = (events: RealtimeEvent[]) => {
+					const queued = queue ?? [];
+					queue = null;
+					for (const event of [...events, ...queued]) sendEvent(event);
+				};
+				options.initial().then(flush, () => flush([]));
+			}
 			const heartbeat = setInterval(() => send(': ping\n\n'), HEARTBEAT_MS);
 
+			let closed = false;
 			cleanup = () => {
+				if (closed) return;
+				closed = true;
 				clearInterval(heartbeat);
 				unsubscribe();
+				options.onClose?.();
 			};
+			if (request.signal.aborted) cleanup();
 			request.signal.addEventListener('abort', () => {
 				cleanup();
 				try {

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { allowedSources, initials, parseRoomName, roomName } from './calls.ts';
+import {
+	allowedSources,
+	applyVoiceEvent,
+	initials,
+	parseRoomName,
+	roomName,
+	type VoiceMember
+} from './calls.ts';
 import { DEFAULT_PERMISSIONS, Permission } from './permissions.ts';
 
 const id = '0b6f3f0e-6f43-4b8e-9d2a-5c1f3b7a9e21';
@@ -46,5 +53,31 @@ describe('initials', () => {
 		expect(initials('Anna Maria Berg')).toBe('AB');
 		expect(initials('ben')).toBe('BE');
 		expect(initials('  ')).toBe('?');
+	});
+});
+
+describe('applyVoiceEvent', () => {
+	const anna: VoiceMember = { id: 'anna', name: 'Anna', muted: false, streaming: false };
+	const ben: VoiceMember = { id: 'ben', name: 'Ben', muted: true, streaming: true };
+
+	it('replaces everything with a full state', () => {
+		expect(
+			applyVoiceEvent({ lounge: [anna] }, { type: 'voice.state', channels: { games: [ben] } })
+		).toEqual({ games: [ben] });
+	});
+
+	it('updates one channel and drops it once it is empty', () => {
+		const state = { lounge: [anna], games: [ben] };
+		const joined = applyVoiceEvent(state, {
+			type: 'voice.changed',
+			channelId: 'lounge',
+			members: [anna, ben]
+		});
+		expect(joined).toEqual({ lounge: [anna, ben], games: [ben] });
+		expect(state.lounge).toEqual([anna]);
+
+		expect(
+			applyVoiceEvent(joined, { type: 'voice.changed', channelId: 'games', members: [] })
+		).toEqual({ lounge: [anna, ben] });
 	});
 });
