@@ -4,9 +4,11 @@
 	import { Check, Plus, RefreshCw, Users, X } from '@lucide/svelte';
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import CopyButton from '#lib/components/invites/copy-button.svelte';
+	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import type { FriendUser } from '#lib/friends.ts';
+	import { NO_UNREAD, type UnreadCount } from '#lib/unread.ts';
 	import { cn } from '#lib/utils.ts';
 
 	type Props = {
@@ -18,6 +20,8 @@
 		directConversationIds: Record<string, string>;
 		/** Conversation shown next to the sidebar, if any. */
 		activeConversationId?: string;
+		/** Unread counts by conversation id. */
+		unread?: Record<string, UnreadCount>;
 		/** The user's personal link: whoever opens it becomes their friend. */
 		friendLinkUrl: string;
 		/** Result of the last friend action. */
@@ -32,6 +36,7 @@
 		groups,
 		directConversationIds,
 		activeConversationId,
+		unread = {},
 		friendLinkUrl,
 		notice,
 		error
@@ -120,9 +125,9 @@
 	{:else}
 		<ul class="grid gap-0.5">
 			{#each friends as user (user.id)}
+				{@const conversationId = directConversationIds[user.id]}
 				{@const active =
-					activeConversationId !== undefined &&
-					directConversationIds[user.id] === activeConversationId}
+					activeConversationId !== undefined && conversationId === activeConversationId}
 				<li>
 					<a
 						href={resolve('/(app)/(home)/friends/[userId]', { userId: user.id })}
@@ -135,6 +140,9 @@
 					>
 						<UserAvatar {user} />
 						<span class="truncate">{user.name}</span>
+						{#if conversationId && !active}
+							<UnreadBadge unread={unread[conversationId] ?? NO_UNREAD} />
+						{/if}
 					</a>
 				</li>
 			{/each}
@@ -199,6 +207,9 @@
 					>
 						<Users class="size-4 shrink-0" />
 						<span class="min-w-0 flex-1 truncate">{group.title}</span>
+						{#if group.id !== activeConversationId}
+							<UnreadBadge unread={unread[group.id] ?? NO_UNREAD} />
+						{/if}
 						<span class="shrink-0 text-xs" aria-hidden="true">{group.memberCount}</span>
 					</a>
 				</li>

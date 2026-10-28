@@ -5,11 +5,16 @@
 	import { call } from '#lib/call.svelte.ts';
 	import { applyVoiceEvent, type VoiceEvent, type VoiceMember } from '#lib/calls.ts';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
+	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
+	import { getUnreadContext } from '#lib/unread-context.ts';
+	import { NO_UNREAD } from '#lib/unread.ts';
 	import { cn } from '#lib/utils.ts';
 	import { setVoiceContext } from '#lib/voice-context.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+
+	const unread = getUnreadContext();
 
 	// Who is in which voice channel, live for everyone, also without joining.
 	let voice = $derived(data.voice);
@@ -101,6 +106,9 @@
 				>
 					<Hash class="size-4 shrink-0" />
 					<span class="truncate">{c.name}</span>
+					{#if page.params.id !== c.id}
+						<UnreadBadge unread={unread.counts.channels[c.id] ?? NO_UNREAD} />
+					{/if}
 				</a>
 			</li>
 		{/each}

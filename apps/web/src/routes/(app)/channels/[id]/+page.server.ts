@@ -1,11 +1,20 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { parseAttachmentIds } from '#lib/attachments.ts';
-import { normalizeContent } from '#lib/chat.ts';
+import { normalizeContent, parseReplyTo } from '#lib/chat.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 import { getMaxUploadSize } from '#lib/server/attachments.ts';
 import { getChannel, getChannelPermissions } from '#lib/server/channels.ts';
-import { attachmentError, createMessage, listMessages } from '#lib/server/messages.ts';
+import {
+	createMessage,
+	listMentionable,
+	listMessages,
+	markRead,
+	rejection,
+	toggleReaction
+} from '#lib/server/messages.ts';
 import { publish } from '#lib/server/realtime.ts';
+import { notifyActivity } from '#lib/server/unread.ts';
+import { parseEmoji } from '#lib/reactions.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 async function loadChannel(userId: string, channelId: string) {
@@ -30,11 +39,18 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			canConnect: hasPermission(permissions, Permission.Connect)
 		};
 	}
+	const target = { channelId: channel.id };
+	const [messages, mentionable] = await Promise.all([
+		listMessages(target),
+		listMentionable(target)
+	]);
 	return {
 		kind: 'text' as const,
 		channel: { id: channel.id, name: channel.name, topic: channel.topic },
-		messages: await listMessages({ channelId: channel.id }),
+		messages,
+		mentionable,
 		canSend: hasPermission(permissions, Permission.SendMessages),
+		canReact: hasPermission(permissions, Permission.AddReactions),
 		canAttach:
 			hasPermission(permissions, Permission.SendMessages) &&
 			hasPermission(permissions, Permission.AttachFiles),
@@ -63,14 +79,49 @@ export const actions: Actions = {
 			return fail(403, { error: 'You cannot share files in this channel.' });
 		}
 
-		const message = await createMessage(
+		const sent = await createMessage({ channelId: channel.id }, locals.user.id, result.content, {
+			attachmentIds: attachments.ids,
+			replyToId: parseReplyTo(form.get('replyTo'))
+		}).catch(rejection);
+		if ('rejected' in sent) return fail(400, { error: sent.rejected });
+		publish(channel.id, { type: 'message.created', message: sent });
+		await notifyActivity(sent);
+		return { message: sent };
+	},
+
+	react: async ({ params, locals, request }) => {
+		if (!locals.user) error(401, 'Not signed in');
+		const { channel, permissions } = await loadChannel(locals.user.id, params.id);
+		if (channel.type !== 'text') error(404, 'Channel not found');
+		if (!hasPermission(permissions, Permission.AddReactions)) {
+			return fail(403, { error: 'You cannot add reactions in this channel.' });
+		}
+
+		const form = await request.formData();
+		const emoji = parseEmoji(form.get('emoji'));
+		if (!emoji) return fail(400, { error: 'That is not an emoji.' });
+
+		const reactions = await toggleReaction(
 			{ channelId: channel.id },
+			form.get('messageId'),
 			locals.user.id,
-			result.content,
-			attachments.ids
-		).catch(attachmentError);
-		if (!message) return fail(400, { error: 'A file is missing or still uploading.' });
-		publish(channel.id, { type: 'message.created', message });
-		return { message };
+			emoji
+		).catch(rejection);
+		if (!reactions) return fail(404, { error: 'Message not found.' });
+		if ('rejected' in reactions) return fail(400, { error: reactions.rejected });
+		const messageId = String(form.get('messageId'));
+		publish(channel.id, { type: 'reaction.changed', messageId, reactions });
+		return { messageId, reactions };
+	},
+
+	read: async ({ params, locals, request }) => {
+		if (!locals.user) error(401, 'Not signed in');
+		const { channel } = await loadChannel(locals.user.id, params.id);
+
+		const form = await request.formData();
+		if (!(await markRead({ channelId: channel.id }, locals.user.id, form.get('messageId')))) {
+			return fail(404, { error: 'Message not found.' });
+		}
+		return { read: true };
 	}
 };

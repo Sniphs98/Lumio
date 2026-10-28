@@ -4,18 +4,18 @@ A self-hosted chat app for you and your friends: text channels, voice, video and
 
 Lumio runs in the browser (desktop and mobile, installable as a PWA), and there is an optional Electron desktop app. Nothing has to be installed to use it.
 
-> **Status:** early. Sign up, invite links, guest access, text channels, file sharing, friends (added through personal friend links), direct messages, group chats, voice channels and calls (with camera and screen sharing) work.
+> **Status:** early. Sign up, invite links, guest access, text channels, file sharing, friends (added through personal friend links), direct messages, group chats, voice channels and calls (with camera and screen sharing) work. Messages support emoji reactions, replies and @-mentions, and unread counters show up on channels, chats and tabs.
 
 ## Stack
 
-| Part | Choice |
-| --- | --- |
-| Web app | [SvelteKit](https://svelte.dev/docs/kit) + [shadcn-svelte](https://shadcn-svelte.com) + Tailwind CSS |
-| Auth | [Better Auth](https://www.better-auth.com) (email and password) |
-| Database | PostgreSQL + [Drizzle ORM](https://orm.drizzle.team) |
-| Voice, video, screen sharing | [LiveKit](https://livekit.io) (self-hosted SFU) |
-| Desktop | Electron, a thin shell around the web app |
-| Deployment | Docker Compose + Caddy (automatic HTTPS) |
+| Part                         | Choice                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Web app                      | [SvelteKit](https://svelte.dev/docs/kit) + [shadcn-svelte](https://shadcn-svelte.com) + Tailwind CSS |
+| Auth                         | [Better Auth](https://www.better-auth.com) (email and password)                                      |
+| Database                     | PostgreSQL + [Drizzle ORM](https://orm.drizzle.team)                                                 |
+| Voice, video, screen sharing | [LiveKit](https://livekit.io) (self-hosted SFU)                                                      |
+| Desktop                      | Electron, a thin shell around the web app                                                            |
+| Deployment                   | Docker Compose + Caddy (automatic HTTPS)                                                             |
 
 ## Repository layout
 

@@ -6,9 +6,12 @@
 	import ChatView from '#lib/components/chat/chat-view.svelte';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import { groupTitle } from '#lib/groups.ts';
+	import { getUnreadContext } from '#lib/unread-context.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	const unread = getUnreadContext();
 
 	const title = $derived(
 		data.conversation.type === 'group'
@@ -97,4 +100,8 @@
 	error={form?.error}
 	uploadTarget="conversation:{data.conversation.id}"
 	maxUploadSize={data.maxUploadSize}
+	meId={data.user.id}
+	mentionable={data.mentionable}
+	canReact={data.canSend}
+	onread={() => unread.clear(data.conversation.id)}
 />

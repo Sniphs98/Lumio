@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import FriendsSidebar from '#lib/components/home/friends-sidebar.svelte';
+	import { getUnreadContext } from '#lib/unread-context.ts';
 	import { cn } from '#lib/utils.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+
+	const unread = getUnreadContext();
 
 	// On phones either the lists or the open page (a chat, creating a group, ...) is shown,
 	// never both. Only the Home start page leaves the lists on screen.
@@ -28,6 +31,7 @@
 		groups={data.groups}
 		directConversationIds={data.directConversationIds}
 		activeConversationId={page.params.id}
+		unread={unread.counts.conversations}
 		friendLinkUrl={new URL(`/add/${data.friendLinkCode}`, page.url.origin).href}
 		notice={page.form?.friendNotice}
 		error={page.form?.friendError}

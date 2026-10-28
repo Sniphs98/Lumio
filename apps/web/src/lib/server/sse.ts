@@ -4,14 +4,15 @@ import { subscribe } from '#lib/server/realtime.ts';
 const HEARTBEAT_MS = 25_000;
 
 /**
- * Server-Sent Events response that forwards every event published to `topic`.
+ * Server-Sent Events response that forwards every event published to `topic` (or to any of
+ * several topics).
  * The browser's EventSource reconnects on its own; pages reload their data after a
  * reconnect to fill any gap, unless the stream starts with the current state (`initial`).
  * The stream ends without forwarding the event when `until` returns true for it, e.g. when
  * the user lost access to the topic.
  */
 export function eventStream(
-	topic: string,
+	topic: string | string[],
 	request: Request,
 	options: {
 		/** Events sent first, e.g. the current state. Topic events wait until they are sent. */
@@ -52,12 +53,14 @@ export function eventStream(
 			send('retry: 3000\n\n');
 			// Subscribe before reading the initial state, so no change in between is lost.
 			let queue: RealtimeEvent[] | null = options.initial ? [] : null;
-			const unsubscribe = subscribe(topic, (event) => {
-				if (options.until?.(event)) return close();
-				if (options.filter && !options.filter(event)) return;
-				if (queue) queue.push(event);
-				else sendEvent(event);
-			});
+			const unsubscribes = [topic].flat().map((t) =>
+				subscribe(t, (event) => {
+					if (options.until?.(event)) return close();
+					if (options.filter && !options.filter(event)) return;
+					if (queue) queue.push(event);
+					else sendEvent(event);
+				})
+			);
 			if (options.initial) {
 				const flush = (events: RealtimeEvent[]) => {
 					const queued = queue ?? [];
@@ -73,7 +76,7 @@ export function eventStream(
 				if (closed) return;
 				closed = true;
 				clearInterval(heartbeat);
-				unsubscribe();
+				for (const unsubscribe of unsubscribes) unsubscribe();
 				options.onClose?.();
 			};
 			if (request.signal.aborted) cleanup();

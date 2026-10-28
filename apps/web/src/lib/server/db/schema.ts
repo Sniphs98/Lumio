@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
 import {
+	type AnyPgColumn,
 	bigint,
 	boolean,
 	index,
@@ -213,7 +214,10 @@ export const message = pgTable(
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
 		content: text('content').notNull(),
-		replyToId: uuid('reply_to_id'),
+		/** The message this one answers. Kept as an empty reply if that message is deleted. */
+		replyToId: uuid('reply_to_id').references((): AnyPgColumn => message.id, {
+			onDelete: 'set null'
+		}),
 		editedAt: timestamp('edited_at', { withTimezone: true }),
 		...timestamps
 	},
@@ -261,12 +265,36 @@ export const reaction = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		emoji: text('emoji').notNull()
+		emoji: text('emoji').notNull(),
+		...timestamps
 	},
 	(t) => [primaryKey({ columns: [t.messageId, t.userId, t.emoji] })]
 );
 
-/** Last message a user has read, per channel or conversation. Drives unread dots on tabs. */
+/**
+ * Users a message mentions: those written as `<@userId>` in its content, plus the author of the
+ * message it replies to. Drives mention highlights and mention counts.
+ */
+export const messageMention = pgTable(
+	'message_mention',
+	{
+		messageId: uuid('message_id')
+			.notNull()
+			.references(() => message.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' })
+	},
+	(t) => [
+		primaryKey({ columns: [t.messageId, t.userId] }),
+		index('message_mention_user_idx').on(t.userId)
+	]
+);
+
+/**
+ * Last message a user has read, per channel or conversation. Messages from others after
+ * `lastReadAt` are unread; without a row, everything since the user signed up is.
+ */
 export const readState = pgTable(
 	'read_state',
 	{
@@ -278,6 +306,8 @@ export const readState = pgTable(
 			onDelete: 'cascade'
 		}),
 		lastReadMessageId: uuid('last_read_message_id'),
+		/** When the last read message was sent. */
+		lastReadAt: timestamp('last_read_at', { withTimezone: true }),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
 	},
 	(t) => [
