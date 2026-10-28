@@ -9,6 +9,8 @@
 	import AccountSuggestion from '#lib/components/guest/account-suggestion.svelte';
 	import TabBar from '#lib/components/shell/tab-bar.svelte';
 	import { startVisit } from '#lib/guests.ts';
+	import { sounds } from '#lib/sound-player.svelte.ts';
+	import { shouldPlayMessageSound } from '#lib/sounds.ts';
 	import { setUnreadContext } from '#lib/unread-context.ts';
 	import { clearUnread } from '#lib/unread.ts';
 	import type { LayoutProps } from './$types';
@@ -51,9 +53,11 @@
 		source.addEventListener('message.activity', (e) => {
 			const event = JSON.parse((e as MessageEvent<string>).data) as UserEvent;
 			if (event.type !== 'message.activity') return;
+			const openChat = { id: page.params.id, visible: document.visibilityState === 'visible' };
+			if (shouldPlayMessageSound(event, data.user.id, openChat)) sounds.play('message');
 			// The open chat marks new messages as read itself.
 			const chatId = event.channelId ?? event.conversationId;
-			if (chatId === page.params.id && document.visibilityState === 'visible') return;
+			if (chatId === openChat.id && openChat.visible) return;
 			reloadUnread();
 		});
 		source.addEventListener('home.changed', () => invalidate('app:home'));
