@@ -46,6 +46,19 @@ Desktop app against the local dev server:
 LUMIO_URL=http://localhost:5173 pnpm desktop
 ```
 
+### Tests
+
+```sh
+pnpm test:unit   # Vitest: unit tests and component tests in a real browser
+pnpm test:e2e    # Playwright: end-to-end tests, needs the dev Postgres and a migrated database
+```
+
+Run `pnpm --filter @lumio/web exec playwright install chromium` once to download the browser. CI runs lint, type checks, unit and end-to-end tests on every pull request.
+
+### AI coding tools
+
+The repository is set up for Claude Code (and other agents that read `AGENTS.md`): `CLAUDE.md` holds the project rules, `.mcp.json` connects the official [Svelte MCP server](https://svelte.dev/docs/mcp), and `.claude/` contains the Svelte skills and a Svelte file editor agent from the Svelte CLI.
+
 ### Database changes
 
 Edit `apps/web/src/lib/server/db/schema.ts`, then run `pnpm db:generate` to create a migration in `apps/web/drizzle/` and `pnpm db:migrate` to apply it. The Better Auth tables live in `auth.schema.ts` and are generated with `pnpm --filter @lumio/web auth:schema`.

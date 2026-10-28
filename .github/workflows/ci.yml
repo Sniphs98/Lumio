@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: lumio
+          POSTGRES_PASSWORD: lumio
+          POSTGRES_DB: lumio
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U lumio" --health-interval 5s --health-retries 10
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+      DATABASE_URL: postgres://lumio:lumio@localhost:5432/lumio
+      ORIGIN: http://localhost:4173
+      BETTER_AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      LIVEKIT_URL: ws://localhost:7880
+      LIVEKIT_API_KEY: devkey
+      LIVEKIT_API_SECRET: devsecret_change_me_devsecret_change_me
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @lumio/web exec playwright install --with-deps chromium
+      - run: pnpm lint
+      - run: pnpm check
+      - run: pnpm test:unit
+      - run: pnpm --filter @lumio/web exec node scripts/migrate.js
+      - run: pnpm test:e2e
