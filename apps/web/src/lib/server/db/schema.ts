@@ -1,6 +1,7 @@
 import { relations, sql } from 'drizzle-orm';
 import {
 	bigint,
+	boolean,
 	index,
 	integer,
 	pgEnum,
@@ -78,6 +79,8 @@ export const invite = pgTable('invite', {
 	maxUses: integer('max_uses'),
 	uses: integer('uses').notNull().default(0),
 	expiresAt: timestamp('expires_at', { withTimezone: true }),
+	/** Whether people may join as a guest (only a name) instead of creating an account. */
+	allowGuests: boolean('allow_guests').notNull().default(true),
 	...timestamps
 });
 
@@ -142,6 +145,18 @@ export const friendship = pgTable(
 		index('friendship_addressee_idx').on(t.addresseeId)
 	]
 );
+
+/**
+ * Every user's personal friend link. Whoever opens it becomes their friend right away;
+ * newcomers can join the instance through it first. Resetting the link replaces the code.
+ */
+export const friendLink = pgTable('friend_link', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	code: text('code').notNull().unique(),
+	...timestamps
+});
 
 export const conversationType = pgEnum('conversation_type', ['direct', 'group']);
 

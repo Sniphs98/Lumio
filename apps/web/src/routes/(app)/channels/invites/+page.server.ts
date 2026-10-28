@@ -32,7 +32,11 @@ export const actions: Actions = {
 		if (!locals.user) error(401, 'Not signed in');
 		await loadAccess(locals.user.id);
 		const form = await request.formData();
-		const parsed = parseInviteSettings(form.get('expiry'), form.get('maxUses'));
+		const parsed = parseInviteSettings(
+			form.get('expiry'),
+			form.get('maxUses'),
+			form.get('allowGuests')
+		);
 		if (!parsed.ok) return fail(400, { inviteError: parsed.error });
 
 		const invite = await createInvite(locals.user.id, parsed.settings);

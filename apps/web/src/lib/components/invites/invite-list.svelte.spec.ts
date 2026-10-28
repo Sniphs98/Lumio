@@ -42,4 +42,11 @@ describe('InviteList', () => {
 			.element(page.getByRole('button', { name: 'Revoke invite link abc123' }))
 			.not.toBeInTheDocument();
 	});
+
+	it('marks links that do not let guests join', async () => {
+		render(InviteList, { invites: [{ ...invite, allowGuests: false }], showCreator: false });
+		await expect
+			.element(page.getByText('2 of 5 used · Never expires · Accounts only'))
+			.toBeVisible();
+	});
 });

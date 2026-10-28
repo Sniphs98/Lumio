@@ -1,23 +1,14 @@
 import { error, fail } from '@sveltejs/kit';
-import { normalizeFriendEmail } from '#lib/friends.ts';
-import { acceptFriendRequest, removeFriendship, sendFriendRequest } from '#lib/server/friends.ts';
+import { resetFriendLink } from '#lib/server/friend-links.ts';
+import { acceptFriendRequest, removeFriendship } from '#lib/server/friends.ts';
 import type { Actions } from './$types';
 
 // The friend list lives in the Home layout, so its forms post here from every Home page.
 export const actions: Actions = {
-	addFriend: async ({ locals, request }) => {
+	resetFriendLink: async ({ locals }) => {
 		if (!locals.user) error(401, 'Not signed in');
-		const form = await request.formData();
-		const email = normalizeFriendEmail(form.get('email'));
-		if (!email.ok) return fail(400, { friendError: email.error });
-
-		const result = await sendFriendRequest(locals.user.id, email.email);
-		if (!result.ok) return fail(400, { friendError: result.error });
-		return {
-			friendNotice: result.accepted
-				? `You and ${result.friend.name} are now friends.`
-				: `Friend request sent to ${result.friend.name}.`
-		};
+		await resetFriendLink(locals.user.id);
+		return { friendNotice: 'New friend link created. The old one no longer works.' };
 	},
 	accept: async ({ locals, request }) => {
 		if (!locals.user) error(401, 'Not signed in');

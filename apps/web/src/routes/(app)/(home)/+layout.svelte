@@ -27,6 +27,7 @@
 		groups={data.groups}
 		directConversationIds={data.directConversationIds}
 		activeConversationId={page.params.id}
+		friendLinkUrl={new URL(`/add/${data.friendLinkCode}`, page.url.origin).href}
 		notice={page.form?.friendNotice}
 		error={page.form?.friendError}
 	/>
