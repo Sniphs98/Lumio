@@ -111,6 +111,53 @@ test.describe('with LiveKit', () => {
 		await ben.context.close();
 	});
 
+	test('mute and audio settings from the user panel carry over into calls', async ({ browser }) => {
+		const { page, context } = await newUser(browser, 'Emil');
+		await openLounge(page);
+
+		// Muted before joining, like in Discord.
+		const panel = page.getByRole('region', { name: 'You' });
+		await panel.getByRole('button', { name: 'Mute' }).click();
+		await expect(panel.getByRole('button', { name: 'Unmute' })).toBeVisible();
+
+		await panel.getByRole('button', { name: 'Audio settings' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Audio settings' });
+		await dialog.getByRole('switch', { name: 'Noise suppression' }).click();
+		await expect(dialog.getByRole('switch', { name: 'Noise suppression' })).not.toBeChecked();
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeHidden();
+
+		// Both are kept in this browser.
+		await page.reload();
+		await expect(panel.getByRole('button', { name: 'Unmute' })).toBeVisible();
+		await panel.getByRole('button', { name: 'Audio settings' }).click();
+		await expect(dialog.getByRole('switch', { name: 'Noise suppression' })).not.toBeChecked();
+		await page.keyboard.press('Escape');
+
+		await page.getByRole('button', { name: 'Join voice' }).click();
+		const bar = page.getByRole('region', { name: 'Call' });
+		await expect(bar.getByRole('status')).toHaveText('Voice connected');
+		await expect(bar.getByRole('button', { name: 'Unmute' })).toBeVisible();
+		const me = page.getByRole('list', { name: 'Participants' }).getByRole('listitem', {
+			name: 'Emil'
+		});
+		await expect(me.getByLabel('Muted')).toBeVisible();
+
+		// The panel and the call bar control the same call.
+		await panel.getByRole('button', { name: 'Unmute' }).click();
+		await expect(bar.getByRole('button', { name: 'Mute' })).toBeVisible();
+		await expect(me.getByLabel('Muted')).toBeHidden();
+		await panel.getByRole('button', { name: 'Deafen' }).click();
+		await expect(bar.getByRole('button', { name: 'Undeafen' })).toBeVisible();
+		await expect(me.getByLabel('Muted')).toBeVisible();
+
+		await bar.getByRole('button', { name: 'Hang up' }).click();
+		await expect(bar).toBeHidden();
+		await expect(panel.getByRole('button', { name: 'Undeafen' })).toBeVisible();
+
+		await context.close();
+	});
+
 	test('on a phone the Lounge voice channel can be joined and left', async ({ browser }) => {
 		const { page, context } = await newUser(browser, 'Dora', { width: 390, height: 800 });
 		await openLounge(page);
