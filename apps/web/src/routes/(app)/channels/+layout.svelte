@@ -1,0 +1,58 @@
+<script lang="ts">
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import { Hash, Volume2 } from '@lucide/svelte';
+	import { cn } from '#lib/utils.ts';
+	import type { LayoutProps } from './$types';
+
+	let { data, children }: LayoutProps = $props();
+
+	const textChannels = $derived(data.channels.filter((c) => c.type === 'text'));
+	const voiceChannels = $derived(data.channels.filter((c) => c.type === 'voice'));
+	// On phones either the channel list or the open channel is shown, never both.
+	const channelOpen = $derived(Boolean(page.params.id));
+</script>
+
+<aside
+	class={cn(
+		'w-full shrink-0 flex-col overflow-y-auto p-3 md:flex md:w-60 md:border-r',
+		channelOpen ? 'hidden' : 'flex'
+	)}
+	aria-label="Channels"
+>
+	<h2 class="px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+		Text channels
+	</h2>
+	<ul class="grid gap-0.5 pb-4">
+		{#each textChannels as c (c.id)}
+			<li>
+				<a
+					href={resolve('/(app)/channels/[id]', { id: c.id })}
+					class={cn(
+						'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+						page.params.id === c.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
+					)}
+					aria-current={page.params.id === c.id ? 'page' : undefined}
+				>
+					<Hash class="size-4 shrink-0" />
+					<span class="truncate">{c.name}</span>
+				</a>
+			</li>
+		{/each}
+	</ul>
+	<h2 class="px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+		Voice channels
+	</h2>
+	<ul class="grid gap-0.5">
+		{#each voiceChannels as c (c.id)}
+			<li class="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
+				<Volume2 class="size-4 shrink-0" />
+				<span class="truncate">{c.name}</span>
+			</li>
+		{/each}
+	</ul>
+</aside>
+
+<div class={cn('min-w-0 flex-1 flex-col md:flex', channelOpen ? 'flex' : 'hidden')}>
+	{@render children()}
+</div>

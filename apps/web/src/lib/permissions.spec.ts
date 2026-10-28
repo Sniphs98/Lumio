@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { applyOverwrite, DEFAULT_PERMISSIONS, hasPermission, Permission } from './permissions.ts';
+import {
+	applyOverwrite,
+	DEFAULT_PERMISSIONS,
+	hasPermission,
+	Permission,
+	resolvePermissions
+} from './permissions.ts';
 
 describe('hasPermission', () => {
 	it('grants permissions contained in the mask', () => {
@@ -38,5 +44,52 @@ describe('applyOverwrite', () => {
 	it('lets allow win when a bit is both allowed and denied', () => {
 		const result = applyOverwrite(0n, Permission.Speak, Permission.Speak);
 		expect(hasPermission(result, Permission.Speak)).toBe(true);
+	});
+});
+
+describe('resolvePermissions', () => {
+	it('gives the owner every permission', () => {
+		const mask = resolvePermissions({ isOwner: true, rolePermissions: [] });
+		expect(hasPermission(mask, Permission.BanMembers)).toBe(true);
+	});
+
+	it('combines all roles of a user', () => {
+		const mask = resolvePermissions({
+			isOwner: false,
+			rolePermissions: [DEFAULT_PERMISSIONS, Permission.ManageMessages]
+		});
+		expect(hasPermission(mask, Permission.SendMessages)).toBe(true);
+		expect(hasPermission(mask, Permission.ManageMessages)).toBe(true);
+	});
+
+	it('applies role overwrites, letting an allow on one role beat a deny on another', () => {
+		const mask = resolvePermissions({
+			isOwner: false,
+			rolePermissions: [DEFAULT_PERMISSIONS],
+			roleOverwrites: [
+				{ allow: 0n, deny: Permission.SendMessages },
+				{ allow: Permission.SendMessages, deny: 0n }
+			]
+		});
+		expect(hasPermission(mask, Permission.SendMessages)).toBe(true);
+	});
+
+	it('lets a user overwrite win over role overwrites', () => {
+		const mask = resolvePermissions({
+			isOwner: false,
+			rolePermissions: [DEFAULT_PERMISSIONS],
+			roleOverwrites: [{ allow: Permission.SendMessages, deny: 0n }],
+			userOverwrite: { allow: 0n, deny: Permission.SendMessages }
+		});
+		expect(hasPermission(mask, Permission.SendMessages)).toBe(false);
+	});
+
+	it('ignores channel overwrites for administrators', () => {
+		const mask = resolvePermissions({
+			isOwner: false,
+			rolePermissions: [Permission.Administrator],
+			userOverwrite: { allow: 0n, deny: Permission.ViewChannel }
+		});
+		expect(hasPermission(mask, Permission.ViewChannel)).toBe(true);
 	});
 });

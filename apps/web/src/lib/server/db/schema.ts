@@ -20,12 +20,16 @@ const timestamps = {
 };
 
 /* -------------------------------------------------------------------------- */
-/*                                  Servers                                   */
+/*                                  Instance                                  */
 /* -------------------------------------------------------------------------- */
 
-/** A community ("guild" in Discord terms). Each one is shown as a tab in the UI. */
-export const server = pgTable('server', {
-	id: uuid('id').primaryKey().defaultRandom(),
+/**
+ * One Lumio instance is one self-contained community. This table holds exactly one row,
+ * created when the first user signs up; that user becomes the owner.
+ * Clients connect to several instances and show each one as a tab.
+ */
+export const instance = pgTable('instance', {
+	id: integer('id').primaryKey().default(1),
 	name: text('name').notNull(),
 	iconUrl: text('icon_url'),
 	ownerId: text('owner_id')
@@ -34,60 +38,36 @@ export const server = pgTable('server', {
 	...timestamps
 });
 
-export const member = pgTable(
-	'member',
+/**
+ * Permissions are stored as a bit mask, see `#lib/permissions.ts`.
+ * The `@everyone` role applies to every user and has `position = 0`.
+ */
+export const role = pgTable('role', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	name: text('name').notNull(),
+	color: text('color'),
+	position: integer('position').notNull().default(0),
+	permissions: bigint('permissions', { mode: 'bigint' })
+		.notNull()
+		.default(sql`0`),
+	...timestamps
+});
+
+export const userRole = pgTable(
+	'user_role',
 	{
-		serverId: uuid('server_id')
-			.notNull()
-			.references(() => server.id, { onDelete: 'cascade' }),
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		nickname: text('nickname'),
-		joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull()
-	},
-	(t) => [primaryKey({ columns: [t.serverId, t.userId] }), index('member_user_idx').on(t.userId)]
-);
-
-/**
- * Permissions are stored as a bit mask, see `#lib/permissions`.
- * The `@everyone` role of a server has `position = 0`.
- */
-export const role = pgTable(
-	'role',
-	{
-		id: uuid('id').primaryKey().defaultRandom(),
-		serverId: uuid('server_id')
-			.notNull()
-			.references(() => server.id, { onDelete: 'cascade' }),
-		name: text('name').notNull(),
-		color: text('color'),
-		position: integer('position').notNull().default(0),
-		permissions: bigint('permissions', { mode: 'bigint' })
-			.notNull()
-			.default(sql`0`),
-		...timestamps
-	},
-	(t) => [index('role_server_idx').on(t.serverId)]
-);
-
-export const memberRole = pgTable(
-	'member_role',
-	{
-		serverId: uuid('server_id').notNull(),
-		userId: text('user_id').notNull(),
 		roleId: uuid('role_id')
 			.notNull()
 			.references(() => role.id, { onDelete: 'cascade' })
 	},
-	(t) => [primaryKey({ columns: [t.serverId, t.userId, t.roleId] })]
+	(t) => [primaryKey({ columns: [t.userId, t.roleId] })]
 );
 
 export const invite = pgTable('invite', {
 	code: text('code').primaryKey(),
-	serverId: uuid('server_id')
-		.notNull()
-		.references(() => server.id, { onDelete: 'cascade' }),
 	createdById: text('created_by_id')
 		.notNull()
 		.references(() => user.id, { onDelete: 'cascade' }),
@@ -103,23 +83,16 @@ export const invite = pgTable('invite', {
 
 export const channelType = pgEnum('channel_type', ['category', 'text', 'voice']);
 
-export const channel = pgTable(
-	'channel',
-	{
-		id: uuid('id').primaryKey().defaultRandom(),
-		serverId: uuid('server_id')
-			.notNull()
-			.references(() => server.id, { onDelete: 'cascade' }),
-		/** Category this channel belongs to, if any. */
-		parentId: uuid('parent_id'),
-		type: channelType('type').notNull(),
-		name: text('name').notNull(),
-		topic: text('topic'),
-		position: integer('position').notNull().default(0),
-		...timestamps
-	},
-	(t) => [index('channel_server_idx').on(t.serverId)]
-);
+export const channel = pgTable('channel', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	/** Category this channel belongs to, if any. */
+	parentId: uuid('parent_id'),
+	type: channelType('type').notNull(),
+	name: text('name').notNull(),
+	topic: text('topic'),
+	position: integer('position').notNull().default(0),
+	...timestamps
+});
 
 /** Per-channel permission overwrites for a role or a single member. */
 export const channelOverwrite = pgTable(
@@ -269,19 +242,7 @@ export const readState = pgTable(
 /*                                 Relations                                  */
 /* -------------------------------------------------------------------------- */
 
-export const serverRelations = relations(server, ({ many }) => ({
-	members: many(member),
-	channels: many(channel),
-	roles: many(role)
-}));
-
-export const memberRelations = relations(member, ({ one }) => ({
-	server: one(server, { fields: [member.serverId], references: [server.id] }),
-	user: one(user, { fields: [member.userId], references: [user.id] })
-}));
-
-export const channelRelations = relations(channel, ({ one, many }) => ({
-	server: one(server, { fields: [channel.serverId], references: [server.id] }),
+export const channelRelations = relations(channel, ({ many }) => ({
 	messages: many(message)
 }));
 

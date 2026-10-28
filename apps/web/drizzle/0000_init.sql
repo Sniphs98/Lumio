@@ -12,7 +12,6 @@ CREATE TABLE "attachment" (
 --> statement-breakpoint
 CREATE TABLE "channel" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"server_id" uuid NOT NULL,
 	"parent_id" uuid,
 	"type" "channel_type" NOT NULL,
 	"name" text NOT NULL,
@@ -51,29 +50,21 @@ CREATE TABLE "friendship" (
 	CONSTRAINT "friendship_requester_id_addressee_id_pk" PRIMARY KEY("requester_id","addressee_id")
 );
 --> statement-breakpoint
+CREATE TABLE "instance" (
+	"id" integer PRIMARY KEY DEFAULT 1 NOT NULL,
+	"name" text NOT NULL,
+	"icon_url" text,
+	"owner_id" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "invite" (
 	"code" text PRIMARY KEY NOT NULL,
-	"server_id" uuid NOT NULL,
 	"created_by_id" text NOT NULL,
 	"max_uses" integer,
 	"uses" integer DEFAULT 0 NOT NULL,
 	"expires_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "member" (
-	"server_id" uuid NOT NULL,
-	"user_id" text NOT NULL,
-	"nickname" text,
-	"joined_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "member_server_id_user_id_pk" PRIMARY KEY("server_id","user_id")
-);
---> statement-breakpoint
-CREATE TABLE "member_role" (
-	"server_id" uuid NOT NULL,
-	"user_id" text NOT NULL,
-	"role_id" uuid NOT NULL,
-	CONSTRAINT "member_role_server_id_user_id_role_id_pk" PRIMARY KEY("server_id","user_id","role_id")
 );
 --> statement-breakpoint
 CREATE TABLE "message" (
@@ -104,7 +95,6 @@ CREATE TABLE "read_state" (
 --> statement-breakpoint
 CREATE TABLE "role" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"server_id" uuid NOT NULL,
 	"name" text NOT NULL,
 	"color" text,
 	"position" integer DEFAULT 0 NOT NULL,
@@ -112,12 +102,10 @@ CREATE TABLE "role" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "server" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" text NOT NULL,
-	"icon_url" text,
-	"owner_id" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+CREATE TABLE "user_role" (
+	"user_id" text NOT NULL,
+	"role_id" uuid NOT NULL,
+	CONSTRAINT "user_role_user_id_role_id_pk" PRIMARY KEY("user_id","role_id")
 );
 --> statement-breakpoint
 CREATE TABLE "account" (
@@ -169,7 +157,6 @@ CREATE TABLE "verification" (
 );
 --> statement-breakpoint
 ALTER TABLE "attachment" ADD CONSTRAINT "attachment_message_id_message_id_fk" FOREIGN KEY ("message_id") REFERENCES "public"."message"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "channel" ADD CONSTRAINT "channel_server_id_server_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "channel_overwrite" ADD CONSTRAINT "channel_overwrite_channel_id_channel_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channel"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "channel_overwrite" ADD CONSTRAINT "channel_overwrite_role_id_role_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."role"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "channel_overwrite" ADD CONSTRAINT "channel_overwrite_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -177,11 +164,8 @@ ALTER TABLE "conversation_member" ADD CONSTRAINT "conversation_member_conversati
 ALTER TABLE "conversation_member" ADD CONSTRAINT "conversation_member_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "friendship" ADD CONSTRAINT "friendship_requester_id_user_id_fk" FOREIGN KEY ("requester_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "friendship" ADD CONSTRAINT "friendship_addressee_id_user_id_fk" FOREIGN KEY ("addressee_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "invite" ADD CONSTRAINT "invite_server_id_server_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "instance" ADD CONSTRAINT "instance_owner_id_user_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invite" ADD CONSTRAINT "invite_created_by_id_user_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "member" ADD CONSTRAINT "member_server_id_server_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "member" ADD CONSTRAINT "member_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "member_role" ADD CONSTRAINT "member_role_role_id_role_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."role"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "message" ADD CONSTRAINT "message_channel_id_channel_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channel"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "message" ADD CONSTRAINT "message_conversation_id_conversation_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "message" ADD CONSTRAINT "message_author_id_user_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -190,20 +174,17 @@ ALTER TABLE "reaction" ADD CONSTRAINT "reaction_user_id_user_id_fk" FOREIGN KEY 
 ALTER TABLE "read_state" ADD CONSTRAINT "read_state_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "read_state" ADD CONSTRAINT "read_state_channel_id_channel_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channel"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "read_state" ADD CONSTRAINT "read_state_conversation_id_conversation_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "role" ADD CONSTRAINT "role_server_id_server_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "server" ADD CONSTRAINT "server_owner_id_user_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_role" ADD CONSTRAINT "user_role_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_role" ADD CONSTRAINT "user_role_role_id_role_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."role"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "channel_server_idx" ON "channel" USING btree ("server_id");--> statement-breakpoint
 CREATE INDEX "channel_overwrite_channel_idx" ON "channel_overwrite" USING btree ("channel_id");--> statement-breakpoint
 CREATE INDEX "conversation_member_user_idx" ON "conversation_member" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "friendship_addressee_idx" ON "friendship" USING btree ("addressee_id");--> statement-breakpoint
-CREATE INDEX "member_user_idx" ON "member" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "message_channel_created_idx" ON "message" USING btree ("channel_id","created_at");--> statement-breakpoint
 CREATE INDEX "message_conversation_created_idx" ON "message" USING btree ("conversation_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "read_state_user_channel_idx" ON "read_state" USING btree ("user_id","channel_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "read_state_user_conversation_idx" ON "read_state" USING btree ("user_id","conversation_id");--> statement-breakpoint
-CREATE INDEX "role_server_idx" ON "role" USING btree ("server_id");--> statement-breakpoint
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");

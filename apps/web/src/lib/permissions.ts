@@ -43,3 +43,32 @@ export function hasPermission(mask: bigint, permission: bigint): boolean {
 export function applyOverwrite(base: bigint, allow: bigint, deny: bigint): bigint {
 	return (base & ~deny) | allow;
 }
+
+export type Overwrite = { allow: bigint; deny: bigint };
+
+/**
+ * Computes a user's effective permissions in a channel, following Discord's order:
+ * role permissions, then role overwrites (all denies, then all allows), then the user's own overwrite.
+ * The instance owner always has every permission.
+ */
+export function resolvePermissions(input: {
+	isOwner: boolean;
+	rolePermissions: bigint[];
+	roleOverwrites?: Overwrite[];
+	userOverwrite?: Overwrite | null;
+}): bigint {
+	if (input.isOwner) return Permission.Administrator;
+
+	let mask = input.rolePermissions.reduce((acc, p) => acc | p, 0n);
+	if ((mask & Permission.Administrator) === Permission.Administrator) return mask;
+
+	const roleOverwrites = input.roleOverwrites ?? [];
+	const deny = roleOverwrites.reduce((acc, o) => acc | o.deny, 0n);
+	const allow = roleOverwrites.reduce((acc, o) => acc | o.allow, 0n);
+	mask = applyOverwrite(mask, allow, deny);
+
+	if (input.userOverwrite) {
+		mask = applyOverwrite(mask, input.userOverwrite.allow, input.userOverwrite.deny);
+	}
+	return mask;
+}
