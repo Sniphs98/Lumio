@@ -48,4 +48,17 @@ describe('Call outside of a call', () => {
 		expect(call.settings.noiseSuppression).toBe(false);
 		expect(loadAudioSettings()).toMatchObject({ noiseSuppression: false, outputVolume: 0.4 });
 	});
+
+	it('keeps the volume per person for the next call and reload', () => {
+		const call = new Call();
+		call.setUserAudio('anna', { volume: 0.3 });
+		call.setUserAudio('ben', { muted: true });
+		expect(call.userAudioOf('anna')).toEqual({ volume: 0.3, muted: false });
+		expect(call.userAudioOf('cleo')).toEqual({ volume: 1, muted: false });
+
+		const reloaded = new Call();
+		reloaded.restoreSettings();
+		expect(reloaded.userAudioOf('anna').volume).toBe(0.3);
+		expect(reloaded.userAudioOf('ben').muted).toBe(true);
+	});
 });

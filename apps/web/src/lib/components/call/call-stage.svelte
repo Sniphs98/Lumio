@@ -41,7 +41,7 @@
 >
 	{#each tiles as tile (tile.key)}
 		{@const p = tile.participant}
-		<UserContextMenu user={{ id: p.identity, name: p.name }}>
+		<UserContextMenu user={{ id: p.identity, name: p.name }} voice={!p.isLocal}>
 			{#snippet child({ props })}
 				<li
 					{...props}

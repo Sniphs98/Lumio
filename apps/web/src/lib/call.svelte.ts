@@ -27,6 +27,15 @@ import {
 	type AudioSettings
 } from '#lib/audio-settings.ts';
 import { sounds } from '#lib/sound-player.svelte.ts';
+import {
+	DEFAULT_USER_AUDIO,
+	loadUserAudio,
+	playbackVolume,
+	saveUserAudio,
+	updateUserAudio,
+	type UserAudio,
+	type UserAudioMap
+} from '#lib/user-audio.ts';
 
 export type CallStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting';
 
@@ -68,6 +77,12 @@ export interface AudioControls {
 	updateSettings(patch: Partial<AudioSettings>): Promise<void>;
 }
 
+/** Volume and mute per person, from the right-click menu. Lets component tests pass a fake. */
+export interface UserAudioControls {
+	userAudioOf(userId: string): UserAudio;
+	setUserAudio(userId: string, patch: Partial<UserAudio>): void;
+}
+
 /** What the call bar and call pages need from a call. Lets component tests pass a fake. */
 export interface CallControls {
 	readonly status: CallStatus;
@@ -92,11 +107,13 @@ export interface CallControls {
 	dismissError(): void;
 }
 
-export class Call implements CallControls, AudioControls {
+export class Call implements CallControls, AudioControls, UserAudioControls {
 	status = $state<CallStatus>('idle');
 	target = $state.raw<CallTarget | null>(null);
 	participants = $state.raw<CallParticipant[]>([]);
 	settings = $state.raw<AudioSettings>({ ...DEFAULT_AUDIO_SETTINGS });
+	/** Volume and mute per person, see `#lib/user-audio.ts`. */
+	userAudio = $state.raw<UserAudioMap>({});
 	cameraOn = $state(false);
 	screenSharing = $state(false);
 	audioBlocked = $state(false);
@@ -129,6 +146,19 @@ export class Call implements CallControls, AudioControls {
 	restoreSettings(): void {
 		this.#saved = loadAudioSettings();
 		this.settings = { ...this.#saved };
+		this.userAudio = loadUserAudio();
+	}
+
+	userAudioOf(userId: string): UserAudio {
+		return this.userAudio[userId] ?? DEFAULT_USER_AUDIO;
+	}
+
+	/** Changes how loud someone is for this user only, in this and every later call. */
+	setUserAudio(userId: string, patch: Partial<UserAudio>): void {
+		this.userAudio = updateUserAudio(this.userAudio, userId, patch);
+		saveUserAudio(this.userAudio);
+		const participant = this.#room?.remoteParticipants.get(userId);
+		if (participant) this.#applyVolume(participant);
 	}
 
 	async updateSettings(patch: Partial<AudioSettings>): Promise<void> {
@@ -407,7 +437,11 @@ export class Call implements CallControls, AudioControls {
 	}
 
 	#applyVolume(participant: RemoteParticipant) {
-		const volume = this.deafened ? 0 : this.settings.outputVolume;
+		const volume = playbackVolume(
+			this.settings.outputVolume,
+			this.userAudio[participant.identity],
+			this.deafened
+		);
 		participant.setVolume(volume, Track.Source.Microphone);
 		participant.setVolume(volume, Track.Source.ScreenShareAudio);
 	}

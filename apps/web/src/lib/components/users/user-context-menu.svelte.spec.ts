@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
+import type { UserAudioControls } from '#lib/call.svelte.ts';
+import { DEFAULT_USER_AUDIO, updateUserAudio, type UserAudioMap } from '#lib/user-audio.ts';
 import type { UserMenuAccess } from '#lib/user-menu.ts';
 import Harness from './user-context-menu.test-harness.svelte';
 
@@ -71,6 +73,35 @@ describe('UserContextMenu', () => {
 
 	it('opens no menu when there is nothing to offer', async () => {
 		render(Harness, { access: moderator, user: { id: 'me', name: 'Me' } });
+
+		await openMenu('Me');
+		await expect.element(page.getByRole('menu')).not.toBeInTheDocument();
+	});
+
+	it('sets the volume and mute of someone in a call for this user only', async () => {
+		let map = $state<UserAudioMap>({});
+		const audio: UserAudioControls = {
+			userAudioOf: (id) => map[id] ?? DEFAULT_USER_AUDIO,
+			setUserAudio: (id, patch) => (map = updateUserAudio(map, id, patch))
+		};
+		render(Harness, { access: moderator, user: ben, voice: true, audio });
+
+		await openMenu('Ben');
+		const slider = page.getByRole('menu').getByRole('slider');
+		await expect.element(slider).toHaveAttribute('aria-valuenow', '100');
+		(slider.element() as HTMLElement).focus();
+		await userEvent.keyboard('{Home}');
+		expect(map.ben?.volume).toBe(0);
+		await expect.element(page.getByText('0%')).toBeVisible();
+
+		await page.getByRole('menuitemcheckbox', { name: 'Mute' }).click();
+		expect(map.ben?.muted).toBe(true);
+		// The menu stays open, so the user sees the change.
+		await expect.element(page.getByRole('menuitemcheckbox', { name: 'Mute' })).toBeChecked();
+	});
+
+	it('offers no volume for the user themselves', async () => {
+		render(Harness, { access: moderator, user: { id: 'me', name: 'Me' }, voice: true });
 
 		await openMenu('Me');
 		await expect.element(page.getByRole('menu')).not.toBeInTheDocument();
