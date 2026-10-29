@@ -100,7 +100,10 @@ test('a moderator bans a member, who is signed out and cannot come back until un
 	const dialog = moderator.page.getByRole('alertdialog', { name: `Ban ${name}?` });
 	await dialog.getByLabel('Reason (optional)').fill('Spam');
 	await dialog.getByRole('button', { name: 'Ban' }).click();
-	await expect(moderator.page.getByRole('status')).toHaveText('Banned and signed out everywhere.');
+	// Unread badges are statuses too, so the result is picked by its text.
+	await expect(
+		moderator.page.getByRole('status').filter({ hasText: 'Banned and signed out everywhere.' })
+	).toBeVisible();
 	await expect(
 		moderator.page.getByRole('region', { name: 'Banned' }).getByRole('listitem')
 	).toContainText([name]);
@@ -118,7 +121,9 @@ test('a moderator bans a member, who is signed out and cannot come back until un
 		.filter({ hasText: name })
 		.getByRole('button', { name: 'Unban' })
 		.click();
-	await expect(moderator.page.getByRole('status')).toHaveText('The ban was lifted.');
+	await expect(
+		moderator.page.getByRole('status').filter({ hasText: 'The ban was lifted.' })
+	).toBeVisible();
 	await troll.page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(troll.page.getByRole('link', { name: 'Home' })).toBeVisible();
 
