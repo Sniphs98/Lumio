@@ -57,6 +57,16 @@ pnpm test:e2e    # Playwright: end-to-end tests, needs the dev Postgres and a mi
 
 Run `pnpm --filter @lumio/web exec playwright install chromium` once to download the browser. Before the end-to-end tests run, `apps/web/e2e/setup.ts` creates the server owner on an empty database and a shared invite link (valid for one day) that the test users sign up with. CI runs lint, type checks, unit and end-to-end tests on every pull request.
 
+### Releases
+
+Pushing a version tag starts the release workflow (`.github/workflows/release.yml`): it runs the full CI, builds the image for amd64 and arm64, pushes it to `ghcr.io/sniphs98/lumio` and creates a GitHub release with generated notes.
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+`v1.2.3` is published as `1.2.3`, `1.2`, `1` and `latest`; for `0.x` versions the major tag is skipped. Pre-releases such as `v0.2.0-beta.1` only get their own tag and are marked as pre-release.
+
 ### AI coding tools
 
 The repository is set up for Claude Code (and other agents that read `AGENTS.md`): `CLAUDE.md` holds the project rules, `.mcp.json` connects the official [Svelte MCP server](https://svelte.dev/docs/mcp), and `.claude/` contains the Svelte skills and a Svelte file editor agent from the Svelte CLI.
@@ -79,6 +89,8 @@ cp deploy/.env.example .env    # fill in domains and secrets
 docker compose up -d
 ```
 
+This pulls the released image `ghcr.io/sniphs98/lumio` (amd64 and arm64). To run your own changes instead, build it from the checkout with `docker compose up -d --build`.
+
 Open the app and create an account: the first account becomes the owner of the server. After that, registration is closed and people join through invite links. Create one under **Invite people** in the server tab, choose how long it stays valid, how often it can be used and whether guests are allowed, and send it to your friends. Links can be revoked there at any time.
 
 Everyone also has a personal friend link on the Home tab. Whoever opens it becomes their friend right away; newcomers join the server through it first (if its owner may create invites). People joining through a link can create an account or join as a guest with just a name. A guest's session is kept in the browser (cookie and `localStorage`), and when they come back they are asked to create an account: they keep their user, messages, friends and roles, and can then sign in on any device.
@@ -86,6 +98,16 @@ Everyone also has a personal friend link on the Home tab. Whoever opens it becom
 Open these ports in your firewall: `80/tcp`, `443/tcp+udp` (HTTPS), `7881/tcp`, `3478/udp` and `50000-60000/udp` (LiveKit media). Missing UDP ports are the most common reason calls do not connect.
 
 Browsers only allow microphone, camera and screen access on HTTPS (or `localhost`), so calls need the HTTPS setup above. Screen sharing works in desktop browsers and the desktop app; most mobile browsers can join calls but cannot share their screen.
+
+### Updating
+
+```sh
+git pull                      # newer Caddy, LiveKit and compose settings
+docker compose pull
+docker compose up -d
+```
+
+Database migrations run automatically when the app starts. By default you get the `latest` release. To stay on a version, set `LUMIO_VERSION` in `.env`: `0.1.0` stays exactly there, `0.1` follows its bug fixes. Release notes are on the [releases page](https://github.com/Sniphs98/Lumio/releases).
 
 ### File sharing
 

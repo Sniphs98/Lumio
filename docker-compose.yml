@@ -1,6 +1,9 @@
 # Production setup. Copy deploy/.env.example to .env, fill it in, then: docker compose up -d
 services:
   app:
+    # Released image, see "Updating" in the README. Pin a version with LUMIO_VERSION in .env.
+    # To run your own changes instead, build it from this repository: docker compose up -d --build
+    image: ghcr.io/sniphs98/lumio:${LUMIO_VERSION:-latest}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
