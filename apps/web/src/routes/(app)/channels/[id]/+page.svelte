@@ -7,7 +7,7 @@
 	import CallStage from '#lib/components/call/call-stage.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
-	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import * as Resizable from '#lib/components/ui/resizable/index.ts';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
 	import { getUnreadContext } from '#lib/unread-context.ts';
@@ -48,10 +48,10 @@
 <header class="flex h-12 shrink-0 items-center gap-2 border-b px-3">
 	<a
 		href={resolve('/(app)/channels')}
-		class="-ml-1 flex size-8 items-center justify-center rounded-md hover:bg-muted md:hidden"
+		class={buttonVariants({ variant: 'ghost', size: 'icon', class: '-ml-1 size-8 md:hidden' })}
 		aria-label="Back to channels"
 	>
-		<ArrowLeft class="size-4" />
+		<ArrowLeft />
 	</a>
 	{#if joinable}
 		<Volume2 class="size-4 shrink-0 text-muted-foreground" />

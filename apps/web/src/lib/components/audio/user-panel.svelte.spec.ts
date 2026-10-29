@@ -43,6 +43,12 @@ describe('UserPanel', () => {
 		expect(audio.toggleDeafen).toHaveBeenCalledOnce();
 	});
 
+	it('names the buttons in a tooltip', async () => {
+		render(UserPanel, { user, audio: fakeAudio() });
+		await page.getByRole('button', { name: 'Deafen' }).hover();
+		await expect.element(page.getByText('Deafen', { exact: true })).toBeVisible();
+	});
+
 	it('shows when muted or deafened', async () => {
 		render(UserPanel, { user, audio: fakeAudio({ muted: true, deafened: true }) });
 		await expect

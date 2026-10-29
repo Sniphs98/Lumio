@@ -21,7 +21,8 @@ describe('ReactionBar', () => {
 
 		const thumbs = page.getByRole('button', { name: '👍 2' });
 		await expect.element(thumbs).toHaveAttribute('aria-pressed', 'true');
-		await expect.element(thumbs).toHaveAttribute('title', 'Anna and You reacted with 👍');
+		await thumbs.hover();
+		await expect.element(page.getByText('Anna and You reacted with 👍')).toBeVisible();
 		await expect
 			.element(page.getByRole('button', { name: '🎉 1' }))
 			.toHaveAttribute('aria-pressed', 'false');

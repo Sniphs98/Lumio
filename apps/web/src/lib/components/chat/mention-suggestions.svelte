@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ChatUser } from '#lib/chat.ts';
+	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import { cn } from '#lib/utils.ts';
 
 	type Props = {
@@ -34,10 +35,7 @@
 				onpick(user);
 			}}
 		>
-			<span
-				class="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[0.625rem] font-semibold uppercase"
-				aria-hidden="true">{user.name.slice(0, 1)}</span
-			>
+			<UserAvatar {user} class="size-5" fallbackClass="text-[0.625rem] font-semibold" />
 			<span class="truncate">{user.name}</span>
 		</li>
 	{/each}

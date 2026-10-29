@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { Trash2 } from '@lucide/svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Item from '#lib/components/ui/item/index.ts';
 	import { describeExpiry, describeUses } from '#lib/invites.ts';
 	import CopyButton from './copy-button.svelte';
 
@@ -33,29 +34,33 @@
 {#if invites.length === 0}
 	<p class="text-sm text-muted-foreground">No active invite links.</p>
 {:else}
-	<ul class="grid gap-2">
+	<Item.Group class="gap-2">
 		{#each invites as invite (invite.code)}
-			<li class="flex items-center gap-2 rounded-md border p-2 pl-3">
-				<div class="min-w-0 flex-1">
-					<p class="truncate font-mono text-sm">{invite.url}</p>
-					<p class="truncate text-xs text-muted-foreground">{details(invite)}</p>
-				</div>
-				<CopyButton text={invite.url} label="Copy invite link {invite.code}" />
-				{#if invite.canRevoke}
-					<form method="post" action="?/revoke" use:enhance>
-						<input type="hidden" name="code" value={invite.code} />
-						<Button
-							type="submit"
-							size="icon"
-							variant="ghost"
-							class="size-8 text-destructive hover:text-destructive"
-							aria-label="Revoke invite link {invite.code}"
-						>
-							<Trash2 />
-						</Button>
-					</form>
-				{/if}
-			</li>
+			<Item.Root variant="outline" size="sm" class="flex-nowrap py-2 pr-2" role="listitem">
+				<Item.Content class="min-w-0">
+					<Item.Title class="line-clamp-none block w-full truncate font-mono font-normal"
+						>{invite.url}</Item.Title
+					>
+					<Item.Description class="line-clamp-1 text-xs">{details(invite)}</Item.Description>
+				</Item.Content>
+				<Item.Actions class="gap-0">
+					<CopyButton text={invite.url} label="Copy invite link {invite.code}" />
+					{#if invite.canRevoke}
+						<form method="post" action="?/revoke" use:enhance>
+							<input type="hidden" name="code" value={invite.code} />
+							<Button
+								type="submit"
+								size="icon"
+								variant="ghost"
+								class="size-8 text-destructive hover:text-destructive"
+								aria-label="Revoke invite link {invite.code}"
+							>
+								<Trash2 />
+							</Button>
+						</form>
+					{/if}
+				</Item.Actions>
+			</Item.Root>
 		{/each}
-	</ul>
+	</Item.Group>
 {/if}

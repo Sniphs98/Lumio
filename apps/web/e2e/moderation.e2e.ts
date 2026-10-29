@@ -97,10 +97,13 @@ test('a moderator bans a member, who is signed out and cannot come back until un
 	await moderator.page.goto('/channels/members');
 	const row = moderator.page.getByRole('listitem').filter({ hasText: name });
 	await row.getByRole('button', { name: 'Ban' }).click();
-	const dialog = moderator.page.getByRole('dialog', { name: `Ban ${name}?` });
+	const dialog = moderator.page.getByRole('alertdialog', { name: `Ban ${name}?` });
 	await dialog.getByLabel('Reason (optional)').fill('Spam');
 	await dialog.getByRole('button', { name: 'Ban' }).click();
-	await expect(moderator.page.getByRole('status')).toHaveText('Banned and signed out everywhere.');
+	// Unread badges are statuses too, so the result is picked by its text.
+	await expect(
+		moderator.page.getByRole('status').filter({ hasText: 'Banned and signed out everywhere.' })
+	).toBeVisible();
 	await expect(
 		moderator.page.getByRole('region', { name: 'Banned' }).getByRole('listitem')
 	).toContainText([name]);
@@ -118,7 +121,9 @@ test('a moderator bans a member, who is signed out and cannot come back until un
 		.filter({ hasText: name })
 		.getByRole('button', { name: 'Unban' })
 		.click();
-	await expect(moderator.page.getByRole('status')).toHaveText('The ban was lifted.');
+	await expect(
+		moderator.page.getByRole('status').filter({ hasText: 'The ban was lifted.' })
+	).toBeVisible();
 	await troll.page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(troll.page.getByRole('link', { name: 'Home' })).toBeVisible();
 
@@ -156,7 +161,7 @@ test('people delete their own messages, moderators anyone’s', async ({ browser
 	).toHaveCount(0);
 	await messageWith(anna.page, first).hover();
 	await messageWith(anna.page, first).getByRole('button', { name: 'Delete message' }).click();
-	await anna.page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+	await anna.page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
 	await expect(messageWith(anna.page, first)).toHaveCount(0);
 	await expect(messageWith(ben.page, first)).toHaveCount(0);
 
@@ -165,7 +170,7 @@ test('people delete their own messages, moderators anyone’s', async ({ browser
 	await expect(messageWith(mod.page, second)).toBeVisible();
 	await messageWith(mod.page, second).hover();
 	await messageWith(mod.page, second).getByRole('button', { name: 'Delete message' }).click();
-	await mod.page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+	await mod.page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
 	await expect(messageWith(ben.page, second)).toHaveCount(0);
 
 	await ben.page.reload();
@@ -182,7 +187,7 @@ test('a guest is warned before signing out', async ({ browser }) => {
 	await joinAsGuest(page, `/invite/${E2E_INVITE_CODE}`, `Guest ${Date.now()}`);
 	await page.goto('/account');
 	await page.getByRole('button', { name: 'Sign out' }).click();
-	const dialog = page.getByRole('dialog', { name: 'Sign out and lose this guest account?' });
+	const dialog = page.getByRole('alertdialog', { name: 'Sign out and lose this guest account?' });
 	await dialog.getByRole('button', { name: 'Sign out anyway' }).click();
 	await expect(page).toHaveURL(/\/login$/);
 	expect(await page.evaluate(() => localStorage.getItem('lumio:guest'))).toBeNull();

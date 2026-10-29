@@ -5,8 +5,9 @@
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import CopyButton from '#lib/components/invites/copy-button.svelte';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
-	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import type { FriendUser } from '#lib/friends.ts';
 	import { NO_UNREAD, type UnreadCount } from '#lib/unread.ts';
 	import { cn } from '#lib/utils.ts';
@@ -61,16 +62,23 @@
 		/>
 		<CopyButton text={friendLinkUrl} label="Copy friend link" />
 		<form method="post" action="/?/resetFriendLink" use:enhance>
-			<Button
-				type="submit"
-				size="icon"
-				variant="ghost"
-				class="size-8"
-				aria-label="Reset friend link"
-				title="Create a new link; the old one stops working"
-			>
-				<RefreshCw />
-			</Button>
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					{#snippet child({ props })}
+						<Button
+							{...props}
+							type="submit"
+							size="icon"
+							variant="ghost"
+							class="size-8"
+							aria-label="Reset friend link"
+						>
+							<RefreshCw />
+						</Button>
+					{/snippet}
+				</Tooltip.Trigger>
+				<Tooltip.Content>Create a new link; the old one stops working</Tooltip.Content>
+			</Tooltip.Root>
 		</form>
 	</div>
 	{#if error}
@@ -179,14 +187,25 @@
 <section class="p-3" aria-labelledby="groups-heading">
 	<div class="flex items-center justify-between pr-1">
 		<h2 id="groups-heading" class={heading}>Groups</h2>
-		<a
-			href={resolve('/(app)/(home)/groups/new')}
-			class="-mt-2 flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-			aria-label="Create group"
-			title="Create group"
-		>
-			<Plus class="size-4" />
-		</a>
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props })}
+					<a
+						{...props}
+						href={resolve('/(app)/(home)/groups/new')}
+						class={buttonVariants({
+							variant: 'ghost',
+							size: 'icon',
+							class: '-mt-2 size-6 text-muted-foreground'
+						})}
+						aria-label="Create group"
+					>
+						<Plus />
+					</a>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content>Create group</Tooltip.Content>
+		</Tooltip.Root>
 	</div>
 	{#if groups.length === 0}
 		<p class="px-2 text-sm text-muted-foreground">No group chats yet.</p>

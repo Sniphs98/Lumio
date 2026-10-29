@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MicOff } from '@lucide/svelte';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import type { VoiceMember } from '#lib/calls.ts';
 	import { cn } from '#lib/utils.ts';
 
@@ -30,9 +31,9 @@
 			<span class="truncate">{m.name}</span>
 			{#if m.muted}<MicOff class="size-3 shrink-0" aria-label="Muted" />{/if}
 			{#if m.streaming}
-				<span
-					class="shrink-0 rounded bg-red-600 px-1 text-[0.625rem] leading-4 font-semibold text-white"
-					title="Sharing their screen">LIVE</span
+				<Badge
+					class="h-4 rounded bg-red-600 px-1 text-[0.625rem] font-semibold text-white"
+					title="Sharing their screen">LIVE</Badge
 				>
 			{/if}
 		</li>

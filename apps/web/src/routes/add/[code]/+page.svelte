@@ -3,6 +3,8 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import JoinForm from '#lib/components/join/join-form.svelte';
+	import { CircleAlert } from '@lucide/svelte';
+	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import type { PageProps } from './$types';
@@ -49,7 +51,10 @@
 			<Card.Content>
 				<form method="post" action="?/befriend" use:enhance class="grid gap-4">
 					{#if form?.message}
-						<p class="text-sm text-destructive" role="alert">{form.message}</p>
+						<Alert.Root variant="destructive">
+							<CircleAlert />
+							<Alert.Description>{form.message}</Alert.Description>
+						</Alert.Root>
 					{/if}
 					<Button type="submit" class="w-full">Add {data.owner.name}</Button>
 				</form>
