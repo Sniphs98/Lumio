@@ -14,6 +14,8 @@ export default defineConfig({
 	webServer: {
 		command: 'pnpm build && pnpm preview',
 		port: 4173,
+		// The tests sign up many users from one address.
+		env: { AUTH_RATE_LIMIT: 'off' },
 		reuseExistingServer: !process.env.CI
 	},
 	use: {

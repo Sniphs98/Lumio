@@ -6,6 +6,13 @@ import { auth } from '#lib/server/auth.ts';
 import { db } from '#lib/server/db/index.ts';
 import { account, user } from '#lib/server/db/schema.ts';
 import type { Admission } from '#lib/server/invites.ts';
+import { rateLimit, SIGN_UP_PER_IP, tooManyAttempts } from '#lib/server/rate-limit.ts';
+
+/** New guests and accounts per IP address, so one link cannot be used to create endless users. */
+function signUpLimit(event: RequestEvent): { ok: false; error: string } | null {
+	const limited = rateLimit([`sign-up:ip:${event.getClientAddress()}`, SIGN_UP_PER_IP]);
+	return limited.ok ? null : { ok: false, error: tooManyAttempts(limited) };
+}
 
 /**
  * Creates a guest with only a name and signs them in. The returned guest, session token
@@ -16,6 +23,8 @@ export async function signInAsGuest(
 	name: string,
 	admission: Admission
 ): Promise<{ ok: true; guest: StoredGuest } | { ok: false; error: string }> {
+	const limited = signUpLimit(event);
+	if (limited) return limited;
 	// Read by the Better Auth hooks: the user hook checks the link, the plugin takes the name.
 	event.locals.admission = admission;
 	event.locals.guestName = name;
@@ -113,6 +122,8 @@ export async function signUpWithAccount(
 	details: { name: string; email: string; password: string },
 	admission: Admission
 ): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+	const limited = signUpLimit(event);
+	if (limited) return limited;
 	// Read by the Better Auth user hook, which checks the link and uses up one join of an invite.
 	event.locals.admission = admission;
 	try {

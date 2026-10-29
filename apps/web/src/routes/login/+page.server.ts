@@ -3,12 +3,20 @@ import { APIError } from 'better-auth/api';
 import { auth } from '#lib/server/auth.ts';
 import { restoreGuestSession } from '#lib/server/guests.ts';
 import { getInstance } from '#lib/server/instance.ts';
+import {
+	GUEST_RESTORE_PER_IP,
+	rateLimit,
+	SIGN_IN_PER_EMAIL,
+	SIGN_IN_PER_IP,
+	SIGN_UP_PER_IP,
+	tooManyAttempts
+} from '#lib/server/rate-limit.ts';
+import { localRedirectTarget } from '#lib/redirect.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Where to go after signing in: a local path from `?redirectTo=`, or Home. */
 function target(url: URL): string {
-	const to = url.searchParams.get('redirectTo');
-	return to?.startsWith('/') && !to.startsWith('//') && !to.startsWith('/\\') ? to : '/';
+	return localRedirectTarget(url.searchParams.get('redirectTo'), url.origin);
 }
 
 export const load: PageServerLoad = async (event) => {
@@ -22,6 +30,12 @@ export const actions: Actions = {
 		const formData = await event.request.formData();
 		const email = formData.get('email')?.toString() ?? '';
 		const password = formData.get('password')?.toString() ?? '';
+
+		const limited = rateLimit(
+			[`sign-in:ip:${event.getClientAddress()}`, SIGN_IN_PER_IP],
+			[`sign-in:email:${email.trim().toLowerCase()}`, SIGN_IN_PER_EMAIL]
+		);
+		if (!limited.ok) return fail(429, { message: tooManyAttempts(limited) });
 
 		try {
 			await auth.api.signInEmail({ body: { email, password } });
@@ -40,6 +54,9 @@ export const actions: Actions = {
 		const password = formData.get('password')?.toString() ?? '';
 		const name = formData.get('name')?.toString() ?? '';
 
+		const limited = rateLimit([`sign-up:ip:${event.getClientAddress()}`, SIGN_UP_PER_IP]);
+		if (!limited.ok) return fail(429, { message: tooManyAttempts(limited) });
+
 		try {
 			await auth.api.signUpEmail({ body: { email, password, name } });
 		} catch (error) {
@@ -53,6 +70,12 @@ export const actions: Actions = {
 	},
 	/** Signs a guest back in with the session their browser kept in `localStorage`. */
 	continueAsGuest: async (event) => {
+		const limited = rateLimit([
+			`guest-restore:ip:${event.getClientAddress()}`,
+			GUEST_RESTORE_PER_IP
+		]);
+		if (!limited.ok) return fail(429, { message: tooManyAttempts(limited) });
+
 		const token = (await event.request.formData()).get('token');
 		if (typeof token !== 'string' || !(await restoreGuestSession(event, token))) {
 			return fail(400, { guestExpired: true });

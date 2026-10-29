@@ -23,6 +23,38 @@ test('the sign-up API refuses accounts without an invite', async ({ request }) =
 	expect(await response.text()).toContain('You need an invite link to join this Lumio.');
 });
 
+test('pages cannot be framed by other sites', async ({ request }) => {
+	const response = await request.get('/login');
+	expect(response.headers()['x-frame-options']).toBe('DENY');
+	expect(response.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+	expect(response.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
+});
+
+test('signing in never redirects to another site', async ({ page }) => {
+	const email = await signUp(page, 'Redirect User');
+	await page.context().clearCookies();
+
+	await page.goto('/login?redirectTo=/%09/example.com');
+	await page.getByLabel('Email').fill(email);
+	await page.getByLabel('Password').fill('correct horse battery');
+	await page.getByRole('button', { name: 'Sign in' }).click();
+	await expect(page.getByText('Friends', { exact: true })).toBeVisible();
+	expect(new URL(page.url()).host).toBe('localhost:4173');
+});
+
+test('the account API refuses image URLs and overlong names', async ({ page }) => {
+	await signUp(page, 'Profile User');
+	const update = (data: object) =>
+		page.request.post('/api/auth/update-user', {
+			headers: { origin: 'http://localhost:4173' },
+			data
+		});
+
+	expect((await update({ image: 'https://tracker.example/pixel.png' })).status()).toBe(400);
+	expect((await update({ name: 'x'.repeat(100) })).status()).toBe(400);
+	expect((await update({ name: '  Renamed   User ' })).status()).toBe(200);
+});
+
 test('a new user can join with an invite link and sign in again later', async ({ page }) => {
 	const email = await signUp(page, 'Test User');
 	await expect(page).toHaveURL(/\/channels$/);

@@ -8,6 +8,9 @@ services:
     environment:
       DATABASE_URL: postgres://lumio:${POSTGRES_PASSWORD}@postgres:5432/lumio
       ORIGIN: https://${LUMIO_DOMAIN}
+      # The client's IP address as Caddy passes it on, used for sign-in and sign-up limits.
+      ADDRESS_HEADER: X-Forwarded-For
+      XFF_DEPTH: 1
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       LIVEKIT_URL: wss://${LIVEKIT_DOMAIN}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
