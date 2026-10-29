@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Hash, Settings, UserPlus, Users, Volume2 } from '@lucide/svelte';
@@ -7,6 +8,8 @@
 	import UserPanel from '#lib/components/audio/user-panel.svelte';
 	import CallBar from '#lib/components/call/call-bar.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
+	import ServerSettingsDialog from '#lib/components/server-settings/server-settings-dialog.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
 	import ModerationDialog, {
 		type ModerationTarget
@@ -75,12 +78,17 @@
 	const textChannels = $derived(data.channels.filter((c) => c.type === 'text'));
 	const voiceChannels = $derived(data.channels.filter((c) => c.type === 'voice'));
 	const invitesOpen = $derived(page.route.id === '/(app)/channels/invites');
-	const settingsOpen = $derived(page.route.id === '/(app)/channels/settings');
 	const membersOpen = $derived(page.route.id === '/(app)/channels/members');
 	// On phones either the channel list or the open page is shown, never both.
-	const channelOpen = $derived(
-		Boolean(page.params.id) || invitesOpen || settingsOpen || membersOpen
-	);
+	const channelOpen = $derived(Boolean(page.params.id) || invitesOpen || membersOpen);
+
+	let serverSettingsOpen = $state(false);
+	// `/channels/settings` sends people here to open the server settings.
+	$effect(() => {
+		if (!page.url.searchParams.has('settings') || !data.serverSettings) return;
+		serverSettingsOpen = true;
+		goto(resolve('/(app)/channels'), { replace: true, reset: false });
+	});
 </script>
 
 <aside
@@ -116,18 +124,15 @@
 					<span class="truncate">Invite people</span>
 				</a>
 			{/if}
-			{#if data.canManageServer}
-				<a
-					href={resolve('/(app)/channels/settings')}
-					class={cn(
-						'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-						settingsOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
-					)}
-					aria-current={settingsOpen ? 'page' : undefined}
+			{#if data.serverSettings}
+				<Button
+					variant="ghost"
+					class="h-auto justify-start gap-2 px-2 py-1.5 font-normal text-muted-foreground"
+					onclick={() => (serverSettingsOpen = true)}
 				>
 					<Settings class="size-4 shrink-0" />
 					<span class="truncate">Server settings</span>
-				</a>
+				</Button>
 			{/if}
 		</div>
 		<h2 class="px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -190,3 +195,6 @@
 </div>
 
 <ModerationDialog target={moderating} bind:open={moderationOpen} />
+{#if data.serverSettings}
+	<ServerSettingsDialog settings={data.serverSettings} bind:open={serverSettingsOpen} />
+{/if}

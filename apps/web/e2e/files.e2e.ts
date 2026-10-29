@@ -115,7 +115,9 @@ test('the server owner limits the file size', async ({ browser }) => {
 	}
 
 	await admin.page.getByRole('navigation', { name: 'Instances' }).getByRole('link').nth(1).click();
-	await admin.page.getByRole('link', { name: 'Server settings' }).click();
+	await admin.page.getByRole('button', { name: 'Server settings' }).click();
+	const settings = admin.page.getByRole('dialog', { name: 'Server settings' });
+	await settings.getByRole('button', { name: 'Files & storage' }).click();
 	const limit = admin.page.getByLabel('Largest file (MB)');
 	await expect(limit).toHaveValue('2048');
 
@@ -127,6 +129,7 @@ test('the server owner limits the file size', async ({ browser }) => {
 			.click();
 		await expect(admin.page.getByRole('status')).toHaveText('Saved.');
 
+		await admin.page.keyboard.press('Escape');
 		await admin.page.getByRole('link', { name: 'general' }).click();
 		await admin.page.getByLabel('Choose files').setInputFiles({
 			name: 'too-big.bin',
@@ -136,7 +139,7 @@ test('the server owner limits the file size', async ({ browser }) => {
 		await expect(admin.page.getByRole('alert')).toHaveText('too-big.bin is larger than 1 MB.');
 		await expect(admin.page.getByRole('list', { name: 'Files to send' })).toHaveCount(0);
 	} finally {
-		await admin.page.getByRole('link', { name: 'Server settings' }).click();
+		await admin.page.getByRole('button', { name: 'Server settings' }).click();
 		await limit.fill('2048');
 		await admin.page
 			.getByRole('region', { name: 'File sharing' })
@@ -149,7 +152,7 @@ test('the server owner limits the file size', async ({ browser }) => {
 	const member = await newUser(browser, 'Member');
 	await member.page.getByRole('navigation', { name: 'Instances' }).getByRole('link').nth(1).click();
 	await expect(member.page.getByRole('link', { name: 'general' })).toBeVisible();
-	await expect(member.page.getByRole('link', { name: 'Server settings' })).toHaveCount(0);
+	await expect(member.page.getByRole('button', { name: 'Server settings' })).toHaveCount(0);
 	expect((await member.page.goto('/channels/settings'))?.status()).toBe(403);
 
 	await admin.context.close();

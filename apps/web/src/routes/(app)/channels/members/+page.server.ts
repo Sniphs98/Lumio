@@ -1,25 +1,15 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { parseBanReason } from '#lib/moderation.ts';
-import { hasPermission, Permission } from '#lib/permissions.ts';
-import { getServerPermissions } from '#lib/server/channels.ts';
-import {
-	banMember,
-	kickMember,
-	listBans,
-	listMembersFor,
-	unbanMember
-} from '#lib/server/moderation.ts';
+import { banMember, kickMember, listMembersFor } from '#lib/server/moderation.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-/** Everyone on the server. Members with Kick or Ban members can remove people here. */
+/**
+ * Everyone on the server. Members with Kick or Ban members can remove people here; bans are
+ * lifted in the server settings.
+ */
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) redirect(302, '/login');
-	const [permissions, members] = await Promise.all([
-		getServerPermissions(locals.user.id),
-		listMembersFor(locals.user.id)
-	]);
-	const canBan = hasPermission(permissions, Permission.BanMembers);
-	return { members, bans: canBan ? await listBans() : [], canBan };
+	return { members: await listMembersFor(locals.user.id) };
 };
 
 export const actions: Actions = {
@@ -43,17 +33,5 @@ export const actions: Actions = {
 		const result = await banMember(locals.user.id, userId, reason.reason);
 		if (!result.ok) return fail(403, { error: result.error });
 		return { banned: true };
-	},
-	unban: async ({ locals, request }) => {
-		if (!locals.user) error(401, 'Not signed in');
-		const permissions = await getServerPermissions(locals.user.id);
-		if (!hasPermission(permissions, Permission.BanMembers)) {
-			return fail(403, { error: 'You cannot lift bans.' });
-		}
-		const userId = (await request.formData()).get('userId');
-		if (typeof userId !== 'string' || !(await unbanMember(userId))) {
-			return fail(404, { error: 'This ban no longer exists.' });
-		}
-		return { unbanned: true };
 	}
 };
