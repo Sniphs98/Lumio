@@ -81,6 +81,7 @@ describe('UserContextMenu', () => {
 	it('sets the volume and mute of someone in a call for this user only', async () => {
 		let map = $state<UserAudioMap>({});
 		const audio: UserAudioControls = {
+			volumeBoostSupported: true,
 			userAudioOf: (id) => map[id] ?? DEFAULT_USER_AUDIO,
 			setUserAudio: (id, patch) => (map = updateUserAudio(map, id, patch))
 		};
@@ -90,6 +91,10 @@ describe('UserContextMenu', () => {
 		const slider = page.getByRole('menu').getByRole('slider');
 		await expect.element(slider).toHaveAttribute('aria-valuenow', '100');
 		(slider.element() as HTMLElement).focus();
+		// Quiet people can be turned up to 200 %.
+		await userEvent.keyboard('{End}');
+		expect(map.ben?.volume).toBe(2);
+		await expect.element(page.getByText('200%')).toBeVisible();
 		await userEvent.keyboard('{Home}');
 		expect(map.ben?.volume).toBe(0);
 		await expect.element(page.getByText('0%')).toBeVisible();
@@ -105,5 +110,22 @@ describe('UserContextMenu', () => {
 
 		await openMenu('Me');
 		await expect.element(page.getByRole('menu')).not.toBeInTheDocument();
+	});
+
+	it('stops at 100 % where the browser cannot play louder', async () => {
+		let map = $state<UserAudioMap>({});
+		const audio: UserAudioControls = {
+			volumeBoostSupported: false,
+			userAudioOf: (id) => map[id] ?? DEFAULT_USER_AUDIO,
+			setUserAudio: (id, patch) => (map = updateUserAudio(map, id, patch))
+		};
+		render(Harness, { access: moderator, user: ben, voice: true, audio });
+
+		await openMenu('Ben');
+		const slider = page.getByRole('menu').getByRole('slider');
+		(slider.element() as HTMLElement).focus();
+		await userEvent.keyboard('{End}');
+		expect(map.ben).toBeUndefined();
+		await expect.element(slider).toHaveAttribute('aria-valuemax', '100');
 	});
 });

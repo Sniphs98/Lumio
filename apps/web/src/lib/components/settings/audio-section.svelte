@@ -4,6 +4,7 @@
 		audioDevices,
 		captureOptions,
 		deviceLabel,
+		MAX_VOLUME,
 		type AudioSettings
 	} from '#lib/audio-settings.ts';
 	import type { AudioControls } from '#lib/call.svelte.ts';
@@ -227,7 +228,7 @@
 				type="single"
 				value={Math.round(audio.settings.outputVolume * 100)}
 				onValueChange={(v) => audio.updateSettings({ outputVolume: v / 100 })}
-				max={100}
+				max={audio.volumeBoostSupported ? MAX_VOLUME * 100 : 100}
 				step={1}
 				aria-labelledby="output-volume-label"
 			/>

@@ -3,10 +3,10 @@
  * settings it belongs to this browser and is kept in `localStorage`, so it applies to every
  * call and survives reloads. Nobody else is told.
  */
-import { localStore } from '#lib/audio-settings.ts';
+import { localStore, MAX_VOLUME } from '#lib/audio-settings.ts';
 
 export type UserAudio = {
-	/** From 0 to 1, multiplied with the output volume of the audio settings. */
+	/** From 0 to `MAX_VOLUME`, multiplied with the output volume of the audio settings. */
 	volume: number;
 	/** Muted only for this user, the others in the call still hear them. */
 	muted: boolean;
@@ -27,7 +27,7 @@ export function parseUserAudio(value: unknown): UserAudioMap {
 		const e = entry as Record<string, unknown>;
 		const volume =
 			typeof e.volume === 'number' && Number.isFinite(e.volume)
-				? Math.min(1, Math.max(0, e.volume))
+				? Math.min(MAX_VOLUME, Math.max(0, e.volume))
 				: 1;
 		const audio = { volume, muted: e.muted === true };
 		if (!isDefault(audio)) map[id] = audio;
@@ -46,7 +46,7 @@ export function updateUserAudio(
 	patch: Partial<UserAudio>
 ): UserAudioMap {
 	const audio = { ...(map[userId] ?? DEFAULT_USER_AUDIO), ...patch };
-	audio.volume = Math.min(1, Math.max(0, audio.volume));
+	audio.volume = Math.min(MAX_VOLUME, Math.max(0, audio.volume));
 	const next = { ...map };
 	if (isDefault(audio)) delete next[userId];
 	else next[userId] = audio;

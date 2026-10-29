@@ -50,7 +50,8 @@ describe('parseAudioSettings', () => {
 	});
 
 	it('clamps the volume', () => {
-		expect(parseAudioSettings({ outputVolume: 3 }).outputVolume).toBe(1);
+		expect(parseAudioSettings({ outputVolume: 1.5 }).outputVolume).toBe(1.5);
+		expect(parseAudioSettings({ outputVolume: 3 }).outputVolume).toBe(2);
 		expect(parseAudioSettings({ outputVolume: -1 }).outputVolume).toBe(0);
 		expect(parseAudioSettings({ outputVolume: Number.NaN }).outputVolume).toBe(1);
 	});

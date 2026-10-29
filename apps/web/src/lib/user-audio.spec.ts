@@ -24,7 +24,7 @@ describe('user audio', () => {
 				cleo: 'loud',
 				dave: { volume: 1, muted: false }
 			})
-		).toEqual({ anna: { volume: 0.5, muted: false }, ben: { volume: 1, muted: true } });
+		).toEqual({ anna: { volume: 0.5, muted: false }, ben: { volume: 2, muted: true } });
 		expect(parseUserAudio(null)).toEqual({});
 	});
 
@@ -37,6 +37,7 @@ describe('user audio', () => {
 	it('plays people at their volume times the output volume', () => {
 		expect(playbackVolume(0.5, { volume: 0.5, muted: false })).toBe(0.25);
 		expect(playbackVolume(0.8)).toBe(0.8);
+		expect(playbackVolume(2, { volume: 1.5, muted: false })).toBe(3);
 		expect(playbackVolume(1, { volume: 1, muted: true })).toBe(0);
 		expect(playbackVolume(1, undefined, true)).toBe(0);
 	});

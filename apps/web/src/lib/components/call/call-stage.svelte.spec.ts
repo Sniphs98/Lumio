@@ -55,11 +55,17 @@ describe('CallStage', () => {
 			userAudioOf: (id: string) =>
 				({
 					ben: { volume: 1, muted: true },
-					cleo: { volume: 0.4, muted: false }
+					cleo: { volume: 0.4, muted: false },
+					dave: { volume: 1.5, muted: false }
 				})[id] ?? { volume: 1, muted: false }
 		};
 		render(CallStage, {
-			participants: [person('Anna', { isLocal: true }), person('Ben'), person('Cleo')],
+			participants: [
+				person('Anna', { isLocal: true }),
+				person('Ben'),
+				person('Cleo'),
+				person('Dave')
+			],
 			audio
 		});
 
@@ -68,6 +74,9 @@ describe('CallStage', () => {
 			.toBeInTheDocument();
 		await expect
 			.element(page.getByRole('listitem', { name: 'Cleo' }).getByLabelText('Volume 40% for you'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('listitem', { name: 'Dave' }).getByLabelText('Volume 150% for you'))
 			.toBeInTheDocument();
 		await expect
 			.element(page.getByRole('listitem', { name: 'Anna' }).getByLabelText(/for you/))
