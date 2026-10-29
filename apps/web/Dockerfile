@@ -1,5 +1,5 @@
 # Build from the repository root: docker build -f apps/web/Dockerfile .
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 RUN corepack enable
 WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
@@ -8,7 +8,7 @@ RUN pnpm install --frozen-lockfile --filter @lumio/web
 COPY apps/web apps/web
 RUN pnpm --filter @lumio/web build
 
-FROM node:22-alpine
+FROM node:26-alpine
 WORKDIR /app
 # Uploads arrive in 8 MB pieces (UPLOAD_CHUNK_SIZE), so allow request bodies a bit larger than that.
 ENV NODE_ENV=production PORT=3000 BODY_SIZE_LIMIT=16M UPLOAD_DIR=/app/data/uploads
