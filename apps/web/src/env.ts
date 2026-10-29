@@ -17,6 +17,11 @@ export const variables = defineEnvVars({
 	},
 	LIVEKIT_API_KEY: { description: 'LiveKit API key, must match the LiveKit server config.' },
 	LIVEKIT_API_SECRET: { description: 'LiveKit API secret, must match the LiveKit server config.' },
+	AUTH_RATE_LIMIT: {
+		description:
+			'Limits sign-in and sign-up attempts per IP address. Set to `off` to turn the limits off, e.g. for end-to-end tests.',
+		schema: (value) => value?.trim().toLowerCase() !== 'off'
+	},
 	UPLOAD_DIR: {
 		description:
 			'Folder for files shared in chats, used when no S3 bucket is configured. Defaults to `data/uploads`.',

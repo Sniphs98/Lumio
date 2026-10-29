@@ -1,4 +1,5 @@
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
+import { sequence } from '@sveltejs/kit/hooks';
 import { building } from '$app/env';
 import { auth } from '#lib/server/auth.ts';
 import { cleanUpUploads } from '#lib/server/uploads.ts';
@@ -21,4 +22,30 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handle: Handle = handleBetterAuth;
+/**
+ * Headers for every response. Other sites may not show Lumio in a frame, so they cannot trick
+ * people into clicking its buttons (clickjacking), and links to other sites do not reveal the
+ * page someone came from. Responses that set their own policy, e.g. file downloads, keep it.
+ */
+const SECURITY_HEADERS: Record<string, string> = {
+	'X-Frame-Options': 'DENY',
+	'Content-Security-Policy': "frame-ancestors 'none'",
+	'X-Content-Type-Options': 'nosniff',
+	'Referrer-Policy': 'strict-origin-when-cross-origin'
+};
+
+const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
+	let response = await resolve(event);
+	const missing = Object.entries(SECURITY_HEADERS).filter(([name]) => !response.headers.has(name));
+	if (missing.length === 0) return response;
+	try {
+		for (const [name, value] of missing) response.headers.set(name, value);
+	} catch {
+		// Some responses, e.g. from `Response.redirect()`, have immutable headers: copy them.
+		response = new Response(response.body, response);
+		for (const [name, value] of missing) response.headers.set(name, value);
+	}
+	return response;
+};
+
+export const handle: Handle = sequence(handleSecurityHeaders, handleBetterAuth);

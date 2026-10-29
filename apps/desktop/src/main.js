@@ -16,6 +16,16 @@ async function loadServerUrl() {
 	}
 }
 
+/** Only web links go to the default browser: other schemes can start programs on the computer. */
+function openInBrowser(url) {
+	try {
+		const { protocol } = new URL(url);
+		if (protocol === 'https:' || protocol === 'http:') shell.openExternal(url);
+	} catch {
+		// Not a URL.
+	}
+}
+
 async function createWindow() {
 	const win = new BrowserWindow({
 		width: 1280,
@@ -31,8 +41,16 @@ async function createWindow() {
 
 	// Open external links in the default browser instead of a new Electron window.
 	win.webContents.setWindowOpenHandler(({ url }) => {
-		shell.openExternal(url);
+		openInBrowser(url);
 		return { action: 'deny' };
+	});
+	// The window only shows the Lumio server. Links to other sites open in the browser, so
+	// they never get the desktop bridge from the preload script.
+	win.webContents.on('will-navigate', (event, url) => {
+		const current = win.webContents.getURL();
+		if (current.startsWith('file:') || new URL(url).origin === new URL(current).origin) return;
+		event.preventDefault();
+		openInBrowser(url);
 	});
 
 	const serverUrl = await loadServerUrl();
@@ -43,14 +61,15 @@ async function createWindow() {
 	}
 }
 
-ipcMain.handle('lumio:set-server-url', async (_event, url) => {
+ipcMain.handle('lumio:set-server-url', async (event, url) => {
+	// Only the setup page may change the server, not the web pages of a server.
+	if (!event.senderFrame?.url.startsWith('file:')) throw new Error('Not allowed');
 	const parsed = new URL(url);
 	if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
 		throw new Error('Server URL must start with http:// or https://');
 	}
 	await writeFile(configPath, JSON.stringify({ serverUrl: parsed.origin }));
-	const win = BrowserWindow.getFocusedWindow();
-	await win?.loadURL(parsed.origin);
+	await BrowserWindow.fromWebContents(event.sender)?.loadURL(parsed.origin);
 });
 
 app.whenReady().then(() => {
