@@ -1,17 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { ArrowLeft, Hash, MessageSquare, Phone, Volume2 } from '@lucide/svelte';
-	import { MediaQuery } from 'svelte/reactivity';
 	import { call } from '#lib/call.svelte.ts';
 	import { isJoinable } from '#lib/channels.ts';
 	import CallStage from '#lib/components/call/call-stage.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
-	import * as Resizable from '#lib/components/ui/resizable/index.ts';
-	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
 	import { getUnreadContext } from '#lib/unread-context.ts';
-	import { NO_UNREAD } from '#lib/unread.ts';
 	import { getVoiceContext } from '#lib/voice-context.ts';
 	import type { PageProps } from './$types';
 
@@ -19,8 +15,6 @@
 
 	const unread = getUnreadContext();
 	const voice = getVoiceContext();
-	// Same breakpoint as Tailwind's `md`: below it the chat takes the whole screen.
-	const wide = new MediaQuery('min-width: 768px');
 
 	// Text and voice channels share the same chat; voice channels can also be joined.
 	const joinable = $derived(isJoinable(data.channel.type));
@@ -28,9 +22,8 @@
 	const inCall = $derived(joinable && call.isIn('channel', data.channel.id));
 	const label = $derived(joinable ? data.channel.name : `#${data.channel.name}`);
 
-	// In voice channels the chat is a side panel, hidden until the user opens it.
-	let chatOpenIn = $state<string | null>(null);
-	const chatOpen = $derived(!joinable || chatOpenIn === data.channel.id);
+	// In voice channels the chat sits below the voice view; scrolling down reaches it.
+	let chatSection = $state<HTMLElement>();
 
 	function joinVoice() {
 		call.join({
@@ -64,18 +57,14 @@
 	{/if}
 	{#if joinable}
 		<Button
-			variant={chatOpen ? 'secondary' : 'ghost'}
+			variant="ghost"
 			size="sm"
 			class="ml-auto shrink-0"
-			aria-pressed={chatOpen}
-			aria-label={chatOpen ? 'Hide chat' : 'Show chat'}
-			onclick={() => (chatOpenIn = chatOpen ? null : data.channel.id)}
+			aria-label="Go to chat"
+			onclick={() => chatSection?.scrollIntoView({ behavior: 'smooth' })}
 		>
 			<MessageSquare />
 			<span class="hidden sm:inline">Chat</span>
-			{#if !chatOpen}
-				<UnreadBadge unread={unread.counts.channels[data.channel.id] ?? NO_UNREAD} />
-			{/if}
 		</Button>
 	{/if}
 </header>
@@ -132,27 +121,16 @@
 	{/if}
 {/snippet}
 
-{#if !joinable}
-	{@render chat()}
-{:else if !chatOpen}
-	{@render voiceView()}
-{:else if !wide.current}
-	<!-- On phones the open chat takes the whole screen; the call keeps running in the call bar. -->
-	{@render chat()}
-{:else}
-	<Resizable.PaneGroup
-		direction="horizontal"
-		autoSaveId="voice-channel-chat"
-		class="min-h-0 flex-1"
-	>
-		<Resizable.Pane minSize={30} class="flex min-w-0 flex-col">
+{#if joinable}
+	<!-- The voice view fills the screen; the chat below it is 3/4 as tall. -->
+	<div class="min-h-0 flex-1 overflow-y-auto">
+		<section class="flex h-full flex-col" aria-label="Voice">
 			{@render voiceView()}
-		</Resizable.Pane>
-		<Resizable.Handle withHandle />
-		<Resizable.Pane defaultSize={35} minSize={20} class="flex min-w-0 flex-col">
-			<section class="flex min-h-0 flex-1 flex-col" aria-label="Chat">
-				{@render chat()}
-			</section>
-		</Resizable.Pane>
-	</Resizable.PaneGroup>
+		</section>
+		<section bind:this={chatSection} class="flex h-3/4 flex-col border-t">
+			{@render chat()}
+		</section>
+	</div>
+{:else}
+	{@render chat()}
 {/if}

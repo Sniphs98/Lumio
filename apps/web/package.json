@@ -48,7 +48,6 @@
 		"globals": "^17.6.0",
 		"livekit-client": "^2.23.0",
 		"livekit-server-sdk": "^2.19.2",
-		"paneforge": "^1.0.2",
 		"playwright": "^1.60.0",
 		"postgres": "^3.4.9",
 		"prettier": "^3.8.3",
