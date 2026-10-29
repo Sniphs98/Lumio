@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { ArrowLeft, Users } from '@lucide/svelte';
+	import { ArrowLeft, CircleAlert, Users } from '@lucide/svelte';
 	import FriendPicker from '#lib/components/groups/friend-picker.svelte';
-	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Alert from '#lib/components/ui/alert/index.ts';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import { MAX_GROUP_MEMBERS, MAX_GROUP_NAME_LENGTH } from '#lib/groups.ts';
@@ -19,10 +20,10 @@
 <header class="flex h-12 shrink-0 items-center gap-2 border-b px-3">
 	<a
 		href={resolve('/(app)/(home)')}
-		class="-ml-1 flex size-8 items-center justify-center rounded-md hover:bg-muted md:hidden"
+		class={buttonVariants({ variant: 'ghost', size: 'icon', class: '-ml-1 size-8 md:hidden' })}
 		aria-label="Back to friends"
 	>
-		<ArrowLeft class="size-4" />
+		<ArrowLeft />
 	</a>
 	<Users class="size-4 shrink-0 text-muted-foreground" />
 	<h1 class="truncate font-semibold">New group</h1>
@@ -34,7 +35,11 @@
 			Add some friends first, then you can start a group chat with them.
 		</p>
 	{:else}
-		<form method="post" use:enhance class="mx-auto grid max-w-xl gap-6 p-4">
+		<form
+			method="post"
+			use:enhance
+			class="mx-auto grid max-w-xl grid-cols-[minmax(0,1fr)] gap-6 p-4"
+		>
 			<div class="grid gap-2">
 				<Label for="group-name">Name (optional)</Label>
 				<Input
@@ -53,7 +58,10 @@
 				<FriendPicker friends={data.friends} label="Friends to add" />
 			</fieldset>
 			{#if form?.error}
-				<p class="text-sm text-destructive" role="alert">{form.error}</p>
+				<Alert.Root variant="destructive">
+					<CircleAlert />
+					<Alert.Description>{form.error}</Alert.Description>
+				</Alert.Root>
 			{/if}
 			<Button type="submit" class="sm:w-fit">Create group</Button>
 		</form>

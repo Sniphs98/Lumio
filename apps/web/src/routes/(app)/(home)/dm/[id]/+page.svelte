@@ -5,6 +5,7 @@
 	import CallStage from '#lib/components/call/call-stage.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import { groupTitle } from '#lib/groups.ts';
 	import { getUnreadContext } from '#lib/unread-context.ts';
 	import type { PageProps } from './$types';
@@ -19,6 +20,9 @@
 			: (data.conversation.others[0]?.name ?? 'Deleted user')
 	);
 	const inCall = $derived(call.isIn('conversation', data.conversation.id));
+	const callLabel = $derived(
+		call.ringing?.conversationId === data.conversation.id ? 'Join call' : 'Start call'
+	);
 
 	function startCall() {
 		call.join({
@@ -36,24 +40,31 @@
 <header class="flex h-12 shrink-0 items-center gap-2 border-b px-3">
 	<a
 		href={resolve('/(app)/(home)')}
-		class="-ml-1 flex size-8 items-center justify-center rounded-md hover:bg-muted md:hidden"
+		class={buttonVariants({ variant: 'ghost', size: 'icon', class: '-ml-1 size-8 md:hidden' })}
 		aria-label="Back to friends"
 	>
-		<ArrowLeft class="size-4" />
+		<ArrowLeft />
 	</a>
 	{#if data.conversation.type === 'group'}
 		<Users class="size-4 shrink-0 text-muted-foreground" />
 	{/if}
 	<h1 class="min-w-0 flex-1 truncate font-semibold">{title}</h1>
 	{#if data.conversation.type === 'group'}
-		<a
-			href={resolve('/(app)/(home)/dm/[id]/settings', { id: data.conversation.id })}
-			class={buttonVariants({ variant: 'ghost', size: 'icon', class: 'size-8' })}
-			aria-label="Group settings"
-			title="Members and settings"
-		>
-			<Settings />
-		</a>
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props })}
+					<a
+						{...props}
+						href={resolve('/(app)/(home)/dm/[id]/settings', { id: data.conversation.id })}
+						class={buttonVariants({ variant: 'ghost', size: 'icon', class: 'size-8' })}
+						aria-label="Group settings"
+					>
+						<Settings />
+					</a>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content side="bottom">Members and settings</Tooltip.Content>
+		</Tooltip.Root>
 	{/if}
 	<!-- Calls start from the top right of a chat; the call bar then follows the user across tabs. -->
 	{#if inCall}
@@ -67,19 +78,32 @@
 			<PhoneOff />
 		</Button>
 	{:else}
-		<Button
-			variant="ghost"
-			size="icon"
-			class="size-8"
-			aria-label={call.ringing?.conversationId === data.conversation.id
-				? 'Join call'
-				: 'Start call'}
-			title={data.canSend ? undefined : 'You can only call your friends.'}
-			disabled={!data.canSend}
-			onclick={startCall}
-		>
-			<Phone />
-		</Button>
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props })}
+					<!-- Disabled buttons get no pointer events, so the wrapper shows the tooltip. -->
+					<span {...props} class="inline-flex">
+						<Button
+							variant="ghost"
+							size="icon"
+							class="size-8"
+							aria-label={callLabel}
+							aria-describedby={data.canSend ? undefined : 'call-hint'}
+							disabled={!data.canSend}
+							onclick={startCall}
+						>
+							<Phone />
+						</Button>
+					</span>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content side="bottom">
+				{data.canSend ? callLabel : 'You can only call your friends.'}
+			</Tooltip.Content>
+		</Tooltip.Root>
+		{#if !data.canSend}
+			<span id="call-hint" class="sr-only">You can only call your friends.</span>
+		{/if}
 	{/if}
 </header>
 

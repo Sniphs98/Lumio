@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Checkbox } from '#lib/components/ui/checkbox/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 	import type { FriendUser } from '#lib/friends.ts';
 	import UserAvatar from './user-avatar.svelte';
 
@@ -17,13 +18,13 @@
 <ul class="grid gap-0.5" aria-label={label}>
 	{#each friends as friend (friend.id)}
 		<li>
-			<label
-				class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted"
+			<Label
+				class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 font-normal hover:bg-muted"
 			>
 				<Checkbox {name} value={friend.id} aria-label={friend.name} />
 				<UserAvatar user={friend} />
 				<span class="min-w-0 flex-1 truncate">{friend.name}</span>
-			</label>
+			</Label>
 		</li>
 	{/each}
 </ul>

@@ -18,10 +18,11 @@
 	import MentionSuggestions from '#lib/components/chat/mention-suggestions.svelte';
 	import MessageContent from '#lib/components/chat/message-content.svelte';
 	import ReactionBar from '#lib/components/chat/reaction-bar.svelte';
+	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
-	import * as Dialog from '#lib/components/ui/dialog/index.ts';
 	import { Progress } from '#lib/components/ui/progress/index.ts';
 	import { Textarea } from '#lib/components/ui/textarea/index.ts';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import {
 		addMessage,
 		MAX_MESSAGE_LENGTH,
@@ -621,16 +622,25 @@
 							e.currentTarget.value = '';
 						}}
 					/>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						aria-label="Attach files"
-						title={maxUploadSize ? `Share files up to ${formatBytes(maxUploadSize)}` : undefined}
-						onclick={() => fileInput?.click()}
-					>
-						<Paperclip />
-					</Button>
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<Button
+									{...props}
+									type="button"
+									variant="ghost"
+									size="icon"
+									aria-label="Attach files"
+									onclick={() => fileInput?.click()}
+								>
+									<Paperclip />
+								</Button>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							{maxUploadSize ? `Share files up to ${formatBytes(maxUploadSize)}` : 'Attach files'}
+						</Tooltip.Content>
+					</Tooltip.Root>
 				{/if}
 				<Textarea
 					name="content"
@@ -663,21 +673,21 @@
 	</footer>
 </section>
 
-<Dialog.Root bind:open={deleteOpen}>
-	<Dialog.Content>
-		<Dialog.Header>
-			<Dialog.Title>Delete this message?</Dialog.Title>
-			<Dialog.Description>
+<AlertDialog.Root bind:open={deleteOpen}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Delete this message?</AlertDialog.Title>
+			<AlertDialog.Description>
 				{#if deleting && deleting.author.id !== meId}
 					This deletes the message of {deleting.author.name} for everyone, with its files.
 				{:else}
 					The message and its files are deleted for everyone. This cannot be undone.
 				{/if}
-			</Dialog.Description>
-		</Dialog.Header>
-		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (deleteOpen = false)}>Cancel</Button>
-			<Button variant="destructive" onclick={confirmDelete}>Delete</Button>
-		</Dialog.Footer>
-	</Dialog.Content>
-</Dialog.Root>
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action variant="destructive" onclick={confirmDelete}>Delete</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

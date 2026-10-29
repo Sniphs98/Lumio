@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { SubmitFunction } from '$app/forms';
+	import { CircleAlert } from '@lucide/svelte';
+	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
@@ -66,7 +68,10 @@
 				later to keep everything and use it on other devices.
 			</p>
 			{#if message}
-				<p class="text-sm text-destructive" role="alert">{message}</p>
+				<Alert.Root variant="destructive">
+					<CircleAlert />
+					<Alert.Description>{message}</Alert.Description>
+				</Alert.Root>
 			{/if}
 			<Button type="submit" class="w-full">Join as guest</Button>
 		</form>
@@ -92,7 +97,10 @@
 				/>
 			</div>
 			{#if message}
-				<p class="text-sm text-destructive" role="alert">{message}</p>
+				<Alert.Root variant="destructive">
+					<CircleAlert />
+					<Alert.Description>{message}</Alert.Description>
+				</Alert.Root>
 			{/if}
 			<Button type="submit" class="w-full">Create account and join</Button>
 		</form>

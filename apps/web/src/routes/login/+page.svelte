@@ -2,6 +2,8 @@
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import { CircleAlert } from '@lucide/svelte';
+	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
@@ -57,9 +59,12 @@
 					</Button>
 				</form>
 			{:else if form?.guestExpired}
-				<p class="text-sm text-destructive" role="alert">
-					Your guest access has expired. Ask a member for a new invite link.
-				</p>
+				<Alert.Root variant="destructive">
+					<CircleAlert />
+					<Alert.Description
+						>Your guest access has expired. Ask a member for a new invite link.</Alert.Description
+					>
+				</Alert.Root>
 			{/if}
 			<form method="post" action={action(mode)} use:enhance class="grid gap-4">
 				{#if mode === 'signUp'}
@@ -84,7 +89,10 @@
 					/>
 				</div>
 				{#if form?.message}
-					<p class="text-sm text-destructive">{form.message}</p>
+					<Alert.Root variant="destructive">
+						<CircleAlert />
+						<Alert.Description>{form.message}</Alert.Description>
+					</Alert.Root>
 				{/if}
 				<Button type="submit" class="w-full">
 					{mode === 'signIn' ? 'Sign in' : 'Create account'}

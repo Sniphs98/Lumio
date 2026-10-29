@@ -3,6 +3,7 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { initials } from '#lib/calls.ts';
 	import type { AttachableTrack, CallParticipant } from '#lib/call.svelte.ts';
+	import * as Avatar from '#lib/components/ui/avatar/index.ts';
 	import { cn } from '#lib/utils.ts';
 
 	let { participants, class: className }: { participants: CallParticipant[]; class?: string } =
@@ -69,12 +70,11 @@
 					></video>
 				{/key}
 			{:else}
-				<span
-					class="flex size-14 items-center justify-center rounded-full bg-background text-lg font-semibold"
-					aria-hidden="true"
-				>
-					{initials(p.name)}
-				</span>
+				<Avatar.Root class="size-14" aria-hidden="true">
+					<Avatar.Fallback class="bg-background text-lg font-semibold text-foreground">
+						{initials(p.name)}
+					</Avatar.Fallback>
+				</Avatar.Root>
 			{/if}
 			<span
 				class="absolute bottom-1.5 left-1.5 flex max-w-[calc(100%-0.75rem)] items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs"
