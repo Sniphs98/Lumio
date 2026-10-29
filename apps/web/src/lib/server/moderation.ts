@@ -1,5 +1,6 @@
 import { asc, desc, eq } from 'drizzle-orm';
 import { moderationError, type ModerationAction } from '#lib/moderation.ts';
+import { hasPermission, Permission } from '#lib/permissions.ts';
 import { getServerPermissions, isInstanceOwner } from '#lib/server/channels.ts';
 import { db } from '#lib/server/db/index.ts';
 import { getInstance } from '#lib/server/instance.ts';
@@ -31,6 +32,38 @@ export async function listMembers(): Promise<MemberRow[]> {
 			isGuest: r.isAnonymous === true,
 			isOwner: r.id === inst?.ownerId
 		}));
+}
+
+export type ModeratableMember = MemberRow & { canKick: boolean; canBan: boolean };
+
+/** Everyone in the instance with what `actorId` may do to them, so pages only offer what works. */
+export async function listMembersFor(actorId: string): Promise<ModeratableMember[]> {
+	const [permissions, isOwner, members] = await Promise.all([
+		getServerPermissions(actorId),
+		isInstanceOwner(actorId),
+		listMembers()
+	]);
+	if (
+		!hasPermission(permissions, Permission.KickMembers) &&
+		!hasPermission(permissions, Permission.BanMembers)
+	) {
+		return members.map((m) => ({ ...m, canKick: false, canBan: false }));
+	}
+	const actor = { id: actorId, isOwner, permissions };
+	return Promise.all(
+		members.map(async (m) => {
+			const target = {
+				id: m.id,
+				isOwner: m.isOwner,
+				permissions: await getServerPermissions(m.id)
+			};
+			return {
+				...m,
+				canKick: moderationError('kick', actor, target) === null,
+				canBan: moderationError('ban', actor, target) === null
+			};
+		})
+	);
 }
 
 export async function listBans(): Promise<BanRow[]> {

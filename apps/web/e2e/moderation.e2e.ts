@@ -131,6 +131,55 @@ test('a moderator bans a member, who is signed out and cannot come back until un
 	await troll.context.close();
 });
 
+test('a moderator kicks someone from the chat by right-clicking their name', async ({
+	browser
+}) => {
+	const moderator = await newUser(browser, 'Moderator');
+	await grantPermissions(moderator.email, KICK_MEMBERS);
+	const name = `Spammer ${Date.now()}`;
+	const spammer = await newUser(browser, name);
+	await openGeneral(spammer.page);
+	const text = `Buy now ${Date.now()}`;
+	await send(spammer.page, text);
+
+	// Loaded after the grant, so the menu knows the moderator may kick.
+	await openGeneral(moderator.page);
+	await messageWith(moderator.page, text).getByText(name).click({ button: 'right' });
+	const menu = moderator.page.getByRole('menu');
+	await expect(menu.getByRole('menuitem', { name: 'Mention' })).toBeVisible();
+	await expect(menu.getByRole('menuitem', { name: 'Ban' })).toHaveCount(0);
+	await menu.getByRole('menuitem', { name: 'Kick' }).click();
+	const dialog = moderator.page.getByRole('alertdialog', { name: `Kick ${name}?` });
+	await dialog.getByRole('button', { name: 'Kick' }).click();
+	await expect(dialog).toBeHidden();
+
+	await expect(spammer.page).toHaveURL(/\/login/);
+	await moderator.context.close();
+	await spammer.context.close();
+});
+
+test('right-clicking a message author mentions them', async ({ browser }) => {
+	const anna = await newUser(browser, 'Anna');
+	const name = `Ben ${Date.now()}`;
+	const ben = await newUser(browser, name);
+	await openGeneral(anna.page);
+	await openGeneral(ben.page);
+	const text = `Hello ${Date.now()}`;
+	await send(ben.page, text);
+
+	await messageWith(anna.page, text).getByText(name).click({ button: 'right' });
+	await expect(anna.page.getByRole('menuitem', { name: 'Kick' })).toHaveCount(0);
+	await anna.page.getByRole('menuitem', { name: 'Mention' }).click();
+	await expect(anna.page.getByLabel('Message #general')).toHaveValue(`@${name} `);
+	const welcome = `welcome ${Date.now()}`;
+	await anna.page.keyboard.type(welcome);
+	await anna.page.keyboard.press('Enter');
+	await expect(messageWith(ben.page, welcome)).toHaveAttribute('data-mentions-me', 'true');
+
+	await anna.context.close();
+	await ben.context.close();
+});
+
 test('the owner cannot be kicked and members cannot moderate', async ({ browser }) => {
 	const member = await newUser(browser, 'Member');
 	await member.page.goto('/channels/members');

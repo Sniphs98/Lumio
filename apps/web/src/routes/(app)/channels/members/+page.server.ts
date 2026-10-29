@@ -1,12 +1,12 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { moderationError, parseBanReason } from '#lib/moderation.ts';
+import { parseBanReason } from '#lib/moderation.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
-import { getServerPermissions, isInstanceOwner } from '#lib/server/channels.ts';
+import { getServerPermissions } from '#lib/server/channels.ts';
 import {
 	banMember,
 	kickMember,
 	listBans,
-	listMembers,
+	listMembersFor,
 	unbanMember
 } from '#lib/server/moderation.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -14,30 +14,12 @@ import type { Actions, PageServerLoad } from './$types';
 /** Everyone on the server. Members with Kick or Ban members can remove people here. */
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) redirect(302, '/login');
-	const meId = locals.user.id;
-	const [permissions, isOwner, members] = await Promise.all([
-		getServerPermissions(meId),
-		isInstanceOwner(meId),
-		listMembers()
+	const [permissions, members] = await Promise.all([
+		getServerPermissions(locals.user.id),
+		listMembersFor(locals.user.id)
 	]);
 	const canBan = hasPermission(permissions, Permission.BanMembers);
-	const actor = { id: meId, isOwner, permissions };
-	// What the user may do to each member, so the page only offers what works.
-	const withActions = await Promise.all(
-		members.map(async (m) => {
-			const target = {
-				id: m.id,
-				isOwner: m.isOwner,
-				permissions: await getServerPermissions(m.id)
-			};
-			return {
-				...m,
-				canKick: moderationError('kick', actor, target) === null,
-				canBan: moderationError('ban', actor, target) === null
-			};
-		})
-	);
-	return { members: withActions, bans: canBan ? await listBans() : [], canBan };
+	return { members, bans: canBan ? await listBans() : [], canBan };
 };
 
 export const actions: Actions = {
