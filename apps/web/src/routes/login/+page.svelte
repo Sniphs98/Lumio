@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { CircleAlert } from '@lucide/svelte';
+	import DiscordButton from '#lib/components/discord/discord-button.svelte';
 	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
@@ -66,6 +67,9 @@
 					>
 				</Alert.Root>
 			{/if}
+			{#if data.discord}
+				<DiscordButton action={action('discord')} />
+			{/if}
 			<form method="post" action={action(mode)} use:enhance class="grid gap-4">
 				{#if mode === 'signUp'}
 					<div class="grid gap-2">
@@ -88,10 +92,10 @@
 						autocomplete={mode === 'signIn' ? 'current-password' : 'new-password'}
 					/>
 				</div>
-				{#if form?.message}
+				{#if form?.message ?? data.discordError}
 					<Alert.Root variant="destructive">
 						<CircleAlert />
-						<Alert.Description>{form.message}</Alert.Description>
+						<Alert.Description>{form?.message ?? data.discordError}</Alert.Description>
 					</Alert.Root>
 				{/if}
 				<Button type="submit" class="w-full">

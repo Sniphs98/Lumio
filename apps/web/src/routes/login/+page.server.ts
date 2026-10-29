@@ -1,6 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
+import { discordErrorMessage } from '#lib/discord.ts';
 import { auth } from '#lib/server/auth.ts';
+import { discordEnabled, signInWithDiscord } from '#lib/server/discord.ts';
 import { restoreGuestSession } from '#lib/server/guests.ts';
 import { getInstance } from '#lib/server/instance.ts';
 import {
@@ -22,7 +24,11 @@ function target(url: URL): string {
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) redirect(302, target(event.url));
 	// Only the first user can register here and becomes the owner; everyone else needs an invite link.
-	return { registrationOpen: !(await getInstance()) };
+	return {
+		registrationOpen: !(await getInstance()),
+		discord: discordEnabled,
+		discordError: discordErrorMessage(event.url.searchParams.get('error'))
+	};
 };
 
 export const actions: Actions = {
@@ -67,6 +73,19 @@ export const actions: Actions = {
 		}
 
 		redirect(302, '/');
+	},
+	/**
+	 * Signs in with Discord. Without an invite link this only works for members whose Discord
+	 * account is connected, and for the first user, who sets up this Lumio.
+	 */
+	discord: (event) => {
+		const redirectTo = event.url.searchParams.get('redirectTo');
+		return signInWithDiscord(event, {
+			callbackURL: target(event.url),
+			errorCallbackURL: redirectTo
+				? `/login?redirectTo=${encodeURIComponent(target(event.url))}`
+				: '/login'
+		});
 	},
 	/** Signs a guest back in with the session their browser kept in `localStorage`. */
 	continueAsGuest: async (event) => {

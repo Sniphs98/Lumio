@@ -7,6 +7,7 @@
 	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.ts';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
@@ -140,6 +141,58 @@
 						</dl>
 					</Card.Content>
 				</Card.Root>
+
+				{#if data.discord.enabled || data.discord.connected}
+					{@const discordMessage = form?.discordMessage ?? data.discord.error}
+					<Card.Root role="region" aria-labelledby="discord-heading">
+						<Card.Header>
+							<Card.Title class="flex items-center gap-2">
+								<h2 id="discord-heading">Discord</h2>
+								{#if data.discord.connected}<Badge variant="secondary">Connected</Badge>{/if}
+							</Card.Title>
+							<Card.Description>
+								{#if data.discord.connected}
+									You can sign in with your Discord account.
+								{:else}
+									Connect your Discord account to sign in with it.
+								{/if}
+							</Card.Description>
+						</Card.Header>
+						{#if discordMessage}
+							<Card.Content>
+								<Alert.Root variant="destructive">
+									<CircleAlert />
+									<Alert.Description>{discordMessage}</Alert.Description>
+								</Alert.Root>
+							</Card.Content>
+						{/if}
+						<Card.Footer>
+							{#if !data.discord.connected}
+								<!-- No `use:enhance`: the action redirects to Discord. -->
+								<form method="post" action="?/connectDiscord" class="w-full sm:w-fit">
+									<Button type="submit" variant="outline" class="w-full sm:w-fit">
+										Connect Discord
+									</Button>
+								</form>
+							{:else if data.discord.hasPassword}
+								<form
+									method="post"
+									action="?/disconnectDiscord"
+									use:enhance
+									class="w-full sm:w-fit"
+								>
+									<Button type="submit" variant="outline" class="w-full sm:w-fit">
+										Disconnect Discord
+									</Button>
+								</form>
+							{:else}
+								<p class="text-sm text-muted-foreground">
+									Discord is your only way to sign in, so it stays connected.
+								</p>
+							{/if}
+						</Card.Footer>
+					</Card.Root>
+				{/if}
 			{/if}
 
 			<Card.Root role="region" aria-labelledby="sign-out-heading">

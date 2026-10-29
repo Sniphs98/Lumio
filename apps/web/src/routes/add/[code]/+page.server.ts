@@ -1,5 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { discordErrorMessage } from '#lib/discord.ts';
 import { parseGuestName } from '#lib/guests.ts';
+import { discordEnabled, signInWithDiscord } from '#lib/server/discord.ts';
 import { friendLinkAdmitsNewUsers, getFriendLinkOwner } from '#lib/server/friend-links.ts';
 import { areFriends, befriendThroughLink } from '#lib/server/friends.ts';
 import { signInAsGuest, signUpWithAccount } from '#lib/server/guests.ts';
@@ -7,7 +9,7 @@ import { getInstance } from '#lib/server/instance.ts';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 /** A personal friend link: members become friends with its owner, newcomers join first. */
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const [inst, owner] = await Promise.all([getInstance(), getFriendLinkOwner(params.code)]);
 	const instanceName = inst?.name ?? 'Lumio';
 	if (!owner) return { instanceName, owner: null, state: 'invalid' as const };
@@ -20,7 +22,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	return {
 		instanceName,
 		owner,
-		state: (await friendLinkAdmitsNewUsers(owner.id)) ? ('newcomer' as const) : ('sign-in' as const)
+		state: (await friendLinkAdmitsNewUsers(owner.id))
+			? ('newcomer' as const)
+			: ('sign-in' as const),
+		discord: discordEnabled,
+		discordError: discordErrorMessage(url.searchParams.get('error'))
 	};
 };
 
@@ -75,5 +81,14 @@ export const actions: Actions = {
 		const failure = await befriend(event, result.userId, owner.id);
 		if (failure) return failure;
 		redirect(302, `/friends/${owner.id}`);
+	},
+	/** New users join with Discord, then come back here to add the friend. */
+	discord: async (event) => {
+		await linkOwner(event.params.code);
+		return signInWithDiscord(event, {
+			callbackURL: `/add/${event.params.code}`,
+			errorCallbackURL: `/add/${event.params.code}`,
+			admission: { kind: 'friend', code: event.params.code }
+		});
 	}
 };
