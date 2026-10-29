@@ -63,6 +63,16 @@ describe('SettingsDialog', () => {
 		expect(audio.updateSettings).toHaveBeenCalledWith({ noiseSuppression: false });
 	});
 
+	it('switches a setting when its description is clicked', async () => {
+		const audio = fakeAudio();
+		render(SettingsDialog, { open: true, listDevices, audio });
+		await page.getByText(/Keeps others from hearing themselves/).click();
+		expect(audio.updateSettings).toHaveBeenCalledWith({ echoCancellation: false });
+		await expect
+			.element(page.getByRole('switch', { name: 'Echo cancellation' }))
+			.toHaveAccessibleDescription(/Keeps others from hearing themselves/);
+	});
+
 	it('turns sound effects off', async () => {
 		render(SettingsDialog, { open: true, listDevices, audio: fakeAudio() });
 		const toggle = page.getByRole('switch', { name: 'Sound effects' });

@@ -1,4 +1,9 @@
-import { ParticipantInfo_State, TrackSource, type ParticipantInfo } from 'livekit-server-sdk';
+import {
+	ParticipantInfo_State,
+	TrackSource,
+	type ParticipantInfo,
+	type Room
+} from 'livekit-server-sdk';
 import { parseRoomName, type VoiceEvent, type VoiceMember, type VoiceState } from '#lib/calls.ts';
 
 export function voiceMember(p: ParticipantInfo): VoiceMember {
@@ -30,6 +35,37 @@ export function voiceStateFromRooms(
 	}
 	return state;
 }
+
+/** The part of LiveKit's room service that the voice state needs. */
+export type RoomLister = {
+	listRooms(): Promise<Room[]>;
+	listParticipants(room: string): Promise<ParticipantInfo[]>;
+};
+
+/**
+ * Lists the participants of every voice channel room. Conversation
+ * calls are skipped, and a room that closes between the two requests counts as empty, so
+ * one call ending elsewhere cannot make the whole poll fail.
+ */
+export async function fetchChannelRooms(
+	rooms: RoomLister
+): Promise<{ name: string; participants: ParticipantInfo[] }[]> {
+	const list = (await rooms.listRooms()).filter(
+		(room) => parseRoomName(room.name)?.kind === 'channel'
+	);
+	return Promise.all(
+		list.map(async (room) => ({
+			name: room.name,
+			participants: await rooms.listParticipants(room.name).catch((err: unknown) => {
+				if (isNotFound(err)) return [];
+				throw err;
+			})
+		}))
+	);
+}
+
+const isNotFound = (err: unknown) =>
+	typeof err === 'object' && err !== null && 'status' in err && err.status === 404;
 
 /** One `voice.changed` event for every channel whose members differ between two states. */
 export function voiceChanges(prev: VoiceState, next: VoiceState): VoiceEvent[] {

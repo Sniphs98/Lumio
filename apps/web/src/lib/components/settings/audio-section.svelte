@@ -122,6 +122,31 @@
 	});
 </script>
 
+<!-- The whole row toggles the switch, so hovering anywhere on it shows that it can be clicked. -->
+{#snippet switchRow(
+	id: string,
+	label: string,
+	description: string,
+	checked: boolean,
+	onCheckedChange: (checked: boolean) => void
+)}
+	<label
+		class="-mx-2 flex items-start justify-between gap-4 rounded-md p-2 transition-colors hover:bg-muted/60"
+	>
+		<span class="grid gap-1">
+			<span id="{id}-label" class="text-sm leading-none font-medium">{label}</span>
+			<span id="{id}-description" class="text-xs text-muted-foreground">{description}</span>
+		</span>
+		<Switch
+			{id}
+			{checked}
+			{onCheckedChange}
+			aria-labelledby="{id}-label"
+			aria-describedby="{id}-description"
+		/>
+	</label>
+{/snippet}
+
 <!-- Everything about microphones, speakers and sounds. Shown in the settings dialog. -->
 <div class="grid gap-6">
 	<p class="text-sm text-muted-foreground">Saved in this browser and used for every call.</p>
@@ -211,22 +236,18 @@
 
 	<Separator />
 
-	<section class="grid gap-4" aria-labelledby="voice-processing-heading">
+	<section class="grid gap-2" aria-labelledby="voice-processing-heading">
 		<h3 id="voice-processing-heading" class="text-xs font-semibold text-muted-foreground uppercase">
 			Voice processing
 		</h3>
 		{#each processing as option (option.key)}
-			<div class="flex items-start justify-between gap-4">
-				<div class="grid gap-1">
-					<Label for="audio-{option.key}">{option.label}</Label>
-					<p class="text-xs text-muted-foreground">{option.description}</p>
-				</div>
-				<Switch
-					id="audio-{option.key}"
-					checked={audio.settings[option.key]}
-					onCheckedChange={(checked) => audio.updateSettings({ [option.key]: checked })}
-				/>
-			</div>
+			{@render switchRow(
+				`audio-${option.key}`,
+				option.label,
+				option.description,
+				audio.settings[option.key],
+				(checked) => audio.updateSettings({ [option.key]: checked })
+			)}
 		{/each}
 	</section>
 
@@ -236,19 +257,13 @@
 		<h3 id="sound-effects-heading" class="text-xs font-semibold text-muted-foreground uppercase">
 			Sounds
 		</h3>
-		<div class="flex items-start justify-between gap-4">
-			<div class="grid gap-1">
-				<Label for="audio-sounds">Sound effects</Label>
-				<p class="text-xs text-muted-foreground">
-					Joining and leaving calls, muting and new messages.
-				</p>
-			</div>
-			<Switch
-				id="audio-sounds"
-				checked={sounds.enabled}
-				onCheckedChange={(enabled) => sounds.update({ enabled })}
-			/>
-		</div>
+		{@render switchRow(
+			'audio-sounds',
+			'Sound effects',
+			'Joining and leaving calls, muting and new messages.',
+			sounds.enabled,
+			(enabled) => sounds.update({ enabled })
+		)}
 		<div class="grid gap-3">
 			<div class="flex items-center justify-between">
 				<Label id="sound-volume-label">Sound volume</Label>

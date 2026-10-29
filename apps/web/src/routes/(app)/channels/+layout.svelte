@@ -5,6 +5,7 @@
 	import { call } from '#lib/call.svelte.ts';
 	import { applyVoiceEvent, type VoiceEvent, type VoiceMember } from '#lib/calls.ts';
 	import UserPanel from '#lib/components/audio/user-panel.svelte';
+	import CallBar from '#lib/components/call/call-bar.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
 	import { getUnreadContext } from '#lib/unread-context.ts';
@@ -157,6 +158,7 @@
 			{/each}
 		</ul>
 	</div>
+	<CallBar {call} variant="panel" />
 	<UserPanel user={data.user} audio={call} />
 </aside>
 

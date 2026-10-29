@@ -119,6 +119,19 @@ describe('CallBar', () => {
 			.not.toBeInTheDocument();
 	});
 
+	it('leaves mute and deafen to the user panel in the sidebar', async () => {
+		const call = fakeCall();
+		render(CallBar, { call, variant: 'panel' });
+		const panel = page.getByRole('region', { name: 'Call' });
+
+		await expect.element(panel.getByRole('status')).toHaveTextContent('Voice connected');
+		await expect.element(panel.getByRole('button', { name: 'Mute' })).not.toBeInTheDocument();
+		await expect.element(panel.getByRole('button', { name: 'Deafen' })).not.toBeInTheDocument();
+		await expect.element(panel.getByRole('button', { name: 'Turn on camera' })).toBeVisible();
+		await panel.getByRole('button', { name: 'Hang up' }).click();
+		expect(call.leave).toHaveBeenCalledOnce();
+	});
+
 	it('keeps showing why a call ended until dismissed', async () => {
 		const call = fakeCall({ status: 'idle', target: null, error: 'The call was disconnected.' });
 		render(CallBar, { call });
