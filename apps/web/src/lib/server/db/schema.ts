@@ -41,6 +41,33 @@ export const instance = pgTable('instance', {
 	maxUploadSize: bigint('max_upload_size', { mode: 'number' })
 		.notNull()
 		.default(2 * 1024 ** 3),
+	/**
+	 * Public servers let guests invite people like members do. On private servers (the default)
+	 * guests cannot create invite links, and their friend links only work for existing members.
+	 */
+	isPublic: boolean('is_public').notNull().default(false),
+	/** Whether the storage per person below is enforced. */
+	uploadQuotaEnabled: boolean('upload_quota_enabled').notNull().default(true),
+	/** Total size of the files a member may have shared, in bytes. */
+	memberUploadQuota: bigint('member_upload_quota', { mode: 'number' })
+		.notNull()
+		.default(5 * 1024 ** 3),
+	/** Total size of the files a guest may have shared, in bytes. */
+	guestUploadQuota: bigint('guest_upload_quota', { mode: 'number' })
+		.notNull()
+		.default(1024 ** 3),
+	...timestamps
+});
+
+/**
+ * Users banned from the instance. They cannot sign in until a moderator lifts the ban.
+ */
+export const ban = pgTable('ban', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	bannedById: text('banned_by_id').references(() => user.id, { onDelete: 'set null' }),
+	reason: text('reason'),
 	...timestamps
 });
 

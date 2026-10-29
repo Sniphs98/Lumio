@@ -35,3 +35,8 @@ export async function setUpInstanceIfNeeded(userId: string, userName: string): P
 		]);
 	});
 }
+
+/** Public servers let guests invite people, see `applyGuestRules` in `#lib/permissions.ts`. */
+export async function setInstancePublic(isPublic: boolean): Promise<void> {
+	await db.update(instance).set({ isPublic }).where(eq(instance.id, 1));
+}

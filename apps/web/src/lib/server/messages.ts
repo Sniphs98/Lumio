@@ -4,6 +4,7 @@ import type { ChatMessage, ChatUser, ReplyPreview } from '#lib/chat.ts';
 import { parseMentionIds } from '#lib/mentions.ts';
 import { groupReactions, MAX_REACTIONS_PER_MESSAGE, type Reaction } from '#lib/reactions.ts';
 import { listAttachments } from '#lib/server/attachments.ts';
+import { storage } from '#lib/server/uploads.ts';
 import { db } from '#lib/server/db/index.ts';
 import {
 	attachment,
@@ -364,4 +365,33 @@ export async function listMentionable(target: MessageTarget): Promise<ChatUser[]
 		.innerJoin(user, eq(user.id, conversationMember.userId))
 		.where(eq(conversationMember.conversationId, target.conversationId))
 		.orderBy(asc(user.name));
+}
+
+/**
+ * Deletes a message of the chat with its files, reactions and mentions. Authors may delete their
+ * own messages; `canDeleteOthers` (Manage messages in a channel) allows deleting anyone's.
+ * Replies to it keep an empty reply preview.
+ */
+export async function deleteMessage(
+	target: MessageTarget,
+	messageId: unknown,
+	userId: string,
+	canDeleteOthers: boolean
+): Promise<'deleted' | 'not-found' | 'forbidden'> {
+	if (typeof messageId !== 'string' || !UUID.test(messageId)) return 'not-found';
+	const [row] = await db
+		.select({ authorId: message.authorId })
+		.from(message)
+		.where(and(eq(message.id, messageId), whereTarget(target)));
+	if (!row) return 'not-found';
+	if (row.authorId !== userId && !canDeleteOthers) return 'forbidden';
+
+	const files = await db
+		.select({ id: attachment.id })
+		.from(attachment)
+		.where(eq(attachment.messageId, messageId));
+	// Attachments, reactions and mentions go with the message (`on delete cascade`).
+	await db.delete(message).where(eq(message.id, messageId));
+	for (const file of files) await storage.remove(file.id).catch(() => {});
+	return 'deleted';
 }

@@ -77,9 +77,11 @@ export class PendingUpload {
 }
 
 function uploadErrorText(err: Error): string {
-	const status = err instanceof DetailedError ? err.originalResponse?.getStatus() : undefined;
+	const response = err instanceof DetailedError ? err.originalResponse : null;
+	const status = response?.getStatus();
 	if (status === 413) return 'The file is too large.';
-	if (status === 403) return 'You cannot share files here.';
+	// Not allowed here, or the storage is used up: the server explains which.
+	if (status === 403) return response?.getBody() || 'You cannot share files here.';
 	return 'Upload failed.';
 }
 

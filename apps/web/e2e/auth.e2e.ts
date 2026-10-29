@@ -30,6 +30,22 @@ test('pages cannot be framed by other sites', async ({ request }) => {
 	expect(response.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
 });
 
+test('pages only run their own scripts and may connect to LiveKit', async ({ request }) => {
+	const policy = (await request.get('/login')).headers()['content-security-policy'];
+	expect(policy).toMatch(/script-src 'self' 'sha256-/);
+	expect(policy).toContain("object-src 'none'");
+	expect(policy).toMatch(/connect-src 'self' wss?:\/\/\S+ https?:\/\//);
+});
+
+test('members can sign out', async ({ page }) => {
+	await signUp(page, 'Leaving User');
+	await page.goto('/account');
+	await page.getByRole('button', { name: 'Sign out' }).click();
+	await expect(page).toHaveURL(/\/login$/);
+	await page.goto('/');
+	await expect(page).toHaveURL(/\/login$/);
+});
+
 test('signing in never redirects to another site', async ({ page }) => {
 	const email = await signUp(page, 'Redirect User');
 	await page.context().clearCookies();

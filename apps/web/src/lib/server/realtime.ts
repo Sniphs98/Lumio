@@ -22,3 +22,11 @@ export function subscribe(topic: string, listener: (event: RealtimeEvent) => voi
 export function userTopic(userId: string): string {
 	return `user:${userId}`;
 }
+
+/**
+ * Topic that ends every event stream of a user, e.g. when a moderator kicks them. Carries no
+ * events to the browser, see `revokedFor` in `#lib/server/sse.ts`.
+ */
+export function sessionTopic(userId: string): string {
+	return `sessions:${userId}`;
+}

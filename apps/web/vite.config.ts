@@ -14,6 +14,26 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			adapter: adapter(),
+			// Only the app's own scripts may run, so a bug that lets someone inject markup cannot
+			// run script on Lumio's origin. Inline styles stay allowed: components set style
+			// attributes. `src/hooks.server.ts` adds the LiveKit server to `connect-src`.
+			csp: {
+				mode: 'hash',
+				directives: {
+					'default-src': ['self'],
+					'script-src': ['self'],
+					'style-src': ['self', 'unsafe-inline'],
+					'img-src': ['self', 'data:', 'blob:'],
+					'media-src': ['self', 'blob:'],
+					'font-src': ['self', 'data:'],
+					'connect-src': ['self'],
+					'worker-src': ['self', 'blob:'],
+					'object-src': ['none'],
+					'base-uri': ['self'],
+					'form-action': ['self'],
+					'frame-ancestors': ['none']
+				}
+			},
 			// Emits OpenTelemetry spans. They are no-ops unless src/instrumentation.server.ts
 			// registers an exporter, which it only does when an OTLP endpoint is configured.
 			tracing: { server: true }

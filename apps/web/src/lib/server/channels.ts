@@ -1,8 +1,20 @@
 import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { ChannelType } from '#lib/channels.ts';
-import { hasPermission, Permission, resolvePermissions } from '#lib/permissions.ts';
+import {
+	applyGuestRules,
+	hasPermission,
+	Permission,
+	resolvePermissions
+} from '#lib/permissions.ts';
 import { db } from '#lib/server/db/index.ts';
-import { channel, channelOverwrite, instance, role, userRole } from '#lib/server/db/schema.ts';
+import {
+	channel,
+	channelOverwrite,
+	instance,
+	role,
+	user,
+	userRole
+} from '#lib/server/db/schema.ts';
 import { EVERYONE_ROLE_NAME } from '#lib/server/instance.ts';
 
 export async function listChannels() {
@@ -31,7 +43,7 @@ export async function getChannel(channelId: string) {
 	return row ?? null;
 }
 
-async function isInstanceOwner(userId: string): Promise<boolean> {
+export async function isInstanceOwner(userId: string): Promise<boolean> {
 	const [inst] = await db.select({ ownerId: instance.ownerId }).from(instance);
 	return inst?.ownerId === userId;
 }
@@ -45,12 +57,23 @@ async function getUserRoles(userId: string) {
 		.where(or(eq(role.name, EVERYONE_ROLE_NAME), eq(userRole.userId, userId)));
 }
 
-/** Permission mask of a user outside any channel, e.g. for creating invites. */
+/**
+ * Permission mask of a user outside any channel, e.g. for creating invites. Guests on a
+ * private server cannot invite people, see `applyGuestRules`.
+ */
 export async function getServerPermissions(userId: string): Promise<bigint> {
 	const isOwner = await isInstanceOwner(userId);
 	if (isOwner) return resolvePermissions({ isOwner, rolePermissions: [] });
-	const roles = await getUserRoles(userId);
-	return resolvePermissions({ isOwner, rolePermissions: roles.map((r) => r.permissions) });
+	const [roles, [account], [inst]] = await Promise.all([
+		getUserRoles(userId),
+		db.select({ isAnonymous: user.isAnonymous }).from(user).where(eq(user.id, userId)),
+		db.select({ isPublic: instance.isPublic }).from(instance)
+	]);
+	const mask = resolvePermissions({ isOwner, rolePermissions: roles.map((r) => r.permissions) });
+	return applyGuestRules(mask, {
+		isGuest: account?.isAnonymous === true,
+		isPublic: inst?.isPublic ?? false
+	});
 }
 
 /** Effective permission mask of a user in a channel. */

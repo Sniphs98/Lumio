@@ -1,4 +1,5 @@
 import { expect, type Browser, type Page } from '@playwright/test';
+import postgres from 'postgres';
 
 type Viewport = { width: number; height: number };
 
@@ -64,4 +65,31 @@ export async function friends(browser: Browser, viewport?: Viewport) {
 	await expect(ben.page.getByRole('link', { name: 'Anna', exact: true })).toBeVisible();
 	await expect(anna.page.getByRole('link', { name: 'Ben', exact: true })).toBeVisible();
 	return { anna, ben };
+}
+
+/** Gives the user with this email a role with the given permission bits, see `#lib/permissions.ts`. */
+export async function grantPermissions(email: string, permissions: bigint) {
+	const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+	try {
+		const [role] = await sql`
+			insert into role (name, position, permissions) values ('Test role', 1, ${permissions.toString()})
+			returning id
+		`;
+		await sql`
+			insert into user_role (user_id, role_id)
+			select id, ${role.id} from "user" where email = ${email}
+		`;
+	} finally {
+		await sql.end();
+	}
+}
+
+/** Runs a statement against the test database, e.g. to change a server setting. */
+export async function withDatabase<T>(run: (sql: postgres.Sql) => Promise<T>): Promise<T> {
+	const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+	try {
+		return await run(sql);
+	} finally {
+		await sql.end();
+	}
 }

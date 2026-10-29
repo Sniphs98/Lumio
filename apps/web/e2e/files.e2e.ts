@@ -121,7 +121,10 @@ test('the server owner limits the file size', async ({ browser }) => {
 
 	try {
 		await limit.fill('1');
-		await admin.page.getByRole('button', { name: 'Save' }).click();
+		await admin.page
+			.getByRole('region', { name: 'File sharing' })
+			.getByRole('button', { name: 'Save' })
+			.click();
 		await expect(admin.page.getByRole('status')).toHaveText('Saved.');
 
 		await admin.page.getByRole('link', { name: 'general' }).click();
@@ -135,7 +138,10 @@ test('the server owner limits the file size', async ({ browser }) => {
 	} finally {
 		await admin.page.getByRole('link', { name: 'Server settings' }).click();
 		await limit.fill('2048');
-		await admin.page.getByRole('button', { name: 'Save' }).click();
+		await admin.page
+			.getByRole('region', { name: 'File sharing' })
+			.getByRole('button', { name: 'Save' })
+			.click();
 		await expect(admin.page.getByRole('status')).toHaveText('Saved.');
 	}
 

@@ -1,6 +1,8 @@
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { sequence } from '@sveltejs/kit/hooks';
 import { building } from '$app/env';
+import { LIVEKIT_URL } from '$app/env/private';
+import { allowLiveKit, liveKitOrigins } from '#lib/server/csp.ts';
 import { auth } from '#lib/server/auth.ts';
 import { cleanUpUploads } from '#lib/server/uploads.ts';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
@@ -25,7 +27,8 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 /**
  * Headers for every response. Other sites may not show Lumio in a frame, so they cannot trick
  * people into clicking its buttons (clickjacking), and links to other sites do not reveal the
- * page someone came from. Responses that set their own policy, e.g. file downloads, keep it.
+ * page someone came from. Responses that set their own policy keep it: pages get SvelteKit's
+ * Content Security Policy (see `vite.config.ts`), file downloads their own.
  */
 const SECURITY_HEADERS: Record<string, string> = {
 	'X-Frame-Options': 'DENY',
@@ -36,16 +39,30 @@ const SECURITY_HEADERS: Record<string, string> = {
 
 const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 	let response = await resolve(event);
-	const missing = Object.entries(SECURITY_HEADERS).filter(([name]) => !response.headers.has(name));
-	if (missing.length === 0) return response;
-	try {
-		for (const [name, value] of missing) response.headers.set(name, value);
-	} catch {
-		// Some responses, e.g. from `Response.redirect()`, have immutable headers: copy them.
-		response = new Response(response.body, response);
-		for (const [name, value] of missing) response.headers.set(name, value);
+	const policy = response.headers.get('Content-Security-Policy');
+	if (policy?.includes('connect-src')) {
+		response = withHeader(
+			response,
+			'Content-Security-Policy',
+			allowLiveKit(policy, liveKitOrigins(LIVEKIT_URL))
+		);
+	}
+	for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+		if (!response.headers.has(name)) response = withHeader(response, name, value);
 	}
 	return response;
 };
+
+/** Sets a header. Some responses, e.g. from `Response.redirect()`, have immutable headers: copy them. */
+function withHeader(response: Response, name: string, value: string): Response {
+	try {
+		response.headers.set(name, value);
+		return response;
+	} catch {
+		const copy = new Response(response.body, response);
+		copy.headers.set(name, value);
+		return copy;
+	}
+}
 
 export const handle: Handle = sequence(handleSecurityHeaders, handleBetterAuth);

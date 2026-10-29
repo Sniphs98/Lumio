@@ -20,6 +20,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 			{ type: 'voice.state', channels: visibleVoiceState(await getVoiceState(), visible) }
 		],
 		filter: (event) => event.type !== 'voice.changed' || visible.has(event.channelId),
-		onClose: watchVoiceState()
+		onClose: watchVoiceState(),
+		revokedFor: locals.user.id
 	});
 };

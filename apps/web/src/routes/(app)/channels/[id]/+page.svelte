@@ -94,6 +94,7 @@
 		meId={data.user.id}
 		mentionable={data.mentionable}
 		canReact={data.canReact}
+		canManageMessages={data.canManageMessages}
 		onread={() => unread.clear(data.channel.id)}
 	/>
 {/snippet}

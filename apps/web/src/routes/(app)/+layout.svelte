@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
+	import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { call } from '#lib/call.svelte.ts';
@@ -61,6 +61,11 @@
 			reloadUnread();
 		});
 		source.addEventListener('home.changed', () => invalidate('app:home'));
+		// Kicked or banned: the session is gone, so the reload ends on the login page.
+		source.addEventListener('session.revoked', () => {
+			void call.leave();
+			invalidateAll();
+		});
 		source.addEventListener('conversation.removed', async (e) => {
 			const event = JSON.parse((e as MessageEvent<string>).data) as UserEvent;
 			if (event.type !== 'conversation.removed') return;
