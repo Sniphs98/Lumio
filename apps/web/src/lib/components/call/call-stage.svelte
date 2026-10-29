@@ -2,13 +2,27 @@
 	import { MicOff } from '@lucide/svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import { initials } from '#lib/calls.ts';
-	import type { AttachableTrack, CallParticipant } from '#lib/call.svelte.ts';
+	import {
+		call,
+		type AttachableTrack,
+		type CallParticipant,
+		type UserAudioControls
+	} from '#lib/call.svelte.ts';
 	import * as Avatar from '#lib/components/ui/avatar/index.ts';
+	import UserAudioIcon from '#lib/components/users/user-audio-icon.svelte';
 	import UserContextMenu from '#lib/components/users/user-context-menu.svelte';
 	import { cn } from '#lib/utils.ts';
 
-	let { participants, class: className }: { participants: CallParticipant[]; class?: string } =
-		$props();
+	let {
+		participants,
+		audio = call,
+		class: className
+	}: {
+		participants: CallParticipant[];
+		/** Who this user turned down or muted for themselves. Tests pass a fake. */
+		audio?: Pick<UserAudioControls, 'userAudioOf'>;
+		class?: string;
+	} = $props();
 
 	type Tile = { key: string; participant: CallParticipant; kind: 'screen' | 'person' };
 
@@ -85,6 +99,9 @@
 					>
 						{#if tile.kind === 'person' && p.micMuted}
 							<MicOff class="size-3 shrink-0 text-destructive" aria-label="Muted" />
+						{/if}
+						{#if tile.kind === 'person' && !p.isLocal}
+							<UserAudioIcon audio={audio.userAudioOf(p.identity)} class="size-3" />
 						{/if}
 						<span class="truncate">
 							{tile.kind === 'screen'

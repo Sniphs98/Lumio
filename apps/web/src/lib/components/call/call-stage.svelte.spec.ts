@@ -49,4 +49,28 @@ describe('CallStage', () => {
 		unmount();
 		expect(screen.detach).toHaveBeenCalledOnce();
 	});
+
+	it('shows who this user muted or turned down for themselves', async () => {
+		const audio = {
+			userAudioOf: (id: string) =>
+				({
+					ben: { volume: 1, muted: true },
+					cleo: { volume: 0.4, muted: false }
+				})[id] ?? { volume: 1, muted: false }
+		};
+		render(CallStage, {
+			participants: [person('Anna', { isLocal: true }), person('Ben'), person('Cleo')],
+			audio
+		});
+
+		await expect
+			.element(page.getByRole('listitem', { name: 'Ben' }).getByLabelText('Muted for you'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('listitem', { name: 'Cleo' }).getByLabelText('Volume 40% for you'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('listitem', { name: 'Anna' }).getByLabelText(/for you/))
+			.not.toBeInTheDocument();
+	});
 });
