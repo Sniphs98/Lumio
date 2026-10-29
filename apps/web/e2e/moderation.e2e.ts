@@ -61,6 +61,31 @@ test('guests can only invite people on a public server', async ({ browser }) => 
 	await guestContext.close();
 });
 
+test('the server settings rename the server', async ({ browser }) => {
+	const admin = await newUser(browser, 'Admin');
+	await grantPermissions(admin.email, MANAGE_SERVER);
+	const [{ name: before }] = await withDatabase((sql) => sql`select name from instance`);
+
+	await admin.page.goto('/channels');
+	await admin.page.getByRole('button', { name: 'Server settings' }).click();
+	const settings = admin.page.getByRole('dialog', { name: 'Server settings' });
+	const overview = settings.getByRole('region', { name: 'Server name' });
+	await expect(overview.getByLabel('Name', { exact: true })).toHaveValue(before);
+	const renamed = `Game night ${Date.now()}`;
+	try {
+		await overview.getByLabel('Name', { exact: true }).fill(renamed);
+		await overview.getByRole('button', { name: 'Save' }).click();
+		await expect(overview.getByRole('status')).toHaveText('Saved.');
+		await expect(
+			admin.page.getByRole('navigation', { name: 'Instances' }).getByRole('link').nth(1)
+		).toHaveText(renamed);
+	} finally {
+		await withDatabase((sql) => sql`update instance set name = ${before}`);
+	}
+
+	await admin.context.close();
+});
+
 test('guests are stopped when their storage is full', async ({ browser }) => {
 	const guestContext = await browser.newContext();
 	const guest = await guestContext.newPage();
@@ -104,8 +129,13 @@ test('a moderator bans a member, who is signed out and cannot come back until un
 	await expect(
 		moderator.page.getByRole('status').filter({ hasText: 'Banned and signed out everywhere.' })
 	).toBeVisible();
+	// Bans are lifted in the server settings, which moderators see with just the bans.
+	await moderator.page.getByRole('button', { name: 'Server settings' }).click();
+	const settings = moderator.page.getByRole('dialog', { name: 'Server settings' });
+	await expect(settings.getByRole('heading', { name: 'Bans' })).toBeVisible();
+	await expect(settings.getByRole('button', { name: 'Overview' })).toHaveCount(0);
 	await expect(
-		moderator.page.getByRole('region', { name: 'Banned' }).getByRole('listitem')
+		settings.getByRole('region', { name: 'Banned' }).getByRole('listitem')
 	).toContainText([name]);
 
 	// The open page notices right away and ends on the login page.
@@ -115,15 +145,14 @@ test('a moderator bans a member, who is signed out and cannot come back until un
 	await troll.page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(troll.page.getByText('You are banned from this Lumio.')).toBeVisible();
 
-	await moderator.page
+	await settings
 		.getByRole('region', { name: 'Banned' })
 		.getByRole('listitem')
 		.filter({ hasText: name })
 		.getByRole('button', { name: 'Unban' })
 		.click();
-	await expect(
-		moderator.page.getByRole('status').filter({ hasText: 'The ban was lifted.' })
-	).toBeVisible();
+	await expect(settings.getByRole('status')).toHaveText('The ban was lifted.');
+	await expect(settings.getByText('Nobody is banned.')).toBeVisible();
 	await troll.page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(troll.page.getByRole('link', { name: 'Home' })).toBeVisible();
 

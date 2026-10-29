@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { ArrowLeft, CircleAlert, Users } from '@lucide/svelte';
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
@@ -16,8 +15,6 @@
 
 	// The channels layout asks for confirmation; right-clicking a member offers the same.
 	const menu = getUserMenuContext();
-
-	const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 </script>
 
 <svelte:head>
@@ -43,14 +40,10 @@
 				<CircleAlert />
 				<Alert.Description>{form.error}</Alert.Description>
 			</Alert.Root>
-		{:else if form?.kicked || form?.banned || form?.unbanned}
+		{:else if form?.kicked || form?.banned}
 			<Alert.Root role="status">
 				<Alert.Description>
-					{form.kicked
-						? 'Kicked and signed out everywhere.'
-						: form.banned
-							? 'Banned and signed out everywhere.'
-							: 'The ban was lifted.'}
+					{form.kicked ? 'Kicked and signed out everywhere.' : 'Banned and signed out everywhere.'}
 				</Alert.Description>
 			</Alert.Root>
 		{/if}
@@ -107,40 +100,5 @@
 				</Item.Group>
 			</Card.Content>
 		</Card.Root>
-
-		{#if data.canBan}
-			<Card.Root role="region" aria-labelledby="bans-heading" class="gap-4">
-				<Card.Header>
-					<Card.Title><h2 id="bans-heading">Banned</h2></Card.Title>
-					{#if data.bans.length === 0}
-						<Card.Description>Nobody is banned.</Card.Description>
-					{/if}
-				</Card.Header>
-				{#if data.bans.length > 0}
-					<Card.Content class="px-2 sm:px-4">
-						<Item.Group class="gap-0">
-							{#each data.bans as entry (entry.userId)}
-								<Item.Root size="sm" class="flex-nowrap px-2 py-2" role="listitem">
-									<Item.Content class="min-w-0">
-										<Item.Title class="line-clamp-none block w-full truncate font-normal">
-											{entry.name}
-										</Item.Title>
-										<Item.Description class="line-clamp-1 text-xs">
-											{dateFormat.format(entry.createdAt)}{entry.reason ? ` · ${entry.reason}` : ''}
-										</Item.Description>
-									</Item.Content>
-									<Item.Actions>
-										<form method="post" action="?/unban" use:enhance>
-											<input type="hidden" name="userId" value={entry.userId} />
-											<Button type="submit" variant="outline" size="sm">Unban</Button>
-										</form>
-									</Item.Actions>
-								</Item.Root>
-							{/each}
-						</Item.Group>
-					</Card.Content>
-				{/if}
-			</Card.Root>
-		{/if}
 	</div>
 </div>

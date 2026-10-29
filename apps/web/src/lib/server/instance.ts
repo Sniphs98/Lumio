@@ -40,3 +40,8 @@ export async function setUpInstanceIfNeeded(userId: string, userName: string): P
 export async function setInstancePublic(isPublic: boolean): Promise<void> {
 	await db.update(instance).set({ isPublic }).where(eq(instance.id, 1));
 }
+
+/** The name shown on the server's tab. */
+export async function setInstanceName(name: string): Promise<void> {
+	await db.update(instance).set({ name }).where(eq(instance.id, 1));
+}
