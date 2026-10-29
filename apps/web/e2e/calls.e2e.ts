@@ -202,7 +202,10 @@ test.describe('with LiveKit', () => {
 		await expect(benPage).toContainText('Anna');
 		await expect(ben.page.getByRole('region', { name: 'Call' })).toBeHidden();
 
-		await annaBar.getByRole('button', { name: 'Mute' }).click();
+		await anna.page
+			.getByRole('region', { name: 'You' })
+			.getByRole('button', { name: 'Mute' })
+			.click();
 		await expect(
 			benList.getByRole('listitem').filter({ hasText: 'Anna' }).getByLabel('Muted')
 		).toBeVisible();

@@ -1,7 +1,18 @@
-import { ParticipantInfo, ParticipantInfo_State, TrackInfo, TrackSource } from 'livekit-server-sdk';
-import { describe, expect, it } from 'vitest';
+import {
+	ParticipantInfo,
+	ParticipantInfo_State,
+	Room,
+	TrackInfo,
+	TrackSource
+} from 'livekit-server-sdk';
+import { describe, expect, it, vi } from 'vitest';
 import { roomName } from '#lib/calls.ts';
-import { visibleVoiceState, voiceChanges, voiceStateFromRooms } from './voice-state.ts';
+import {
+	fetchChannelRooms,
+	visibleVoiceState,
+	voiceChanges,
+	voiceStateFromRooms
+} from './voice-state.ts';
 
 const lounge = '0b6f3f0e-6f43-4b8e-9d2a-5c1f3b7a9e21';
 const games = '7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f';
@@ -99,5 +110,51 @@ describe('visibleVoiceState', () => {
 		expect(visibleVoiceState({ [lounge]: [anna], [games]: [anna] }, new Set([games]))).toEqual({
 			[games]: [anna]
 		});
+	});
+});
+
+describe('fetchChannelRooms', () => {
+	const notFound = Object.assign(new Error('requested room does not exist'), { status: 404 });
+
+	it('only asks for voice channel rooms', async () => {
+		const listParticipants = vi.fn(async () => [participant('a', 'Anna')]);
+		const rooms = await fetchChannelRooms({
+			listRooms: async () => [
+				new Room({ name: roomName('channel', lounge) }),
+				new Room({ name: roomName('conversation', games) })
+			],
+			listParticipants
+		});
+		expect(listParticipants).toHaveBeenCalledExactlyOnceWith(roomName('channel', lounge));
+		expect(rooms).toEqual([
+			{ name: roomName('channel', lounge), participants: [participant('a', 'Anna')] }
+		]);
+	});
+
+	it('counts a room that closed in the meantime as empty', async () => {
+		const rooms = await fetchChannelRooms({
+			listRooms: async () => [
+				new Room({ name: roomName('channel', lounge) }),
+				new Room({ name: roomName('channel', games) })
+			],
+			listParticipants: async (room) => {
+				if (room === roomName('channel', games)) throw notFound;
+				return [participant('a', 'Anna')];
+			}
+		});
+		expect(voiceStateFromRooms(rooms)).toEqual({
+			[lounge]: [expect.objectContaining({ id: 'a' })]
+		});
+	});
+
+	it('still fails when LiveKit is unreachable', async () => {
+		await expect(
+			fetchChannelRooms({
+				listRooms: async () => [new Room({ name: roomName('channel', lounge) })],
+				listParticipants: async () => {
+					throw new Error('fetch failed');
+				}
+			})
+		).rejects.toThrow('fetch failed');
 	});
 });

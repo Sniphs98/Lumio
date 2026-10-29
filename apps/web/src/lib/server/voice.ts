@@ -2,7 +2,7 @@ import { RoomServiceClient } from 'livekit-server-sdk';
 import { LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL } from '$app/env/private';
 import type { VoiceState } from '#lib/calls.ts';
 import { publish } from '#lib/server/realtime.ts';
-import { voiceChanges, voiceStateFromRooms } from '#lib/server/voice-state.ts';
+import { fetchChannelRooms, voiceChanges, voiceStateFromRooms } from '#lib/server/voice-state.ts';
 
 /** Topic of the `voice.*` events, see `/api/voice/events`. */
 export const VOICE_TOPIC = 'voice';
@@ -23,15 +23,7 @@ let watchers = 0;
 let timer: ReturnType<typeof setInterval> | undefined;
 
 async function fetchVoiceState(): Promise<VoiceState> {
-	const list = await rooms.listRooms();
-	return voiceStateFromRooms(
-		await Promise.all(
-			list.map(async (room) => ({
-				name: room.name,
-				participants: await rooms.listParticipants(room.name)
-			}))
-		)
-	);
+	return voiceStateFromRooms(await fetchChannelRooms(rooms));
 }
 
 /** Asks LiveKit for the current voice state and publishes what changed. */
