@@ -20,6 +20,7 @@ import {
 	type ScreenShareQuality
 } from '#lib/calls.ts';
 import {
+	canBoostVolume,
 	captureOptions,
 	DEFAULT_AUDIO_SETTINGS,
 	loadAudioSettings,
@@ -72,6 +73,8 @@ export interface AudioControls {
 	readonly settings: AudioSettings;
 	/** Whether this browser can choose the speakers, see `HTMLMediaElement.setSinkId`. */
 	readonly outputSelectionSupported: boolean;
+	/** Whether volumes can go above 100 %, see `canBoostVolume`. */
+	readonly volumeBoostSupported: boolean;
 	toggleMute(): Promise<void>;
 	toggleDeafen(): void;
 	updateSettings(patch: Partial<AudioSettings>): Promise<void>;
@@ -79,6 +82,8 @@ export interface AudioControls {
 
 /** Volume and mute per person, from the right-click menu. Lets component tests pass a fake. */
 export interface UserAudioControls {
+	/** Whether volumes can go above 100 %, see `canBoostVolume`. */
+	readonly volumeBoostSupported: boolean;
 	userAudioOf(userId: string): UserAudio;
 	setUserAudio(userId: string, patch: Partial<UserAudio>): void;
 }
@@ -140,6 +145,10 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 
 	get outputSelectionSupported(): boolean {
 		return typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
+	}
+
+	get volumeBoostSupported(): boolean {
+		return canBoostVolume();
 	}
 
 	/** Loads the stored settings. Called in the browser after hydration. */
@@ -216,7 +225,9 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 			adaptiveStream: true,
 			dynacast: true,
 			audioCaptureDefaults: captureOptions(this.settings),
-			audioOutput: { deviceId: this.settings.outputDeviceId }
+			audioOutput: { deviceId: this.settings.outputDeviceId },
+			// Plays everyone through a gain node, so volumes can go above 100 %.
+			webAudioMix: this.volumeBoostSupported
 		});
 		this.#room = room;
 		this.#listen(room);
@@ -437,11 +448,13 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 	}
 
 	#applyVolume(participant: RemoteParticipant) {
-		const volume = playbackVolume(
+		let volume = playbackVolume(
 			this.settings.outputVolume,
 			this.userAudio[participant.identity],
 			this.deafened
 		);
+		// Media elements throw above 100 %; settings from another browser may still be louder.
+		if (!this.volumeBoostSupported) volume = Math.min(1, volume);
 		participant.setVolume(volume, Track.Source.Microphone);
 		participant.setVolume(volume, Track.Source.ScreenShareAudio);
 	}

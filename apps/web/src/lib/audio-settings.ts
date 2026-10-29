@@ -9,7 +9,7 @@ export type AudioSettings = {
 	inputDeviceId: string;
 	/** `deviceId` of the speakers or headphones, or `default` for the browser's choice. */
 	outputDeviceId: string;
-	/** Volume of everyone else in a call, from 0 to 1. */
+	/** Volume of everyone else in a call, from 0 to `MAX_VOLUME`. */
 	outputVolume: number;
 	noiseSuppression: boolean;
 	echoCancellation: boolean;
@@ -20,6 +20,24 @@ export type AudioSettings = {
 };
 
 export const DEFAULT_DEVICE = 'default';
+
+/** Volumes go up to 200 %, to turn up people who are too quiet. */
+export const MAX_VOLUME = 2;
+
+/**
+ * Whether volumes above 100 % work in this browser. Media elements stop at 100 %, so louder
+ * playback goes through LiveKit's Web Audio mix (`webAudioMix`), where a gain node sets the
+ * volume. The speakers are then chosen with `AudioContext.setSinkId`. Browsers that can only
+ * choose speakers on media elements (Firefox) keep element playback and stop at 100 %, so
+ * choosing the speakers keeps working there.
+ */
+export function canBoostVolume(): boolean {
+	if (typeof AudioContext === 'undefined') return false;
+	const contextSink = 'setSinkId' in AudioContext.prototype;
+	const elementSink =
+		typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
+	return contextSink || !elementSink;
+}
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
 	inputDeviceId: DEFAULT_DEVICE,
@@ -52,7 +70,7 @@ export function parseAudioSettings(value: unknown): AudioSettings {
 		if (typeof v[key] === 'boolean') settings[key] = v[key];
 	}
 	if (typeof v.outputVolume === 'number' && Number.isFinite(v.outputVolume)) {
-		settings.outputVolume = Math.min(1, Math.max(0, v.outputVolume));
+		settings.outputVolume = Math.min(MAX_VOLUME, Math.max(0, v.outputVolume));
 	}
 	// Deafened always means muted, see `Call.toggleDeafen`.
 	if (settings.deafened) settings.muted = true;

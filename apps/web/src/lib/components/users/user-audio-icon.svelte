@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Volume1, VolumeX } from '@lucide/svelte';
+	import { Volume1, Volume2, VolumeX } from '@lucide/svelte';
 	import type { UserAudio } from '#lib/user-audio.ts';
 	import { cn } from '#lib/utils.ts';
 
-	/** Shows that this user muted or turned down someone for themselves, from the user menu. */
+	/** Shows that this user muted, turned down or turned up someone for themselves, from the user menu. */
 	let { audio, class: className }: { audio: UserAudio; class?: string } = $props();
 </script>
 
@@ -15,6 +15,12 @@
 	/>
 {:else if audio.volume < 1}
 	<Volume1
+		class={cn('shrink-0', className)}
+		aria-label="Volume {Math.round(audio.volume * 100)}% for you"
+		role="img"
+	/>
+{:else if audio.volume > 1}
+	<Volume2
 		class={cn('shrink-0', className)}
 		aria-label="Volume {Math.round(audio.volume * 100)}% for you"
 		role="img"

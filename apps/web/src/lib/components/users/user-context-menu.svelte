@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { AtSign, Ban, MessageSquare, UserX } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
+	import { MAX_VOLUME } from '#lib/audio-settings.ts';
 	import { call, type UserAudioControls } from '#lib/call.svelte.ts';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
@@ -73,7 +74,7 @@
 						type="single"
 						value={Math.round(userAudio.volume * 100)}
 						onValueChange={(v) => audio.setUserAudio(user.id, { volume: v / 100 })}
-						max={100}
+						max={audio.volumeBoostSupported ? MAX_VOLUME * 100 : 100}
 						step={1}
 						disabled={userAudio.muted}
 						aria-labelledby="{volumeId}-label"

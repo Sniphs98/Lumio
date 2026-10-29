@@ -12,6 +12,7 @@ function fakeAudio(overrides: Partial<AudioControls> = {}): AudioControls {
 		deafened: false,
 		settings: { ...DEFAULT_AUDIO_SETTINGS },
 		outputSelectionSupported: true,
+		volumeBoostSupported: true,
 		toggleMute: vi.fn(async () => {}),
 		toggleDeafen: vi.fn(),
 		updateSettings: vi.fn(async () => {}),
@@ -44,6 +45,12 @@ describe('SettingsDialog', () => {
 			.element(page.getByLabelText('Microphone', { exact: true }))
 			.toHaveTextContent('Headset microphone');
 		await expect.element(page.getByLabelText('Speakers')).toHaveTextContent('Default');
+	});
+
+	it('turns the call volume up to 200 % where the browser can play louder', async () => {
+		render(SettingsDialog, { open: true, listDevices, audio: fakeAudio() });
+		const volume = page.getByRole('region', { name: 'Devices' }).getByRole('slider');
+		await expect.element(volume).toHaveAttribute('aria-valuemax', '200');
 	});
 
 	it('picks another microphone', async () => {

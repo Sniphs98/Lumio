@@ -15,6 +15,7 @@ function fakeAudio(overrides: Partial<AudioControls> = {}): AudioControls {
 		deafened: false,
 		settings: { ...DEFAULT_AUDIO_SETTINGS },
 		outputSelectionSupported: true,
+		volumeBoostSupported: true,
 		toggleMute: vi.fn(async () => {}),
 		toggleDeafen: vi.fn(),
 		updateSettings: vi.fn(async () => {}),
