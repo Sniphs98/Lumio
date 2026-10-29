@@ -6,6 +6,7 @@ import {
 	Room,
 	RoomEvent,
 	Track,
+	type LocalAudioTrack,
 	type Participant,
 	type RemoteParticipant,
 	type RemoteTrack
@@ -26,6 +27,7 @@ import {
 	saveAudioSettings,
 	type AudioSettings
 } from '#lib/audio-settings.ts';
+import { openMicrophone } from '#lib/mic-warmup.ts';
 import { sounds } from '#lib/sound-player.svelte.ts';
 import {
 	DEFAULT_USER_AUDIO,
@@ -221,6 +223,7 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 		this.#room = room;
 		this.#listen(room);
 
+		let microphone: Promise<LocalAudioTrack> | null = null;
 		try {
 			const res = await fetch('/api/livekit/token', {
 				method: 'POST',
@@ -238,8 +241,18 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 				sources: CallSource[];
 			};
 			this.#sources = sources;
+			// Opens the microphone while connecting, so it has settled by the time others hear
+			// it. A missing microphone is handled once connected.
+			if (this.canPublish('microphone') && !this.muted) {
+				microphone = openMicrophone(captureOptions(this.settings));
+				microphone.catch(() => {});
+			}
 			await room.connect(url, token);
 		} catch (e) {
+			void microphone?.then(
+				(track) => track.stop(),
+				() => {}
+			);
 			if (this.#room !== room) return;
 			this.#reset();
 			void room.disconnect();
@@ -253,7 +266,12 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 		this.audioBlocked = !room.canPlaybackAudio;
 		if (this.canPublish('microphone')) {
 			try {
-				if (!this.muted) await this.#enableMicrophone(room, true);
+				if (microphone) {
+					const track = await microphone;
+					// Muted or deafened while connecting.
+					if (this.muted) track.stop();
+					else await this.#publishMicrophone(room, track);
+				}
 			} catch {
 				this.#set({ muted: true }, false);
 				this.error = 'No microphone access. Others cannot hear you.';
@@ -450,11 +468,28 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 		for (const p of this.#room?.remoteParticipants.values() ?? []) this.#applyVolume(p);
 	}
 
-	#enableMicrophone(room: Room, enabled: boolean) {
-		return room.localParticipant.setMicrophoneEnabled(
-			enabled,
-			enabled ? captureOptions(this.settings) : undefined
-		);
+	async #enableMicrophone(room: Room, enabled: boolean) {
+		const local = room.localParticipant;
+		if (enabled && !local.getTrackPublication(Track.Source.Microphone)) {
+			// The first unmute in this call opens the microphone, which needs to settle first.
+			await this.#publishMicrophone(room, await openMicrophone(captureOptions(this.settings)));
+			return;
+		}
+		await local.setMicrophoneEnabled(enabled, enabled ? captureOptions(this.settings) : undefined);
+	}
+
+	/** Publishes a microphone from `openMicrophone`, unless the call ended meanwhile. */
+	async #publishMicrophone(room: Room, track: LocalAudioTrack) {
+		if (this.#room !== room) {
+			track.stop();
+			return;
+		}
+		try {
+			await room.localParticipant.publishTrack(track);
+		} catch (e) {
+			track.stop();
+			throw e;
+		}
 	}
 
 	/** Changes the settings and stores them, unless `persist` is false. */
