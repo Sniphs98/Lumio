@@ -46,7 +46,7 @@ describe('UserContextMenu', () => {
 
 	it('hides moderation without permission', async () => {
 		render(Harness, {
-			access: { meId: 'me', friendIds: new Set(), members: new Map() },
+			access: { meId: 'me', friendIds: new Set<string>(), members: new Map() },
 			user: ben,
 			onmention: () => {}
 		});
