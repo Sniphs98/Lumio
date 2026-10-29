@@ -18,6 +18,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 	const visible = await listVisibleChannelIds(locals.user.id, hasChat);
 	return eventStream([userTopic(locals.user.id), CHANNEL_ACTIVITY_TOPIC], request, {
 		filter: (event) =>
-			event.type !== 'message.activity' || event.channelId === null || visible.has(event.channelId)
+			event.type !== 'message.activity' || event.channelId === null || visible.has(event.channelId),
+		revokedFor: locals.user.id
 	});
 };

@@ -72,3 +72,17 @@ export function resolvePermissions(input: {
 	}
 	return mask;
 }
+
+/**
+ * Guests on a private server (the default) cannot bring in new people: they cannot create
+ * invite links, and their friend links only work for existing members. On a public server
+ * guests have the same permissions as members.
+ */
+export function applyGuestRules(
+	mask: bigint,
+	{ isGuest, isPublic }: { isGuest: boolean; isPublic: boolean }
+): bigint {
+	if (!isGuest || isPublic) return mask;
+	if ((mask & Permission.Administrator) === Permission.Administrator) return mask;
+	return mask & ~Permission.CreateInvite;
+}

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+	fitsQuota,
 	formatBytes,
 	formatUploadTarget,
 	MAX_ATTACHMENTS_PER_MESSAGE,
 	parseAttachmentIds,
 	parseMaxUploadSize,
 	parseRange,
+	parseUploadQuotas,
 	parseUploadTarget,
 	previewKind,
 	sanitizeFileName,
@@ -129,5 +131,32 @@ describe('parseRange', () => {
 		expect(parseRange('bytes=100-', 100)).toBe('invalid');
 		expect(parseRange('bytes=9-1', 100)).toBe('invalid');
 		expect(parseRange('bytes=-', 100)).toBe('invalid');
+	});
+});
+
+describe('parseUploadQuotas', () => {
+	it('reads sizes in GB and the switch', () => {
+		expect(parseUploadQuotas('on', '5', '0.5')).toEqual({
+			ok: true,
+			quotas: { enabled: true, member: 5 * 1024 ** 3, guest: 512 * 1024 ** 2 }
+		});
+		expect(parseUploadQuotas(null, '5', '1')).toMatchObject({
+			ok: true,
+			quotas: { enabled: false }
+		});
+	});
+
+	it('rejects sizes out of bounds or missing', () => {
+		expect(parseUploadQuotas('on', '0', '1').ok).toBe(false);
+		expect(parseUploadQuotas('on', '5', '').ok).toBe(false);
+		expect(parseUploadQuotas('on', '99999', '1').ok).toBe(false);
+	});
+});
+
+describe('fitsQuota', () => {
+	it('allows uploads up to the quota, and everything without one', () => {
+		expect(fitsQuota(4, 6, 10)).toBe(true);
+		expect(fitsQuota(5, 6, 10)).toBe(false);
+		expect(fitsQuota(5, 6, null)).toBe(true);
 	});
 });

@@ -2,8 +2,10 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import type { SubmitFunction } from '$app/forms';
-	import { ArrowLeft, UserRound } from '@lucide/svelte';
+	import { ArrowLeft, LogOut, UserRound } from '@lucide/svelte';
+	import { call } from '#lib/call.svelte.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import { forgetGuest, NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '#lib/guests.ts';
@@ -18,7 +20,28 @@
 			await update();
 		};
 	};
+
+	let signOutOpen = $state(false);
+
+	// The guest saved in this browser cannot sign back in after signing out, so forget it.
+	const signOut: SubmitFunction = () => {
+		return async ({ update }) => {
+			forgetGuest();
+			signOutOpen = false;
+			await call.leave();
+			await update();
+		};
+	};
 </script>
+
+{#snippet signOutForm(label: string)}
+	<form method="post" action={resolve('/logout')} use:enhance={signOut}>
+		<Button type="submit" variant="destructive" class="w-full sm:w-fit">
+			<LogOut />
+			{label}
+		</Button>
+	</form>
+{/snippet}
 
 <svelte:head>
 	<title>Account · Lumio</title>
@@ -105,6 +128,43 @@
 					</dl>
 				</section>
 			{/if}
+
+			<section class="grid gap-2 border-t pt-6" aria-labelledby="sign-out-heading">
+				<h2 id="sign-out-heading" class="font-semibold">Sign out</h2>
+				{#if data.user.isGuest}
+					<p class="text-sm text-muted-foreground">
+						As a guest you have no password: after signing out you cannot get back into this guest
+						account. Create an account first to keep it.
+					</p>
+					<Button
+						variant="destructive"
+						class="w-full sm:w-fit"
+						onclick={() => (signOutOpen = true)}
+					>
+						<LogOut />
+						Sign out
+					</Button>
+				{:else}
+					<p class="text-sm text-muted-foreground">Sign out of Lumio in this browser.</p>
+					{@render signOutForm('Sign out')}
+				{/if}
+			</section>
 		</div>
 	</div>
 </div>
+
+<Dialog.Root bind:open={signOutOpen}>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Sign out and lose this guest account?</Dialog.Title>
+			<Dialog.Description>
+				Your messages stay, but you cannot sign in as {data.user.name} again. Create an account first
+				if you want to keep it.
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (signOutOpen = false)}>Cancel</Button>
+			{@render signOutForm('Sign out anyway')}
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

@@ -15,12 +15,19 @@ import {
 	S3_SECRET_ACCESS_KEY,
 	UPLOAD_DIR
 } from '$app/env/private';
-import { parseUploadTarget, sanitizeFileName, sanitizeMimeType } from '#lib/attachments.ts';
+import {
+	fitsQuota,
+	formatBytes,
+	parseUploadTarget,
+	sanitizeFileName,
+	sanitizeMimeType
+} from '#lib/attachments.ts';
 import {
 	canUploadTo,
 	createAttachment,
 	deleteUnsentAttachments,
-	getMaxUploadSize
+	getMaxUploadSize,
+	getStorage
 } from '#lib/server/attachments.ts';
 
 /** Route of the resumable upload endpoint (tus protocol). */
@@ -119,7 +126,15 @@ const tus = new Server({
 
 		const target = parseUploadTarget(upload.metadata?.target);
 		if (!target || !(await canUploadTo(user.id, target))) {
-			throw new UploadError(403, 'You cannot share files in this chat');
+			throw new UploadError(403, 'You cannot share files in this chat.');
+		}
+		// Storage per person. Uploads still in progress are not counted yet.
+		const usage = await getStorage(user.id);
+		if (!fitsQuota(usage.used, upload.size ?? 0, usage.quota)) {
+			throw new UploadError(
+				403,
+				`You have shared ${formatBytes(usage.used)} of your ${formatBytes(usage.quota ?? 0)}. Delete messages with files you sent to free up space.`
+			);
 		}
 		return {
 			metadata: {

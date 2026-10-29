@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Hash, Settings, UserPlus, Volume2 } from '@lucide/svelte';
+	import { Hash, Settings, UserPlus, Users, Volume2 } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
 	import { applyVoiceEvent, type VoiceEvent, type VoiceMember } from '#lib/calls.ts';
 	import UserPanel from '#lib/components/audio/user-panel.svelte';
@@ -52,8 +52,11 @@
 	const voiceChannels = $derived(data.channels.filter((c) => c.type === 'voice'));
 	const invitesOpen = $derived(page.route.id === '/(app)/channels/invites');
 	const settingsOpen = $derived(page.route.id === '/(app)/channels/settings');
+	const membersOpen = $derived(page.route.id === '/(app)/channels/members');
 	// On phones either the channel list or the open page is shown, never both.
-	const channelOpen = $derived(Boolean(page.params.id) || invitesOpen || settingsOpen);
+	const channelOpen = $derived(
+		Boolean(page.params.id) || invitesOpen || settingsOpen || membersOpen
+	);
 </script>
 
 <aside
@@ -64,7 +67,18 @@
 	aria-label="Channels"
 >
 	<div class="min-h-0 flex-1 overflow-y-auto p-3">
-		<div class="grid gap-0.5 pb-3 empty:hidden">
+		<div class="grid gap-0.5 pb-3">
+			<a
+				href={resolve('/(app)/channels/members')}
+				class={cn(
+					'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+					membersOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
+				)}
+				aria-current={membersOpen ? 'page' : undefined}
+			>
+				<Users class="size-4 shrink-0" />
+				<span class="truncate">Members</span>
+			</a>
 			{#if data.canInvite}
 				<a
 					href={resolve('/(app)/channels/invites')}

@@ -8,6 +8,7 @@
 		Reply,
 		RotateCw,
 		SendHorizontal,
+		Trash2,
 		X
 	} from '@lucide/svelte';
 	import { onMount, tick, untrack } from 'svelte';
@@ -18,11 +19,13 @@
 	import MessageContent from '#lib/components/chat/message-content.svelte';
 	import ReactionBar from '#lib/components/chat/reaction-bar.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
 	import { Progress } from '#lib/components/ui/progress/index.ts';
 	import { Textarea } from '#lib/components/ui/textarea/index.ts';
 	import {
 		addMessage,
 		MAX_MESSAGE_LENGTH,
+		removeMessage,
 		setReactions,
 		type ChannelEvent,
 		type ChatMessage,
@@ -55,6 +58,8 @@
 		mentionable?: ChatUser[];
 		/** Whether the user may react to messages. */
 		canReact?: boolean;
+		/** Whether the user may delete other people's messages, not only their own. */
+		canManageMessages?: boolean;
 		/** Called whenever the chat is marked as read up to its latest message. */
 		onread?: () => void;
 	};
@@ -72,6 +77,7 @@
 		meId,
 		mentionable = [],
 		canReact = false,
+		canManageMessages = false,
 		onread
 	}: Props = $props();
 
@@ -93,6 +99,9 @@
 	let mentionIndex = $state(0);
 	let actionError = $state('');
 	let highlighted: string | null = $state(null);
+	/** The message waiting for the user to confirm its deletion. */
+	let deleting: ChatMessage | null = $state(null);
+	let deleteOpen = $state(false);
 
 	const suggestions = $derived(mention ? suggestMentions(mentionable, mention.query, meId) : []);
 
@@ -143,6 +152,10 @@
 			const event = JSON.parse((e as MessageEvent<string>).data) as ChannelEvent;
 			if (event.type === 'message.created') receive(event.message);
 		});
+		source.addEventListener('message.deleted', (e) => {
+			const event = JSON.parse((e as MessageEvent<string>).data) as ChannelEvent;
+			if (event.type === 'message.deleted') messages = removeMessage(messages, event.messageId);
+		});
 		source.addEventListener('reaction.changed', (e) => {
 			const event = JSON.parse((e as MessageEvent<string>).data) as ChannelEvent;
 			if (event.type === 'reaction.changed') {
@@ -172,6 +185,25 @@
 			messages = setReactions(messages, messageId, result.data.reactions as Reaction[]);
 		} else if (result.type === 'failure') {
 			actionError = String(result.data?.error ?? 'Could not add the reaction.');
+		}
+	}
+
+	const canDelete = (message: ChatMessage) => message.author.id === meId || canManageMessages;
+
+	function askDelete(message: ChatMessage) {
+		deleting = message;
+		deleteOpen = true;
+	}
+
+	async function confirmDelete() {
+		const message = deleting;
+		deleteOpen = false;
+		if (!message) return;
+		actionError = '';
+		const result = await postAction('delete', { messageId: message.id });
+		if (result.type === 'success') messages = removeMessage(messages, message.id);
+		else if (result.type === 'failure') {
+			actionError = String(result.data?.error ?? 'Could not delete the message.');
 		}
 	}
 
@@ -421,7 +453,7 @@
 						ontoggle={(emoji) => react(message.id, emoji)}
 					/>
 				{/if}
-				{#if canReact || canSend}
+				{#if canReact || canSend || canDelete(message)}
 					<div
 						class="pointer-events-none absolute -top-4 right-3 z-10 flex rounded-md border bg-background p-0.5 opacity-0 shadow-sm group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 has-data-[state=open]:pointer-events-auto has-data-[state=open]:opacity-100"
 						role="toolbar"
@@ -439,6 +471,17 @@
 								onclick={() => startReply(message)}
 							>
 								<Reply class="size-4" />
+							</Button>
+						{/if}
+						{#if canDelete(message)}
+							<Button
+								variant="ghost"
+								size="icon"
+								class="size-7 text-destructive hover:text-destructive"
+								aria-label="Delete message"
+								onclick={() => askDelete(message)}
+							>
+								<Trash2 class="size-4" />
 							</Button>
 						{/if}
 					</div>
@@ -619,3 +662,22 @@
 		{/if}
 	</footer>
 </section>
+
+<Dialog.Root bind:open={deleteOpen}>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Delete this message?</Dialog.Title>
+			<Dialog.Description>
+				{#if deleting && deleting.author.id !== meId}
+					This deletes the message of {deleting.author.name} for everyone, with its files.
+				{:else}
+					The message and its files are deleted for everyone. This cannot be undone.
+				{/if}
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (deleteOpen = false)}>Cancel</Button>
+			<Button variant="destructive" onclick={confirmDelete}>Delete</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

@@ -72,3 +72,9 @@ export function watchVoiceState(): () => void {
 		}
 	};
 }
+
+/** Removes a user from every call they are in, e.g. after a moderator kicked them. */
+export async function removeFromCalls(userId: string): Promise<void> {
+	const list = await rooms.listRooms().catch(() => []);
+	await Promise.all(list.map((room) => rooms.removeParticipant(room.name, userId).catch(() => {})));
+}

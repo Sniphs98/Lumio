@@ -1,11 +1,18 @@
-import { and, eq, inArray, isNull, lt } from 'drizzle-orm';
-import { DEFAULT_MAX_UPLOAD_SIZE, type Attachment, type UploadTarget } from '#lib/attachments.ts';
+import { and, eq, inArray, isNull, lt, sum } from 'drizzle-orm';
+import {
+	DEFAULT_GUEST_UPLOAD_QUOTA,
+	DEFAULT_MAX_UPLOAD_SIZE,
+	DEFAULT_MEMBER_UPLOAD_QUOTA,
+	type Attachment,
+	type UploadQuotas,
+	type UploadTarget
+} from '#lib/attachments.ts';
 import { hasChat } from '#lib/channels.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 import { getChannel, getChannelPermissions } from '#lib/server/channels.ts';
 import { canSendInConversation, getConversation } from '#lib/server/conversations.ts';
 import { db } from '#lib/server/db/index.ts';
-import { attachment, instance } from '#lib/server/db/schema.ts';
+import { attachment, instance, user } from '#lib/server/db/schema.ts';
 
 type AttachmentRow = typeof attachment.$inferSelect;
 
@@ -25,6 +32,47 @@ export async function getMaxUploadSize(): Promise<number> {
 
 export async function setMaxUploadSize(bytes: number): Promise<void> {
 	await db.update(instance).set({ maxUploadSize: bytes }).where(eq(instance.id, 1));
+}
+
+export async function getUploadQuotas(): Promise<UploadQuotas> {
+	const [row] = await db
+		.select({
+			enabled: instance.uploadQuotaEnabled,
+			member: instance.memberUploadQuota,
+			guest: instance.guestUploadQuota
+		})
+		.from(instance);
+	return (
+		row ?? { enabled: true, member: DEFAULT_MEMBER_UPLOAD_QUOTA, guest: DEFAULT_GUEST_UPLOAD_QUOTA }
+	);
+}
+
+export async function setUploadQuotas(quotas: UploadQuotas): Promise<void> {
+	await db
+		.update(instance)
+		.set({
+			uploadQuotaEnabled: quotas.enabled,
+			memberUploadQuota: quotas.member,
+			guestUploadQuota: quotas.guest
+		})
+		.where(eq(instance.id, 1));
+}
+
+/**
+ * How much a user may store and has stored: the total size of their files, sent or not.
+ * `quota` is null when the owner turned the limit off.
+ */
+export async function getStorage(userId: string): Promise<{ used: number; quota: number | null }> {
+	const [quotas, [account], [usage]] = await Promise.all([
+		getUploadQuotas(),
+		db.select({ isAnonymous: user.isAnonymous }).from(user).where(eq(user.id, userId)),
+		db
+			.select({ used: sum(attachment.size).mapWith(Number) })
+			.from(attachment)
+			.where(eq(attachment.uploaderId, userId))
+	]);
+	const quota = account?.isAnonymous ? quotas.guest : quotas.member;
+	return { used: usage?.used ?? 0, quota: quotas.enabled ? quota : null };
 }
 
 /** Whether a user may share files in a chat: they must be able to write there and attach files. */

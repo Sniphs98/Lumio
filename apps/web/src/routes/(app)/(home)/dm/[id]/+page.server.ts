@@ -5,6 +5,7 @@ import { getMaxUploadSize } from '#lib/server/attachments.ts';
 import { canSendInConversation, getConversation } from '#lib/server/conversations.ts';
 import {
 	createMessage,
+	deleteMessage,
 	listMentionable,
 	listMessages,
 	markRead,
@@ -93,6 +94,25 @@ export const actions: Actions = {
 		const messageId = String(form.get('messageId'));
 		publish(conversation.id, { type: 'reaction.changed', messageId, reactions });
 		return { messageId, reactions };
+	},
+
+	/** Everyone may delete their own messages in a conversation, also after unfriending. */
+	delete: async ({ params, locals, request }) => {
+		if (!locals.user) error(401, 'Not signed in');
+		const { conversation } = await loadConversation(locals.user.id, params.id);
+
+		const messageId = (await request.formData()).get('messageId');
+		const result = await deleteMessage(
+			{ conversationId: conversation.id },
+			messageId,
+			locals.user.id,
+			false
+		);
+		if (result === 'not-found') return fail(404, { error: 'Message not found.' });
+		if (result === 'forbidden')
+			return fail(403, { error: 'You can only delete your own messages.' });
+		publish(conversation.id, { type: 'message.deleted', messageId: String(messageId) });
+		return { deleted: true };
 	},
 
 	read: async ({ params, locals, request }) => {

@@ -9,6 +9,7 @@ import { parseGuestName } from '#lib/guests.ts';
 import { db } from '#lib/server/db/index.ts';
 import { setUpInstanceIfNeeded } from '#lib/server/instance.ts';
 import { admitNewUser } from '#lib/server/invites.ts';
+import { isBanned } from '#lib/server/moderation.ts';
 
 /**
  * Display names follow the same rules everywhere (trimmed, at most 32 characters), also when
@@ -62,6 +63,16 @@ export const auth = betterAuth({
 						throw new APIError('BAD_REQUEST', { message: 'Profile pictures are not supported.' });
 					}
 					return 'name' in user ? { data: { ...user, name: checkedName(user.name) } } : undefined;
+				}
+			}
+		},
+		session: {
+			create: {
+				// Banned users cannot sign in, see `#lib/server/moderation.ts`.
+				before: async (session) => {
+					if (await isBanned(session.userId)) {
+						throw new APIError('FORBIDDEN', { message: 'You are banned from this Lumio.' });
+					}
 				}
 			}
 		}

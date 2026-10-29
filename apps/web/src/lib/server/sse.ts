@@ -1,5 +1,5 @@
 import type { RealtimeEvent } from '#lib/chat.ts';
-import { subscribe } from '#lib/server/realtime.ts';
+import { sessionTopic, subscribe } from '#lib/server/realtime.ts';
 
 const HEARTBEAT_MS = 25_000;
 
@@ -23,6 +23,8 @@ export function eventStream(
 		until?: (event: RealtimeEvent) => boolean;
 		/** Called once when the client goes away. */
 		onClose?: () => void;
+		/** The signed-in user: the stream ends when they are signed out by a moderator. */
+		revokedFor?: string;
 	} = {}
 ): Response {
 	const encoder = new TextEncoder();
@@ -61,6 +63,9 @@ export function eventStream(
 					else sendEvent(event);
 				})
 			);
+			if (options.revokedFor) {
+				unsubscribes.push(subscribe(sessionTopic(options.revokedFor), close));
+			}
 			if (options.initial) {
 				const flush = (events: RealtimeEvent[]) => {
 					const queued = queue ?? [];

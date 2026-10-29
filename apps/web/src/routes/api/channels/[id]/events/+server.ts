@@ -14,5 +14,5 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 	const permissions = await getChannelPermissions(locals.user.id, channel.id);
 	if (!hasPermission(permissions, Permission.ViewChannel)) error(404, 'Channel not found');
 
-	return eventStream(channel.id, request);
+	return eventStream(channel.id, request, { revokedFor: locals.user.id });
 };

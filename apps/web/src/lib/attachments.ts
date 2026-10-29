@@ -6,6 +6,16 @@ export const DEFAULT_MAX_UPLOAD_SIZE = 2 * 1024 ** 3;
 export const MIN_UPLOAD_SIZE_LIMIT = 1024 ** 2;
 export const MAX_UPLOAD_SIZE_LIMIT = 100 * 1024 ** 3;
 
+/**
+ * Default storage per person: the total size of the files they may have shared. Guests get less.
+ * The owner can change both or turn the limit off.
+ */
+export const DEFAULT_MEMBER_UPLOAD_QUOTA = 5 * 1024 ** 3;
+export const DEFAULT_GUEST_UPLOAD_QUOTA = 1024 ** 3;
+/** Bounds for the storage settings: 100 MiB to 10 TiB. */
+export const MIN_UPLOAD_QUOTA = 100 * 1024 ** 2;
+export const MAX_UPLOAD_QUOTA = 10 * 1024 ** 4;
+
 export const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
 /**
@@ -115,6 +125,46 @@ export function parseMaxUploadSize(
 		};
 	}
 	return { ok: true, bytes };
+}
+
+export type UploadQuotas = {
+	enabled: boolean;
+	/** Bytes per member. */
+	member: number;
+	/** Bytes per guest. */
+	guest: number;
+};
+
+/** Reads the "storage per person" settings, entered in GB. A switch sends `on` when it is on. */
+export function parseUploadQuotas(
+	enabled: unknown,
+	memberGb: unknown,
+	guestGb: unknown
+): { ok: true; quotas: UploadQuotas } | { ok: false; error: string } {
+	const bytes = (raw: unknown) => {
+		const gb = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : NaN;
+		const value = Math.round(gb * 1024 ** 3);
+		return Number.isFinite(value) && value >= MIN_UPLOAD_QUOTA && value <= MAX_UPLOAD_QUOTA
+			? value
+			: null;
+	};
+	const member = bytes(memberGb);
+	const guest = bytes(guestGb);
+	if (member === null || guest === null) {
+		return {
+			ok: false,
+			error: `Enter sizes between ${formatBytes(MIN_UPLOAD_QUOTA)} and ${formatBytes(MAX_UPLOAD_QUOTA)}.`
+		};
+	}
+	return { ok: true, quotas: { enabled: enabled === 'on', member, guest } };
+}
+
+/**
+ * Whether a new upload of `size` bytes fits into the storage someone has left.
+ * `quota` is null when the limit is off.
+ */
+export function fitsQuota(used: number, size: number, quota: number | null): boolean {
+	return quota === null || used + size <= quota;
 }
 
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	applyGuestRules,
 	applyOverwrite,
 	DEFAULT_PERMISSIONS,
 	hasPermission,
@@ -91,5 +92,22 @@ describe('resolvePermissions', () => {
 			userOverwrite: { allow: 0n, deny: Permission.ViewChannel }
 		});
 		expect(hasPermission(mask, Permission.ViewChannel)).toBe(true);
+	});
+});
+
+describe('applyGuestRules', () => {
+	it('keeps guests on a private server from inviting people', () => {
+		const mask = applyGuestRules(DEFAULT_PERMISSIONS, { isGuest: true, isPublic: false });
+		expect(hasPermission(mask, Permission.CreateInvite)).toBe(false);
+		expect(hasPermission(mask, Permission.SendMessages)).toBe(true);
+	});
+
+	it('changes nothing for members or on a public server', () => {
+		expect(applyGuestRules(DEFAULT_PERMISSIONS, { isGuest: false, isPublic: false })).toBe(
+			DEFAULT_PERMISSIONS
+		);
+		expect(applyGuestRules(DEFAULT_PERMISSIONS, { isGuest: true, isPublic: true })).toBe(
+			DEFAULT_PERMISSIONS
+		);
 	});
 });

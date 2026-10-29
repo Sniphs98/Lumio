@@ -7,6 +7,7 @@ import { getMaxUploadSize } from '#lib/server/attachments.ts';
 import { getChannel, getChannelPermissions } from '#lib/server/channels.ts';
 import {
 	createMessage,
+	deleteMessage,
 	listMentionable,
 	listMessages,
 	markRead,
@@ -45,6 +46,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		mentionable,
 		canSend: hasPermission(permissions, Permission.SendMessages),
 		canReact: hasPermission(permissions, Permission.AddReactions),
+		/** Everyone may delete their own messages; Manage messages allows deleting any. */
+		canManageMessages: hasPermission(permissions, Permission.ManageMessages),
 		canAttach:
 			hasPermission(permissions, Permission.SendMessages) &&
 			hasPermission(permissions, Permission.AttachFiles),
@@ -106,6 +109,23 @@ export const actions: Actions = {
 		const messageId = String(form.get('messageId'));
 		publish(channel.id, { type: 'reaction.changed', messageId, reactions });
 		return { messageId, reactions };
+	},
+
+	delete: async ({ params, locals, request }) => {
+		if (!locals.user) error(401, 'Not signed in');
+		const { channel, permissions } = await loadChannel(locals.user.id, params.id);
+
+		const messageId = (await request.formData()).get('messageId');
+		const result = await deleteMessage(
+			{ channelId: channel.id },
+			messageId,
+			locals.user.id,
+			hasPermission(permissions, Permission.ManageMessages)
+		);
+		if (result === 'not-found') return fail(404, { error: 'Message not found.' });
+		if (result === 'forbidden') return fail(403, { error: 'You cannot delete this message.' });
+		publish(channel.id, { type: 'message.deleted', messageId: String(messageId) });
+		return { deleted: true };
 	},
 
 	read: async ({ params, locals, request }) => {

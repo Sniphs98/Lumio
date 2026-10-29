@@ -39,6 +39,7 @@ export type ChatMessage = {
 export type ChannelEvent =
 	| { type: 'message.created'; message: ChatMessage }
 	| { type: 'reaction.changed'; messageId: string; reactions: Reaction[] }
+	| { type: 'message.deleted'; messageId: string }
 	/** Someone was removed from or left a group; their stream of it closes. */
 	| { type: 'member.removed'; userId: string };
 
@@ -58,6 +59,8 @@ export type ActivityEvent = { type: 'message.activity'; authorId: string; mentio
 export type UserEvent =
 	| { type: 'home.changed' }
 	| { type: 'conversation.removed'; conversationId: string }
+	/** A moderator kicked or banned the user: they were signed out everywhere. */
+	| { type: 'session.revoked' }
 	| CallRingingEvent
 	| ActivityEvent;
 
@@ -93,6 +96,13 @@ export function setReactions(
 	reactions: Reaction[]
 ): ChatMessage[] {
 	return list.map((m) => (m.id === messageId ? { ...m, reactions } : m));
+}
+
+/** Removes a deleted message; replies to it keep an empty reply preview, like after a reload. */
+export function removeMessage(list: ChatMessage[], messageId: string): ChatMessage[] {
+	return list
+		.filter((m) => m.id !== messageId)
+		.map((m) => (m.replyTo?.id === messageId ? { ...m, replyTo: null } : m));
 }
 
 /** Adds a message to a list sorted by time, ignoring duplicates (e.g. our own message echoed back). */
