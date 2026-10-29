@@ -73,7 +73,11 @@
 			</Card.Header>
 			{#if data.state === 'newcomer'}
 				<Card.Content>
-					<JoinForm allowGuests message={form?.message} />
+					<JoinForm
+						allowGuests
+						message={form?.message ?? data.discordError}
+						discord={data.discord}
+					/>
 				</Card.Content>
 			{/if}
 			<Card.Footer class="justify-center text-sm text-muted-foreground">

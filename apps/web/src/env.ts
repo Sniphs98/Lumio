@@ -37,5 +37,14 @@ export const variables = defineEnvVars({
 		schema: optional
 	},
 	S3_ACCESS_KEY_ID: { description: 'Access key for the S3 bucket.', schema: optional },
-	S3_SECRET_ACCESS_KEY: { description: 'Secret key for the S3 bucket.', schema: optional }
+	S3_SECRET_ACCESS_KEY: { description: 'Secret key for the S3 bucket.', schema: optional },
+	DISCORD_CLIENT_ID: {
+		description:
+			'Optional client ID of a Discord application. Together with `DISCORD_CLIENT_SECRET` it turns on signing in with Discord.',
+		schema: optional
+	},
+	DISCORD_CLIENT_SECRET: {
+		description: 'Client secret of the Discord application.',
+		schema: optional
+	}
 });

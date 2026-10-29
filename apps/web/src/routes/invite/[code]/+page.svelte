@@ -22,10 +22,15 @@
 					{data.invite.allowGuests
 						? 'Join as a guest with just a name, or create an account.'
 						: 'Create an account to join.'}
+					{#if data.discord}You can also use your Discord account.{/if}
 				</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<JoinForm allowGuests={data.invite.allowGuests} message={form?.message} />
+				<JoinForm
+					allowGuests={data.invite.allowGuests}
+					message={form?.message ?? data.discordError}
+					discord={data.discord}
+				/>
 			</Card.Content>
 		{:else}
 			<Card.Header>

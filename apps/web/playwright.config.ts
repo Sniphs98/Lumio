@@ -14,8 +14,13 @@ export default defineConfig({
 	webServer: {
 		command: 'pnpm build && pnpm preview',
 		port: 4173,
-		// The tests sign up many users from one address.
-		env: { AUTH_RATE_LIMIT: 'off' },
+		env: {
+			// The tests sign up many users from one address.
+			AUTH_RATE_LIMIT: 'off',
+			// Shows the Discord buttons. The tests stop at Discord's page, which they replace.
+			DISCORD_CLIENT_ID: 'e2e-discord-client',
+			DISCORD_CLIENT_SECRET: 'e2e-discord-secret'
+		},
 		reuseExistingServer: !process.env.CI
 	},
 	use: {

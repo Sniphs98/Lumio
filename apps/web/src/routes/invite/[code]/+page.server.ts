@@ -1,18 +1,22 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { discordErrorMessage } from '#lib/discord.ts';
 import { parseGuestName } from '#lib/guests.ts';
+import { discordEnabled, signInWithDiscord } from '#lib/server/discord.ts';
 import { signInAsGuest, signUpWithAccount } from '#lib/server/guests.ts';
 import { getInstance } from '#lib/server/instance.ts';
 import { getValidInvite } from '#lib/server/invites.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// One instance is one community, so a signed-in user is already a member.
 	if (locals.user) redirect(302, '/channels');
 
 	const [inst, invite] = await Promise.all([getInstance(), getValidInvite(params.code)]);
 	return {
 		instanceName: inst?.name ?? 'Lumio',
-		invite: invite ? { inviterName: invite.createdByName, allowGuests: invite.allowGuests } : null
+		invite: invite ? { inviterName: invite.createdByName, allowGuests: invite.allowGuests } : null,
+		discord: discordEnabled,
+		discordError: discordErrorMessage(url.searchParams.get('error'))
 	};
 };
 
@@ -42,5 +46,11 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(400, { message: result.error });
 		redirect(302, '/channels');
-	}
+	},
+	discord: (event) =>
+		signInWithDiscord(event, {
+			callbackURL: '/channels',
+			errorCallbackURL: `/invite/${event.params.code}`,
+			admission: { kind: 'invite', code: event.params.code }
+		})
 };

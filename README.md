@@ -93,6 +93,16 @@ Members can share files in channels and direct messages with the paperclip butto
 
 Files are stored on the server in the `uploads` Docker volume. To keep them in S3 or an S3-compatible service (Cloudflare R2, MinIO, ...) instead, set `S3_BUCKET` and its credentials in `.env` (see `deploy/.env.example`). Uploads that were never sent are deleted after a day.
 
+### Sign in with Discord
+
+To make switching easier, people can join and sign in with their Discord account. It is off by default. To turn it on:
+
+1. Create an application in the [Discord Developer Portal](https://discord.com/developers/applications).
+2. Under **OAuth2**, add the redirect `https://<LUMIO_DOMAIN>/api/auth/callback/discord`.
+3. Set `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` in `.env` to the application's client ID and secret.
+
+The login, invite and friend link pages then show **Continue with Discord**. New users still need an invite or friend link (except the first user, who becomes the owner); Lumio takes their Discord display name and email address, but not their avatar. Members who already have a password connect Discord on their **Account** page, and can disconnect it there again.
+
 ### Tracing
 
 Lumio can send [OpenTelemetry](https://opentelemetry.io) traces, which help to find slow requests and errors. It is off by default and costs nothing while off. SvelteKit records a span for every request, `handle` hook, `load` function, form action and `+server` handler; failed ones are marked as errors with the exception attached. Database queries do not get their own spans yet.
