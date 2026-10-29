@@ -97,8 +97,9 @@ test.describe('with LiveKit', () => {
 		await expect(annaBar.getByRole('status')).toHaveText('Voice connected');
 		await expect(annaBar.getByRole('link', { name: /Ben/ })).toBeVisible();
 
-		await annaBar.getByRole('button', { name: 'Mute' }).click();
-		await expect(annaBar.getByRole('button', { name: 'Unmute' })).toBeVisible();
+		const annaPanel = anna.page.getByRole('region', { name: 'You' });
+		await annaPanel.getByRole('button', { name: 'Mute' }).click();
+		await expect(annaPanel.getByRole('button', { name: 'Unmute' })).toBeVisible();
 		await expect(
 			benStage.getByRole('listitem', { name: 'Anna', exact: true }).getByLabel('Muted')
 		).toBeVisible();
@@ -135,20 +136,21 @@ test.describe('with LiveKit', () => {
 		await page.keyboard.press('Escape');
 
 		await page.getByRole('button', { name: 'Join voice' }).click();
+		// On a wide screen the call sits in the sidebar above the user panel, which has the
+		// only mute and deafen buttons.
 		const bar = page.getByRole('region', { name: 'Call' });
 		await expect(bar.getByRole('status')).toHaveText('Voice connected');
-		await expect(bar.getByRole('button', { name: 'Unmute' })).toBeVisible();
+		await expect(bar.getByRole('button', { name: /mute/i })).toHaveCount(0);
 		const me = page.getByRole('list', { name: 'Participants' }).getByRole('listitem', {
 			name: 'Emil'
 		});
 		await expect(me.getByLabel('Muted')).toBeVisible();
 
-		// The panel and the call bar control the same call.
+		// The panel controls the running call.
 		await panel.getByRole('button', { name: 'Unmute' }).click();
-		await expect(bar.getByRole('button', { name: 'Mute' })).toBeVisible();
 		await expect(me.getByLabel('Muted')).toBeHidden();
 		await panel.getByRole('button', { name: 'Deafen' }).click();
-		await expect(bar.getByRole('button', { name: 'Undeafen' })).toBeVisible();
+		await expect(panel.getByRole('button', { name: 'Undeafen' })).toBeVisible();
 		await expect(me.getByLabel('Muted')).toBeVisible();
 
 		await bar.getByRole('button', { name: 'Hang up' }).click();

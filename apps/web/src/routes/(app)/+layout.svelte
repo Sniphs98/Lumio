@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { call } from '#lib/call.svelte.ts';
+	import { createCallPanels, setCallPanels } from '#lib/call-panels.svelte.ts';
 	import type { UserEvent } from '#lib/chat.ts';
 	import CallBar from '#lib/components/call/call-bar.svelte';
 	import IncomingCall from '#lib/components/call/incoming-call.svelte';
@@ -28,6 +29,10 @@
 			unread = clearUnread(unread, chatId);
 		}
 	});
+
+	// Sidebars show the call above the user panel; the bottom bar is then only needed on phones.
+	const callPanels = createCallPanels();
+	setCallPanels(callPanels);
 
 	// Activity often comes in bursts, so the counts are reloaded at most every half second.
 	let reloadTimer: ReturnType<typeof setTimeout> | undefined;
@@ -125,7 +130,7 @@
 			ondismiss={() => call.dismissRinging()}
 		/>
 	{/if}
-	<CallBar {call} />
+	<CallBar {call} class={callPanels.count > 0 ? 'md:hidden' : undefined} />
 	{#if data.user.isGuest}
 		<AccountSuggestion bind:open={suggestAccount} />
 	{/if}

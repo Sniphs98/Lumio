@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { call } from '#lib/call.svelte.ts';
 	import UserPanel from '#lib/components/audio/user-panel.svelte';
+	import CallBar from '#lib/components/call/call-bar.svelte';
 	import FriendsSidebar from '#lib/components/home/friends-sidebar.svelte';
 	import { getUnreadContext } from '#lib/unread-context.ts';
 	import { cn } from '#lib/utils.ts';
@@ -37,6 +38,7 @@
 			error={page.form?.friendError}
 		/>
 	</div>
+	<CallBar {call} variant="panel" />
 	<UserPanel user={data.user} audio={call} />
 </aside>
 
