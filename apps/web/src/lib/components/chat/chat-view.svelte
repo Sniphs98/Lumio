@@ -18,6 +18,7 @@
 	import MentionSuggestions from '#lib/components/chat/mention-suggestions.svelte';
 	import MessageContent from '#lib/components/chat/message-content.svelte';
 	import ReactionBar from '#lib/components/chat/reaction-bar.svelte';
+	import UserContextMenu from '#lib/components/users/user-context-menu.svelte';
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Progress } from '#lib/components/ui/progress/index.ts';
@@ -260,6 +261,16 @@
 		textarea.setSelectionRange(position, position);
 	}
 
+	/** Adds `@name` for someone picked from the user menu to the end of the draft. */
+	async function mentionUser(user: ChatUser) {
+		const insert = `@${user.name} `;
+		content = content === '' || /\s$/.test(content) ? content + insert : `${content} ${insert}`;
+		picked.push(user);
+		await tick();
+		textarea?.focus();
+		textarea?.setSelectionRange(content.length, content.length);
+	}
+
 	/** Show the author line when the author changes, more than 5 minutes passed or it is a reply. */
 	function startsGroup(index: number) {
 		if (index === 0) return true;
@@ -426,7 +437,14 @@
 				{/if}
 				{#if startsGroup(i)}
 					<div class="flex items-baseline gap-2">
-						<span class="text-sm font-semibold">{message.author.name}</span>
+						<UserContextMenu
+							user={message.author}
+							onmention={canSend ? () => mentionUser(message.author) : undefined}
+						>
+							{#snippet child({ props })}
+								<span {...props} class="text-sm font-semibold">{message.author.name}</span>
+							{/snippet}
+						</UserContextMenu>
 						<time
 							datetime={message.createdAt}
 							class="text-xs text-muted-foreground"

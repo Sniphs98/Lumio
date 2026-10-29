@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { MicOff } from '@lucide/svelte';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import UserContextMenu from '#lib/components/users/user-context-menu.svelte';
 	import type { VoiceMember } from '#lib/calls.ts';
 	import { cn } from '#lib/utils.ts';
 
@@ -18,24 +19,29 @@
 
 <ul class={cn('grid gap-0.5', className)} aria-label={label}>
 	{#each members as m (m.id)}
-		<li
-			class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
-			data-speaking={m.speaking ?? false}
-		>
-			<span
-				class={cn(
-					'size-2 shrink-0 rounded-full',
-					m.speaking ? 'bg-emerald-500' : 'bg-muted-foreground/40'
-				)}
-			></span>
-			<span class="truncate">{m.name}</span>
-			{#if m.muted}<MicOff class="size-3 shrink-0" aria-label="Muted" />{/if}
-			{#if m.streaming}
-				<Badge
-					class="h-4 rounded bg-red-600 px-1 text-[0.625rem] font-semibold text-white"
-					title="Sharing their screen">LIVE</Badge
+		<UserContextMenu user={m}>
+			{#snippet child({ props })}
+				<li
+					{...props}
+					class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
+					data-speaking={m.speaking ?? false}
 				>
-			{/if}
-		</li>
+					<span
+						class={cn(
+							'size-2 shrink-0 rounded-full',
+							m.speaking ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+						)}
+					></span>
+					<span class="truncate">{m.name}</span>
+					{#if m.muted}<MicOff class="size-3 shrink-0" aria-label="Muted" />{/if}
+					{#if m.streaming}
+						<Badge
+							class="h-4 rounded bg-red-600 px-1 text-[0.625rem] font-semibold text-white"
+							title="Sharing their screen">LIVE</Badge
+						>
+					{/if}
+				</li>
+			{/snippet}
+		</UserContextMenu>
 	{/each}
 </ul>

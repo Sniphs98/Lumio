@@ -8,9 +8,13 @@
 	import CallBar from '#lib/components/call/call-bar.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
+	import ModerationDialog, {
+		type ModerationTarget
+	} from '#lib/components/users/moderation-dialog.svelte';
 	import { getUnreadContext } from '#lib/unread-context.ts';
 	import { NO_UNREAD } from '#lib/unread.ts';
 	import { cn } from '#lib/utils.ts';
+	import { setUserMenuContext, type UserMenuAccess } from '#lib/user-menu.ts';
 	import { setVoiceContext } from '#lib/voice-context.ts';
 	import type { LayoutProps } from './$types';
 
@@ -33,6 +37,25 @@
 		source.addEventListener('voice.state', onEvent);
 		source.addEventListener('voice.changed', onEvent);
 		return () => source.close();
+	});
+
+	// The right-click menu on users, in the member list, the chat and voice channels.
+	const access: UserMenuAccess = $derived({
+		meId: data.user.id,
+		friendIds: new Set(data.userMenu.friendIds),
+		members: new Map(data.userMenu.members.map((m) => [m.id, m]))
+	});
+	let moderating: ModerationTarget | null = $state(null);
+	let moderationOpen = $state(false);
+	setUserMenuContext({
+		get access() {
+			return access;
+		},
+		moderate(action, user) {
+			const member = access.members.get(user.id);
+			moderating = { action, id: user.id, name: user.name, isGuest: member?.isGuest ?? false };
+			moderationOpen = true;
+		}
 	});
 
 	function membersOf(channelId: string): (VoiceMember & { speaking?: boolean })[] {
@@ -165,3 +188,5 @@
 <div class={cn('min-w-0 flex-1 flex-col md:flex', channelOpen ? 'flex' : 'hidden')}>
 	{@render children()}
 </div>
+
+<ModerationDialog target={moderating} bind:open={moderationOpen} />
