@@ -19,7 +19,7 @@
 
 <ul class={cn('grid gap-0.5', className)} aria-label={label}>
 	{#each members as m (m.id)}
-		<UserContextMenu user={m}>
+		<UserContextMenu user={m} voice>
 			{#snippet child({ props })}
 				<li
 					{...props}

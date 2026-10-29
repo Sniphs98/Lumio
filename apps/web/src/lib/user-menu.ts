@@ -17,26 +17,37 @@ export type UserMenuAccess = {
 	members: ReadonlyMap<string, MemberAccess>;
 };
 
-export type UserMenuItems = { message: boolean; mention: boolean; kick: boolean; ban: boolean };
+export type UserMenuItems = {
+	message: boolean;
+	mention: boolean;
+	/** Volume and mute for this user only, see `#lib/user-audio.ts`. */
+	volume: boolean;
+	kick: boolean;
+	ban: boolean;
+};
 
-/** The menu items for `userId`. Without access, e.g. outside a server, only mentioning is left. */
+/**
+ * The menu items for `userId`. Without access, e.g. outside a server, only mentioning and the
+ * volume are left. `voice` offers the volume, e.g. in a voice channel or call, never for oneself.
+ */
 export function userMenuItems(
 	userId: string,
 	access: UserMenuAccess | undefined,
-	canMention: boolean
+	{ mention = false, voice = false }: { mention?: boolean; voice?: boolean } = {}
 ): UserMenuItems {
 	const member = access?.members.get(userId);
 	const other = access !== undefined && userId !== access.meId;
 	return {
 		message: other && access.friendIds.has(userId),
-		mention: canMention,
+		mention,
+		volume: voice && userId !== access?.meId,
 		kick: other && member?.canKick === true,
 		ban: other && member?.canBan === true
 	};
 }
 
 export function hasItems(items: UserMenuItems): boolean {
-	return items.message || items.mention || items.kick || items.ban;
+	return Object.values(items).some(Boolean);
 }
 
 /** Set by the channels layout, which also shows the kick and ban confirmations. */

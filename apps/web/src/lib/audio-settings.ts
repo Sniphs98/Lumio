@@ -62,7 +62,7 @@ export function parseAudioSettings(value: unknown): AudioSettings {
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
 
 /** Storage can be missing or throw (private windows, blocked site data), so every access is guarded. */
-function localStore(): StorageLike | null {
+export function localStore(): StorageLike | null {
 	try {
 		return globalThis.localStorage ?? null;
 	} catch {
