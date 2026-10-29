@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { MicOff } from '@lucide/svelte';
+	import { call, type UserAudioControls } from '#lib/call.svelte.ts';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import UserAudioIcon from '#lib/components/users/user-audio-icon.svelte';
 	import UserContextMenu from '#lib/components/users/user-context-menu.svelte';
 	import type { VoiceMember } from '#lib/calls.ts';
 	import { cn } from '#lib/utils.ts';
@@ -13,8 +15,15 @@
 	let {
 		members,
 		label,
+		audio = call,
 		class: className
-	}: { members: Member[]; label: string; class?: string } = $props();
+	}: {
+		members: Member[];
+		label: string;
+		/** Who this user turned down or muted for themselves. Tests pass a fake. */
+		audio?: Pick<UserAudioControls, 'userAudioOf'>;
+		class?: string;
+	} = $props();
 </script>
 
 <ul class={cn('grid gap-0.5', className)} aria-label={label}>
@@ -34,6 +43,7 @@
 					></span>
 					<span class="truncate">{m.name}</span>
 					{#if m.muted}<MicOff class="size-3 shrink-0" aria-label="Muted" />{/if}
+					<UserAudioIcon audio={audio.userAudioOf(m.id)} class="size-3" />
 					{#if m.streaming}
 						<Badge
 							class="h-4 rounded bg-red-600 px-1 text-[0.625rem] font-semibold text-white"
