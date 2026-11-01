@@ -52,7 +52,7 @@ services:
   # Voice, video and screen sharing. Uses host networking because WebRTC needs
   # many UDP ports; open 7881/tcp, 3478/udp and 50000-60000/udp in your firewall.
   livekit:
-    image: livekit/livekit-server:v1.9
+    image: livekit/livekit-server:v1.13
     restart: unless-stopped
     network_mode: host
     command: --config /etc/livekit.yaml
