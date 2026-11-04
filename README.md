@@ -65,6 +65,8 @@ Pushing a version tag starts the release workflow (`.github/workflows/release.ym
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
+Every commit on `main` that passes CI is also published as `edge` and `sha-<commit>`, for trying out unreleased changes (`LUMIO_VERSION=edge`). Pull requests build the image too and test it behind the example nginx config, see [deploy/reverse-proxy](deploy/reverse-proxy/README.md#testing-a-setup).
+
 `v1.2.3` is published as `1.2.3`, `1.2`, `1` and `latest`; for `0.x` versions the major tag is skipped. Pre-releases such as `v0.2.0-beta.1` only get their own tag and are marked as pre-release.
 
 ### AI coding tools
@@ -96,6 +98,8 @@ Open the app and create an account: the first account becomes the owner of the s
 Everyone also has a personal friend link on the Home tab. Whoever opens it becomes their friend right away; newcomers join the server through it first (if its owner may create invites). People joining through a link can create an account or join as a guest with just a name. A guest's session is kept in the browser (cookie and `localStorage`), and when they come back they are asked to create an account: they keep their user, messages, friends and roles, and can then sign in on any device.
 
 Open these ports in your firewall: `80/tcp`, `443/tcp+udp` (HTTPS), `7881/tcp`, `3478/udp` and `50000-60000/udp` (LiveKit media). Missing UDP ports are the most common reason calls do not connect.
+
+Already running nginx, Traefik or another reverse proxy? Use `docker-compose.proxy.yml`, which leaves out Caddy and publishes the app on `127.0.0.1:3000`. Setup, example configs and what the proxy has to forward are in [deploy/reverse-proxy](deploy/reverse-proxy/README.md).
 
 Browsers only allow microphone, camera and screen access on HTTPS (or `localhost`), so calls need the HTTPS setup above. Screen sharing works in desktop browsers and the desktop app; most mobile browsers can join calls but cannot share their screen.
 

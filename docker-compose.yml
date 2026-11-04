@@ -1,4 +1,5 @@
 # Production setup. Copy deploy/.env.example to .env, fill it in, then: docker compose up -d
+# Already running a reverse proxy (nginx, Traefik, ...)? Use docker-compose.proxy.yml instead.
 services:
   app:
     # Released image, see "Updating" in the README. Pin a version with LUMIO_VERSION in .env.
@@ -11,11 +12,14 @@ services:
     environment:
       DATABASE_URL: postgres://lumio:${POSTGRES_PASSWORD}@postgres:5432/lumio
       ORIGIN: https://${LUMIO_DOMAIN}
-      # The client's IP address as Caddy passes it on, used for sign-in and sign-up limits.
-      ADDRESS_HEADER: X-Forwarded-For
-      XFF_DEPTH: 1
+      # The client's IP address as the reverse proxy passes it on, used for sign-in and sign-up
+      # limits. XFF_DEPTH is the number of proxies in front of the app (Caddy alone: 1).
+      ADDRESS_HEADER: ${ADDRESS_HEADER:-X-Forwarded-For}
+      XFF_DEPTH: ${XFF_DEPTH:-1}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      LIVEKIT_URL: wss://${LIVEKIT_DOMAIN}
+      # Public LiveKit URL. Defaults to its own domain; see deploy/reverse-proxy/README.md for
+      # serving it from a path of the app domain instead.
+      LIVEKIT_URL: ${LIVEKIT_URL:-wss://${LIVEKIT_DOMAIN}}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
       # Optional tracing, off when empty. See "Tracing" in the README.

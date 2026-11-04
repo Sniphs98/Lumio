@@ -1,0 +1,20 @@
+# Traefik dynamic configuration for LiveKit signaling (WebSocket). Put it in the directory of
+# Traefik's file provider and replace rtc.example.com with LIVEKIT_DOMAIN. Media goes directly
+# to LiveKit over UDP, not through Traefik.
+#
+# LiveKit uses the host network. When Traefik runs in Docker, give its container
+#   extra_hosts: ['host.docker.internal:host-gateway']
+# When Traefik runs directly on the host, use http://127.0.0.1:7880 below.
+http:
+  routers:
+    livekit:
+      rule: Host(`rtc.example.com`)
+      entryPoints: [websecure]
+      service: livekit
+      tls:
+        certResolver: letsencrypt
+  services:
+    livekit:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:7880

@@ -1,0 +1,28 @@
+# Lumio behind Traefik running in Docker. Add this file on top of docker-compose.proxy.yml:
+#
+#   docker compose -f docker-compose.proxy.yml -f deploy/reverse-proxy/traefik.compose.yml up -d
+#
+# or put COMPOSE_FILE=docker-compose.proxy.yml:deploy/reverse-proxy/traefik.compose.yml in .env.
+#
+# It joins the app to Traefik's Docker network and labels it. Set in .env if yours differ:
+#   TRAEFIK_NETWORK (default proxy), TRAEFIK_ENTRYPOINT (default websecure) and
+#   TRAEFIK_CERT_RESOLVER (default letsencrypt).
+# LiveKit runs on the host network, so Traefik reaches it through its file provider instead:
+# see traefik-livekit.yml.
+services:
+  app:
+    networks:
+      - default
+      - proxy
+    labels:
+      traefik.enable: 'true'
+      traefik.docker.network: ${TRAEFIK_NETWORK:-proxy}
+      traefik.http.routers.lumio.rule: Host(`${LUMIO_DOMAIN}`)
+      traefik.http.routers.lumio.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.lumio.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      traefik.http.services.lumio.loadbalancer.server.port: '3000'
+
+networks:
+  proxy:
+    name: ${TRAEFIK_NETWORK:-proxy}
+    external: true
