@@ -76,8 +76,9 @@ export const auth = betterAuth({
 					if (error) {
 						throw new APIError('FORBIDDEN', { message: error, code: DISCORD_ERRORS.notAdmitted });
 					}
-					// Lumio has no profile pictures yet. An image URL from the sign-up request would
-					// load from any server for everyone who sees the user, revealing their IP addresses.
+					// Profile pictures are uploaded to Lumio from the account page. An image URL from the
+					// sign-up request (or Discord) would load from another server for everyone who sees
+					// the user, revealing their IP addresses.
 					return { data: { ...user, name, image: null } };
 				},
 				// The first user to sign up becomes the owner of this instance.
@@ -85,8 +86,12 @@ export const auth = betterAuth({
 			},
 			update: {
 				before: async (user) => {
+					// Same here: profile pictures are only set by uploading one, see `#lib/server/images.ts`,
+					// which updates the database directly.
 					if (user.image != null) {
-						throw new APIError('BAD_REQUEST', { message: 'Profile pictures are not supported.' });
+						throw new APIError('BAD_REQUEST', {
+							message: 'Upload a profile picture on the account page instead.'
+						});
 					}
 					return 'name' in user ? { data: { ...user, name: checkedName(user.name) } } : undefined;
 				}

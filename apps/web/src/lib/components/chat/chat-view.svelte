@@ -19,6 +19,7 @@
 	import MentionSuggestions from '#lib/components/chat/mention-suggestions.svelte';
 	import MessageContent from '#lib/components/chat/message-content.svelte';
 	import ReactionBar from '#lib/components/chat/reaction-bar.svelte';
+	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import UserContextMenu from '#lib/components/users/user-context-menu.svelte';
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
@@ -445,7 +446,7 @@
 				tabindex="-1"
 				aria-label="Message from {message.author.name}"
 				class={cn(
-					'group relative border-l-2 border-transparent px-4 outline-none focus-within:bg-muted/40 hover:bg-muted/40',
+					'group relative border-l-2 border-transparent pr-4 pl-15 outline-none focus-within:bg-muted/40 hover:bg-muted/40',
 					startsGroup(i) && 'mt-3 pt-1',
 					mentionsMe && 'border-amber-500 bg-amber-500/10 hover:bg-amber-500/15',
 					highlighted === message.id && 'bg-primary/10'
@@ -469,7 +470,8 @@
 					</button>
 				{/if}
 				{#if startsGroup(i)}
-					<div class="flex items-baseline gap-2">
+					<div class="relative flex items-baseline gap-2">
+						<UserAvatar user={message.author} size="default" class="absolute top-0.5 -left-11" />
 						<UserContextMenu
 							user={message.author}
 							onmention={canSend ? () => mentionUser(message.author) : undefined}

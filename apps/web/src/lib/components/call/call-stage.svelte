@@ -210,6 +210,9 @@
 						{/key}
 					{:else}
 						<Avatar.Root class="size-14" aria-hidden="true">
+							{#if p.image}
+								<Avatar.Image src={p.image} alt="" />
+							{/if}
 							<Avatar.Fallback class="bg-background text-lg font-semibold text-foreground">
 								{initials(p.name)}
 							</Avatar.Fallback>

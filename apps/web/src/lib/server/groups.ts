@@ -4,6 +4,7 @@ import { getConversation, type ConversationDetails } from '#lib/server/conversat
 import { db } from '#lib/server/db/index.ts';
 import { conversation, conversationMember } from '#lib/server/db/schema.ts';
 import { getFriendLists } from '#lib/server/friends.ts';
+import { deleteImage } from '#lib/server/images.ts';
 import { publish, userTopic } from '#lib/server/realtime.ts';
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -54,6 +55,17 @@ export async function createGroup(
 /** Renames a group. Every member may do that; null removes the name. */
 export async function renameGroup(group: ConversationDetails, userId: string, name: string | null) {
 	await db.update(conversation).set({ name }).where(eq(conversation.id, group.id));
+	notify([userId, ...group.others.map((o) => o.id)]);
+}
+
+/** Sets or (with null) removes a group's picture. Every member may do that. */
+export async function setGroupIcon(
+	group: ConversationDetails,
+	userId: string,
+	url: string | null
+): Promise<void> {
+	await db.update(conversation).set({ iconUrl: url }).where(eq(conversation.id, group.id));
+	if (group.iconUrl !== url) await deleteImage(group.iconUrl);
 	notify([userId, ...group.others.map((o) => o.id)]);
 }
 

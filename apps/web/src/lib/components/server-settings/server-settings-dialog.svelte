@@ -11,6 +11,7 @@
 		/** Needs Manage server. */
 		general: {
 			name: string;
+			iconUrl: string | null;
 			isPublic: boolean;
 			maxUploadSize: number;
 			quotas: UploadQuotas;
@@ -56,7 +57,12 @@
 <SettingsShell title="Server settings" {sections} bind:open bind:section>
 	{#snippet children(id)}
 		{#if id === 'overview' && settings.general}
-			<OverviewSection {action} name={settings.general.name} isPublic={settings.general.isPublic} />
+			<OverviewSection
+				{action}
+				name={settings.general.name}
+				iconUrl={settings.general.iconUrl}
+				isPublic={settings.general.isPublic}
+			/>
 		{:else if id === 'files' && settings.general}
 			<FilesSection
 				{action}

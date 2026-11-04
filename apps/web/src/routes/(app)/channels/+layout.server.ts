@@ -50,5 +50,11 @@ async function loadGeneralSettings() {
 		getMaxUploadSize(),
 		getUploadQuotas()
 	]);
-	return { name: inst?.name ?? 'Lumio', isPublic: inst?.isPublic ?? false, maxUploadSize, quotas };
+	return {
+		name: inst?.name ?? 'Lumio',
+		iconUrl: inst?.iconUrl ?? null,
+		isPublic: inst?.isPublic ?? false,
+		maxUploadSize,
+		quotas
+	};
 }

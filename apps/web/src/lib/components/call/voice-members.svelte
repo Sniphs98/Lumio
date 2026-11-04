@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { MicOff } from '@lucide/svelte';
 	import { call, type UserAudioControls } from '#lib/call.svelte.ts';
+	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import UserAudioIcon from '#lib/components/users/user-audio-icon.svelte';
@@ -36,12 +37,14 @@
 					class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
 					data-speaking={m.speaking ?? false}
 				>
-					<span
+					<UserAvatar
+						user={m}
 						class={cn(
-							'size-2 shrink-0 rounded-full',
-							m.speaking ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+							'size-5 ring-2 data-[size=sm]:size-5',
+							m.speaking ? 'ring-emerald-500' : 'ring-transparent'
 						)}
-					></span>
+						fallbackClass="text-[0.625rem] font-semibold"
+					/>
 					<span class="truncate">{m.name}</span>
 					{#if m.muted}<MicOff class="size-3 shrink-0" aria-label="Muted" />{/if}
 					<UserAudioIcon audio={audio.userAudioOf(m.id)} class="size-3" />

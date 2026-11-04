@@ -44,13 +44,18 @@ export async function listDirectConversationIds(userId: string): Promise<Record<
 	return Object.fromEntries(rows.map((r) => [r.otherId, r.conversationId]));
 }
 
-export type GroupSummary = { id: string; title: string; memberCount: number };
+export type GroupSummary = {
+	id: string;
+	title: string;
+	iconUrl: string | null;
+	memberCount: number;
+};
 
 /** Group conversations the user is a member of, oldest first. */
 export async function listGroupConversations(userId: string): Promise<GroupSummary[]> {
 	const me = aliasedTable(conversationMember, 'me');
 	const groups = await db
-		.select({ id: conversation.id, name: conversation.name })
+		.select({ id: conversation.id, name: conversation.name, iconUrl: conversation.iconUrl })
 		.from(conversation)
 		.innerJoin(me, and(eq(me.conversationId, conversation.id), eq(me.userId, userId)))
 		.where(eq(conversation.type, 'group'))
@@ -72,7 +77,12 @@ export async function listGroupConversations(userId: string): Promise<GroupSumma
 
 	return groups.map((g) => {
 		const members = byGroup.get(g.id) ?? [];
-		return { id: g.id, title: groupTitle(g.name, members), memberCount: members.length + 1 };
+		return {
+			id: g.id,
+			title: groupTitle(g.name, members),
+			iconUrl: g.iconUrl,
+			memberCount: members.length + 1
+		};
 	});
 }
 
@@ -80,6 +90,8 @@ export type ConversationDetails = {
 	id: string;
 	type: 'direct' | 'group';
 	name: string | null;
+	/** Group conversations only: the group's picture. */
+	iconUrl: string | null;
 	/** Group conversations only: the member who may remove others. */
 	ownerId: string | null;
 	/** Everyone in the conversation except the user asking. */
@@ -108,6 +120,7 @@ export async function getConversation(
 		id: row.id,
 		type: row.type,
 		name: row.name,
+		iconUrl: row.iconUrl,
 		ownerId: row.ownerId,
 		others: members.filter((m) => m.id !== userId)
 	};

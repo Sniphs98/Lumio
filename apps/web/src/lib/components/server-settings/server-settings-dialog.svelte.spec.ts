@@ -4,6 +4,7 @@ import { render } from 'vitest-browser-svelte';
 import ServerSettingsDialog, { type ServerSettings } from './server-settings-dialog.svelte';
 
 const general: NonNullable<ServerSettings['general']> = {
+	iconUrl: null,
 	name: 'Game night',
 	isPublic: false,
 	maxUploadSize: 2 * 1024 ** 3,

@@ -6,6 +6,7 @@ import { db } from '#lib/server/db/index.ts';
 import { account, user } from '#lib/server/db/schema.ts';
 import { connectDiscord, disconnectDiscord, discordEnabled } from '#lib/server/discord.ts';
 import { upgradeGuest } from '#lib/server/guests.ts';
+import { setProfilePicture, storeImage } from '#lib/server/images.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -36,6 +37,19 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 };
 
 export const actions: Actions = {
+	/** Uploads a new profile picture, replacing the old one. */
+	picture: async ({ locals, request }) => {
+		if (!locals.user) error(401, 'Not signed in');
+		const stored = await storeImage(locals.user.id, (await request.formData()).get('image'));
+		if (!stored.ok) return fail(400, { error: stored.error });
+		await setProfilePicture(locals.user.id, stored.url);
+		return { pictureSaved: true };
+	},
+	removePicture: async ({ locals }) => {
+		if (!locals.user) error(401, 'Not signed in');
+		await setProfilePicture(locals.user.id, null);
+		return { pictureSaved: true };
+	},
 	/** Turns the signed-in guest into a full member, keeping everything they have. */
 	createAccount: async ({ locals, request }) => {
 		if (!locals.user) error(401, 'Not signed in');

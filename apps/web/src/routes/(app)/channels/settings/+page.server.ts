@@ -4,7 +4,8 @@ import { parseServerName } from '#lib/instance.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 import { setMaxUploadSize, setUploadQuotas } from '#lib/server/attachments.ts';
 import { getServerPermissions } from '#lib/server/channels.ts';
-import { setInstanceName, setInstancePublic } from '#lib/server/instance.ts';
+import { storeImage } from '#lib/server/images.ts';
+import { setInstanceIcon, setInstanceName, setInstancePublic } from '#lib/server/instance.ts';
 import { unbanMember } from '#lib/server/moderation.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -39,6 +40,19 @@ export const actions: Actions = {
 		if (!parsed.ok) return fail(400, { error: parsed.error });
 
 		await setInstanceName(parsed.name);
+		return { saved: true };
+	},
+	icon: async ({ locals, request }) => {
+		await requirePermission(locals.user?.id, Permission.ManageServer);
+		const stored = await storeImage(locals.user!.id, (await request.formData()).get('image'));
+		if (!stored.ok) return fail(400, { error: stored.error });
+
+		await setInstanceIcon(stored.url);
+		return { saved: true };
+	},
+	removeIcon: async ({ locals }) => {
+		await requirePermission(locals.user?.id, Permission.ManageServer);
+		await setInstanceIcon(null);
 		return { saved: true };
 	},
 	access: async ({ locals, request }) => {
