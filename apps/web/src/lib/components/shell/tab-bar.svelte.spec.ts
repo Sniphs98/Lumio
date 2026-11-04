@@ -11,7 +11,7 @@ vi.mock('$app/paths', () => ({
 
 describe('TabBar', () => {
 	it('shows the Home tab and a tab for the instance', async () => {
-		render(TabBar, { instanceName: "Lukas's Lumio" });
+		await render(TabBar, { instanceName: "Lukas's Lumio" });
 
 		await expect.element(page.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
 		await expect
@@ -20,7 +20,7 @@ describe('TabBar', () => {
 	});
 
 	it('marks the instance tab as active on channel pages', async () => {
-		render(TabBar, { instanceName: 'Gaming' });
+		await render(TabBar, { instanceName: 'Gaming' });
 
 		const active = /(^|\s)bg-background(\s|$)/;
 		await expect.element(page.getByRole('link', { name: 'Gaming' })).toHaveClass(active);
@@ -29,7 +29,7 @@ describe('TabBar', () => {
 
 	it('keeps the Home tab active in direct messages', async () => {
 		state.page.url = new URL('http://localhost/dm/c1');
-		render(TabBar, { instanceName: 'Gaming' });
+		await render(TabBar, { instanceName: 'Gaming' });
 
 		const active = /(^|\s)bg-background(\s|$)/;
 		await expect.element(page.getByRole('link', { name: 'Home' })).toHaveClass(active);
@@ -37,21 +37,21 @@ describe('TabBar', () => {
 	});
 
 	it('offers guests to create an account on every page', async () => {
-		render(TabBar, { instanceName: 'Gaming', isGuest: true });
+		await render(TabBar, { instanceName: 'Gaming', isGuest: true });
 		await expect
 			.element(page.getByRole('link', { name: 'Guest · Create account' }))
 			.toHaveAttribute('href', '/account');
 	});
 
 	it('shows no account link to members', async () => {
-		render(TabBar, { instanceName: 'Gaming' });
+		await render(TabBar, { instanceName: 'Gaming' });
 		await expect
 			.element(page.getByRole('link', { name: 'Guest · Create account' }))
 			.not.toBeInTheDocument();
 	});
 
 	it('sums up unread messages on each tab, leaving out the open chat', async () => {
-		render(TabBar, {
+		await render(TabBar, {
 			instanceName: 'Gaming',
 			openChatId: 'general',
 			unread: {
@@ -60,10 +60,10 @@ describe('TabBar', () => {
 			}
 		});
 		await expect
-			.element(page.getByRole('link', { name: 'Gaming' }).getByRole('status'))
+			.element(page.getByRole('link', { name: 'Gaming', exact: false }).getByRole('status'))
 			.toHaveAccessibleName('2 unread messages');
 		await expect
-			.element(page.getByRole('link', { name: 'Home' }).getByRole('status'))
+			.element(page.getByRole('link', { name: 'Home', exact: false }).getByRole('status'))
 			.toHaveAccessibleName('4 unread messages, 2 mentions');
 	});
 });

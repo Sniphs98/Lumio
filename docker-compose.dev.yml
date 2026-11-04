@@ -12,7 +12,7 @@ services:
       - postgres-dev:/var/lib/postgresql/data
 
   livekit:
-    image: livekit/livekit-server:v1.9
+    image: livekit/livekit-server:v1.13
     # --node-ip is the address LiveKit announces to browsers for media. The
     # default 127.0.0.1 works when the browser runs on the same machine, also
     # with Docker Desktop and WSL, where auto detection picks an unreachable

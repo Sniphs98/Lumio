@@ -29,7 +29,7 @@ function fakeStreams(): StreamControls {
 
 describe('CallStage', () => {
 	it('shows a tile per participant with initials, mute state and the speaker', async () => {
-		render(CallStage, {
+		await render(CallStage, {
 			participants: [
 				person('Anna Berg', { isLocal: true }),
 				person('Ben', { micMuted: true, speaking: true })
@@ -37,8 +37,8 @@ describe('CallStage', () => {
 		});
 
 		const anna = page.getByRole('listitem', { name: 'Anna Berg' });
-		await expect.element(anna).toHaveTextContent('AB');
-		await expect.element(anna).toHaveTextContent('Anna Berg (you)');
+		await expect.element(anna).toMatchTextContent('AB');
+		await expect.element(anna).toMatchTextContent('Anna Berg (you)');
 		const ben = page.getByRole('listitem', { name: 'Ben' });
 		await expect.element(ben).toHaveAttribute('data-speaking', 'true');
 		await expect.element(ben.getByLabelText('Muted')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('CallStage', () => {
 
 	it('shows a screen share as its own tile and attaches the track', async () => {
 		const screen = fakeTrack();
-		const { unmount } = render(CallStage, {
+		const { unmount } = await render(CallStage, {
 			participants: [person('Ben', { streaming: true, watching: true, screen })]
 		});
 
@@ -61,16 +61,16 @@ describe('CallStage', () => {
 	it('only receives a stream once the user chooses to watch it, then shows it large', async () => {
 		const streams = fakeStreams();
 		const ben = person('Ben', { streaming: true });
-		const { rerender } = render(CallStage, {
+		const { rerender } = await render(CallStage, {
 			participants: [person('Anna', { isLocal: true }), ben],
 			streams
 		});
 
 		const tile = page.getByRole('listitem', { name: "Ben's screen" });
-		await expect.element(tile).toHaveTextContent('Ben is sharing their screen.');
+		await expect.element(tile).toMatchTextContent('Ben is sharing their screen.');
 		await expect
 			.element(page.getByRole('listitem', { name: 'Ben', exact: true }))
-			.toHaveTextContent(/Ben\s*LIVE/);
+			.toMatchTextContent(/Ben\s*LIVE/);
 		await tile.getByRole('button', { name: 'Watch stream' }).click();
 		expect(streams.watchStream).toHaveBeenCalledWith('ben');
 
@@ -92,7 +92,7 @@ describe('CallStage', () => {
 	});
 
 	it('shows your own stream without a watch button', async () => {
-		render(CallStage, {
+		await render(CallStage, {
 			participants: [
 				person('Anna', { isLocal: true, streaming: true, watching: true, screen: fakeTrack() })
 			],
@@ -118,7 +118,7 @@ describe('CallStage', () => {
 					dave: { volume: 1.5, muted: false }
 				})[id] ?? { volume: 1, muted: false }
 		};
-		render(CallStage, {
+		await render(CallStage, {
 			participants: [
 				person('Anna', { isLocal: true }),
 				person('Ben'),

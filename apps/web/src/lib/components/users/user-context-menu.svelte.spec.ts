@@ -28,7 +28,7 @@ async function openMenu(name: string) {
 describe('UserContextMenu', () => {
 	it('offers a message, kick and ban to a moderator', async () => {
 		const onmoderate = vi.fn();
-		render(Harness, { access: moderator, user: ben, onmoderate });
+		await render(Harness, { access: moderator, user: ben, onmoderate });
 
 		await openMenu('Ben');
 		const menu = page.getByRole('menu');
@@ -39,7 +39,7 @@ describe('UserContextMenu', () => {
 	});
 
 	it('opens the direct conversation with a friend', async () => {
-		render(Harness, { access: moderator, user: ben });
+		await render(Harness, { access: moderator, user: ben });
 
 		await openMenu('Ben');
 		await page.getByRole('menuitem', { name: 'Send message' }).click();
@@ -47,7 +47,7 @@ describe('UserContextMenu', () => {
 	});
 
 	it('hides moderation without permission', async () => {
-		render(Harness, {
+		await render(Harness, {
 			access: { meId: 'me', friendIds: new Set<string>(), members: new Map() },
 			user: ben,
 			onmention: () => {}
@@ -64,7 +64,7 @@ describe('UserContextMenu', () => {
 
 	it('mentions someone outside a server', async () => {
 		const onmention = vi.fn();
-		render(Harness, { user: ben, onmention });
+		await render(Harness, { user: ben, onmention });
 
 		await openMenu('Ben');
 		await page.getByRole('menuitem', { name: 'Mention' }).click();
@@ -72,7 +72,7 @@ describe('UserContextMenu', () => {
 	});
 
 	it('opens no menu when there is nothing to offer', async () => {
-		render(Harness, { access: moderator, user: { id: 'me', name: 'Me' } });
+		await render(Harness, { access: moderator, user: { id: 'me', name: 'Me' } });
 
 		await openMenu('Me');
 		await expect.element(page.getByRole('menu')).not.toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('UserContextMenu', () => {
 			userAudioOf: (id) => map[id] ?? DEFAULT_USER_AUDIO,
 			setUserAudio: (id, patch) => (map = updateUserAudio(map, id, patch))
 		};
-		render(Harness, { access: moderator, user: ben, voice: true, audio });
+		await render(Harness, { access: moderator, user: ben, voice: true, audio });
 
 		await openMenu('Ben');
 		const slider = page.getByRole('menu').getByRole('slider');
@@ -106,7 +106,7 @@ describe('UserContextMenu', () => {
 	});
 
 	it('offers no volume for the user themselves', async () => {
-		render(Harness, { access: moderator, user: { id: 'me', name: 'Me' }, voice: true });
+		await render(Harness, { access: moderator, user: { id: 'me', name: 'Me' }, voice: true });
 
 		await openMenu('Me');
 		await expect.element(page.getByRole('menu')).not.toBeInTheDocument();
@@ -119,7 +119,7 @@ describe('UserContextMenu', () => {
 			userAudioOf: (id) => map[id] ?? DEFAULT_USER_AUDIO,
 			setUserAudio: (id, patch) => (map = updateUserAudio(map, id, patch))
 		};
-		render(Harness, { access: moderator, user: ben, voice: true, audio });
+		await render(Harness, { access: moderator, user: ben, voice: true, audio });
 
 		await openMenu('Ben');
 		const slider = page.getByRole('menu').getByRole('slider');

@@ -5,7 +5,7 @@ import MessageContent from './message-content.svelte';
 
 describe('MessageContent', () => {
 	it('shows mentions by name and makes mentions of the user stand out', async () => {
-		const { container } = render(MessageContent, {
+		const { container } = await render(MessageContent, {
 			content: 'hey <@ben>, ask <@me> or <@gone>',
 			mentions: [
 				{ id: 'ben', name: 'Ben' },
@@ -22,13 +22,13 @@ describe('MessageContent', () => {
 	});
 
 	it('shows plain text as it is', async () => {
-		render(MessageContent, { content: '<b>not html</b>', mentions: [] });
+		await render(MessageContent, { content: '<b>not html</b>', mentions: [] });
 		await expect.element(page.getByText('<b>not html</b>')).toBeVisible();
 	});
 
 	it('shows a message that is only a GIF address as the GIF, loaded through Lumio', async () => {
 		const url = 'https://media.tenor.com/abc/cat.gif';
-		render(MessageContent, { content: url, mentions: [] });
+		await render(MessageContent, { content: url, mentions: [] });
 		const img = page.getByRole('img', { name: 'GIF' });
 		await expect.element(img).toBeInTheDocument();
 		expect(img.element().getAttribute('src')).toBe(
@@ -37,7 +37,10 @@ describe('MessageContent', () => {
 	});
 
 	it('keeps GIF addresses within text as text', async () => {
-		render(MessageContent, { content: 'see https://media.tenor.com/abc/cat.gif', mentions: [] });
+		await render(MessageContent, {
+			content: 'see https://media.tenor.com/abc/cat.gif',
+			mentions: []
+		});
 		await expect.element(page.getByText('see https://media.tenor.com/abc/cat.gif')).toBeVisible();
 	});
 });

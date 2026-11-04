@@ -27,7 +27,7 @@ describe('SettingsDialog', () => {
 	];
 
 	it('lists the sections next to the open one', async () => {
-		render(SettingsDialog, { open: true, listDevices, audio: fakeAudio() });
+		await render(SettingsDialog, { open: true, listDevices, audio: fakeAudio() });
 		const nav = page.getByRole('navigation', { name: 'Settings sections' });
 		await expect
 			.element(nav.getByRole('button', { name: 'Audio & Mic' }))
@@ -36,26 +36,26 @@ describe('SettingsDialog', () => {
 	});
 
 	it('shows the chosen devices', async () => {
-		render(SettingsDialog, {
+		await render(SettingsDialog, {
 			open: true,
 			listDevices,
 			audio: fakeAudio({ settings: { ...DEFAULT_AUDIO_SETTINGS, inputDeviceId: 'mic-1' } })
 		});
 		await expect
 			.element(page.getByLabelText('Microphone', { exact: true }))
-			.toHaveTextContent('Headset microphone');
-		await expect.element(page.getByLabelText('Speakers')).toHaveTextContent('Default');
+			.toMatchTextContent('Headset microphone');
+		await expect.element(page.getByLabelText('Speakers')).toMatchTextContent('Default');
 	});
 
 	it('turns the call volume up to 200 % where the browser can play louder', async () => {
-		render(SettingsDialog, { open: true, listDevices, audio: fakeAudio() });
+		await render(SettingsDialog, { open: true, listDevices, audio: fakeAudio() });
 		const volume = page.getByRole('region', { name: 'Devices' }).getByRole('slider');
 		await expect.element(volume).toHaveAttribute('aria-valuemax', '200');
 	});
 
 	it('picks another microphone', async () => {
 		const audio = fakeAudio();
-		render(SettingsDialog, { open: true, listDevices, audio });
+		await render(SettingsDialog, { open: true, listDevices, audio });
 		await page.getByLabelText('Microphone', { exact: true }).click();
 		await page.getByRole('option', { name: 'Headset microphone' }).click();
 		expect(audio.updateSettings).toHaveBeenCalledWith({ inputDeviceId: 'mic-1' });
@@ -63,7 +63,7 @@ describe('SettingsDialog', () => {
 
 	it('switches voice processing', async () => {
 		const audio = fakeAudio();
-		render(SettingsDialog, { open: true, listDevices, audio });
+		await render(SettingsDialog, { open: true, listDevices, audio });
 		const noise = page.getByRole('switch', { name: 'Noise suppression' });
 		await expect.element(noise).toBeChecked();
 		await noise.click();
@@ -72,7 +72,7 @@ describe('SettingsDialog', () => {
 
 	it('switches a setting when its description is clicked', async () => {
 		const audio = fakeAudio();
-		render(SettingsDialog, { open: true, listDevices, audio });
+		await render(SettingsDialog, { open: true, listDevices, audio });
 		await page.getByText(/Keeps others from hearing themselves/).click();
 		expect(audio.updateSettings).toHaveBeenCalledWith({ echoCancellation: false });
 		await expect
@@ -81,7 +81,7 @@ describe('SettingsDialog', () => {
 	});
 
 	it('turns sound effects off', async () => {
-		render(SettingsDialog, { open: true, listDevices, audio: fakeAudio() });
+		await render(SettingsDialog, { open: true, listDevices, audio: fakeAudio() });
 		const toggle = page.getByRole('switch', { name: 'Sound effects' });
 		await expect.element(toggle).toBeChecked();
 		await toggle.click();
@@ -91,7 +91,7 @@ describe('SettingsDialog', () => {
 	});
 
 	it('explains when the browser cannot pick speakers', async () => {
-		render(SettingsDialog, {
+		await render(SettingsDialog, {
 			open: true,
 			listDevices,
 			audio: fakeAudio({ outputSelectionSupported: false })
