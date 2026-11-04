@@ -144,7 +144,8 @@ export class Call implements CallControls, AudioControls, UserAudioControls, Str
 	ringing = $state.raw<CallRingingEvent | null>(null);
 
 	#room: Room | null = null;
-	#sources: CallSource[] = [];
+	/** What the user may publish in this call. Reactive, so the call bar shows the buttons once known. */
+	#sources = $state.raw<CallSource[]>([]);
 	/** Whose screen shares this user watches. Like in Discord, nobody's by default. */
 	#watching = new SvelteSet<string>();
 	#audio: HTMLElement | null = null;
