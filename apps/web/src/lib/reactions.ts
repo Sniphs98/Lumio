@@ -30,16 +30,19 @@ export const QUICK_REACTIONS = [
 ] as const;
 
 // One or more emoji: pictographs with skin tones, variation selectors and joiners, flags and keycaps.
+// Tag characters spell subdivision flags such as England's.
 const EMOJI =
-	/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Regional_Indicator}|\p{Emoji_Modifier}|[#*0-9]️?⃣|️|‍)+$/u;
+	/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Regional_Indicator}|\p{Emoji_Modifier}|[#*0-9]️?⃣|️|‍|[\u{E0020}-\u{E007F}])+$/u;
 const DIGITS_ONLY = /^[#*0-9]+$/;
+// Something visible, not only joiners, variation selectors or tags.
+const VISIBLE = /\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Regional_Indicator}|⃣/u;
 
 /** Checks a reaction sent by a client: one short emoji sequence, nothing else. */
 export function parseEmoji(raw: unknown): string | null {
 	if (typeof raw !== 'string') return null;
 	const emoji = raw.trim();
 	if (emoji.length === 0 || emoji.length > 32) return null;
-	if (!EMOJI.test(emoji) || DIGITS_ONLY.test(emoji)) return null;
+	if (!EMOJI.test(emoji) || !VISIBLE.test(emoji) || DIGITS_ONLY.test(emoji)) return null;
 	return emoji;
 }
 

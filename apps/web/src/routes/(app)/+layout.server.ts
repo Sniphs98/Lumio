@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { gifProvider } from '#lib/server/gif-provider.ts';
 import { getInstance } from '#lib/server/instance.ts';
 import { getUnreadCounts } from '#lib/server/unread.ts';
 import type { LayoutServerLoad } from './$types';
@@ -19,6 +20,8 @@ export const load: LayoutServerLoad = async (event) => {
 			isGuest: user.isAnonymous === true
 		},
 		instance: { name: inst?.name ?? 'Lumio' },
+		/** The GIF service the composer searches, or null when GIFs are off. */
+		gifProvider: gifProvider?.name ?? null,
 		unread
 	};
 };

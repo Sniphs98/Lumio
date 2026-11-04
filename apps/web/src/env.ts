@@ -46,5 +46,14 @@ export const variables = defineEnvVars({
 	DISCORD_CLIENT_SECRET: {
 		description: 'Client secret of the Discord application.',
 		schema: optional
+	},
+	GIPHY_API_KEY: {
+		description:
+			'Optional Giphy API key. Turns on searching and sending GIFs in chats. Wins over `TENOR_API_KEY`.',
+		schema: optional
+	},
+	TENOR_API_KEY: {
+		description: 'Optional Tenor (Google Cloud) API key, used for GIFs when no Giphy key is set.',
+		schema: optional
 	}
 });
