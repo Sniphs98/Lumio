@@ -116,6 +116,7 @@
 <div class="flex h-dvh flex-col bg-background text-foreground">
 	<TabBar
 		instanceName={data.instance.name}
+		instanceIcon={data.instance.iconUrl}
 		isGuest={data.user.isGuest}
 		{unread}
 		openChatId={page.params.id}

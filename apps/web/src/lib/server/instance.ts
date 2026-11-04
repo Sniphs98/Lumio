@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { DEFAULT_PERMISSIONS } from '#lib/permissions.ts';
 import { db } from '#lib/server/db/index.ts';
 import { channel, instance, role } from '#lib/server/db/schema.ts';
+import { deleteImage } from '#lib/server/images.ts';
 
 export const EVERYONE_ROLE_NAME = '@everyone';
 
@@ -44,4 +45,11 @@ export async function setInstancePublic(isPublic: boolean): Promise<void> {
 /** The name shown on the server's tab. */
 export async function setInstanceName(name: string): Promise<void> {
 	await db.update(instance).set({ name }).where(eq(instance.id, 1));
+}
+
+/** Sets or (with null) removes the server icon, deleting the one it replaces. */
+export async function setInstanceIcon(url: string | null): Promise<void> {
+	const old = await getInstance();
+	await db.update(instance).set({ iconUrl: url }).where(eq(instance.id, 1));
+	if (old?.iconUrl !== url) await deleteImage(old?.iconUrl);
 }

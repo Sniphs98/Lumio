@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import PictureForm from '#lib/components/images/picture-form.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
@@ -9,7 +10,12 @@
 	import FormResult from './form-result.svelte';
 	import { settingsForm } from './settings-form.svelte.ts';
 
-	let { action, name, isPublic }: { action: string; name: string; isPublic: boolean } = $props();
+	let {
+		action,
+		name,
+		iconUrl,
+		isPublic
+	}: { action: string; name: string; iconUrl: string | null; isPublic: boolean } = $props();
 
 	const nameForm = settingsForm();
 	const accessForm = settingsForm();
@@ -38,6 +44,23 @@
 				<FormResult error={nameForm.error} saved={nameForm.saved} />
 			</Card.Footer>
 		</form>
+	</Card.Root>
+
+	<Card.Root role="region" aria-labelledby="server-icon-heading">
+		<Card.Header>
+			<Card.Title><h3 id="server-icon-heading">Server icon</h3></Card.Title>
+			<Card.Description>Shown on the server's tab.</Card.Description>
+		</Card.Header>
+		<Card.Content>
+			<PictureForm
+				uploadAction="{action}?/icon"
+				removeAction="{action}?/removeIcon"
+				image={iconUrl}
+				{name}
+				label="server icon"
+				square
+			/>
+		</Card.Content>
 	</Card.Root>
 
 	<Card.Root role="region" aria-labelledby="access-heading">

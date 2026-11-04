@@ -4,7 +4,7 @@ A self-hosted chat app for you and your friends: text channels, voice, video and
 
 Lumio runs in the browser (desktop and mobile, installable as a PWA), and there is an optional Electron desktop app. Nothing has to be installed to use it.
 
-> **Status:** early. Sign up, invite links, guest access, text channels, file sharing, friends (added through personal friend links), direct messages, group chats, voice channels and calls (with camera and screen sharing) work. Messages support emoji reactions, replies and @-mentions, and unread counters show up on channels, chats and tabs. Moderators can kick and ban people and delete messages, and the owner sets limits for storage and for who may invite people.
+> **Status:** early. Sign up, invite links, guest access, text channels, file sharing, friends (added through personal friend links), direct messages, group chats, voice channels and calls (with camera and screen sharing) work. Everyone can set a profile picture, groups and the server can have a picture too. Messages support emoji reactions, replies and @-mentions, and unread counters show up on channels, chats and tabs. Moderators can kick and ban people and delete messages, and the owner sets limits for storage and for who may invite people.
 
 ## Stack
 
@@ -118,6 +118,8 @@ Database migrations run automatically when the app starts. By default you get th
 Members can share files in channels and direct messages with the paperclip button, by dropping them onto the chat or by pasting them. Images, videos and audio play inline, everything else is a download. Large files are uploaded in 8 MB pieces with the [tus](https://tus.io) protocol, so a dropped connection resumes where it stopped. The default limit is 2 GB per file; the owner (and anyone with **Manage server**) can change it under **Server settings** in the server tab.
 
 Files are stored on the server in the `uploads` Docker volume. To keep them in S3 or an S3-compatible service (Cloudflare R2, MinIO, ...) instead, set `S3_BUCKET` and its credentials in `.env` (see `deploy/.env.example`). Uploads that were never sent are deleted after a day.
+
+Profile pictures, the server icon and group pictures live in the same place, under `images/`. Browsers crop them to a square and scale them down to 512 × 512 before uploading (GIFs are kept as they are, up to 8 MB).
 
 ### Sign in with Discord
 

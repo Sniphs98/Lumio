@@ -14,6 +14,7 @@ import {
 } from 'livekit-client';
 import { SvelteSet } from 'svelte/reactivity';
 import {
+	participantImage,
 	RING_TIMEOUT_MS,
 	roomName,
 	SCREEN_SHARE_QUALITY,
@@ -60,6 +61,8 @@ export type AttachableTrack = {
 export type CallParticipant = {
 	identity: string;
 	name: string;
+	/** Their profile picture. */
+	image?: string | null;
 	isLocal: boolean;
 	speaking: boolean;
 	micMuted: boolean;
@@ -586,6 +589,7 @@ export class Call implements CallControls, AudioControls, UserAudioControls, Str
 			return {
 				identity: p.identity,
 				name: p.name || p.identity,
+				image: participantImage(p.attributes),
 				isLocal,
 				speaking: p.isSpeaking,
 				micMuted: !p.isMicrophoneEnabled,

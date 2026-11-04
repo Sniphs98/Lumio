@@ -1,7 +1,13 @@
 import { error, json } from '@sveltejs/kit';
 import { AccessToken, TrackSource } from 'livekit-server-sdk';
 import { LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL } from '$app/env/private';
-import { parseRoomName, roomName, type CallRingingEvent, type CallSource } from '#lib/calls.ts';
+import {
+	IMAGE_ATTRIBUTE,
+	parseRoomName,
+	roomName,
+	type CallRingingEvent,
+	type CallSource
+} from '#lib/calls.ts';
 import { groupTitle } from '#lib/groups.ts';
 import { getCallAccess } from '#lib/server/calls.ts';
 import { publish, userTopic } from '#lib/server/realtime.ts';
@@ -32,6 +38,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
 		identity: locals.user.id,
 		name: locals.user.name,
+		// Shown on the call tiles and in the voice channel list.
+		attributes: locals.user.image ? { [IMAGE_ATTRIBUTE]: locals.user.image } : undefined,
 		ttl: '10m'
 	});
 	token.addGrant({

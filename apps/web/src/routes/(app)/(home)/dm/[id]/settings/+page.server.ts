@@ -5,8 +5,10 @@ import {
 	getGroup,
 	listAddableFriends,
 	removeGroupMember,
-	renameGroup
+	renameGroup,
+	setGroupIcon
 } from '#lib/server/groups.ts';
+import { storeImage } from '#lib/server/images.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 async function requireGroup(conversationId: string, userId: string) {
@@ -31,6 +33,21 @@ export const actions: Actions = {
 
 		await renameGroup(group, locals.user.id, name.name);
 		return { renamed: true };
+	},
+	icon: async ({ params, locals, request }) => {
+		if (!locals.user) error(401, 'Not signed in');
+		const group = await requireGroup(params.id, locals.user.id);
+		const stored = await storeImage(locals.user.id, (await request.formData()).get('image'));
+		if (!stored.ok) return fail(400, { error: stored.error });
+
+		await setGroupIcon(group, locals.user.id, stored.url);
+		return { iconSaved: true };
+	},
+	removeIcon: async ({ params, locals }) => {
+		if (!locals.user) error(401, 'Not signed in');
+		const group = await requireGroup(params.id, locals.user.id);
+		await setGroupIcon(group, locals.user.id, null);
+		return { iconSaved: true };
 	},
 	add: async ({ params, locals, request }) => {
 		if (!locals.user) error(401, 'Not signed in');
