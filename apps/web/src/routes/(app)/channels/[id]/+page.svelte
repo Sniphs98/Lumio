@@ -85,6 +85,7 @@
 		canReact={data.canReact}
 		canManageMessages={data.canManageMessages}
 		onread={() => unread.clear(data.channel.id)}
+		gifProvider={data.gifProvider}
 	/>
 {/snippet}
 

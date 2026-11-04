@@ -3,13 +3,26 @@ import { describeReaction, groupReactions, parseEmoji, QUICK_REACTIONS } from '.
 
 describe('parseEmoji', () => {
 	it('accepts emojis, including skin tones, joined emojis and flags', () => {
-		for (const emoji of [...QUICK_REACTIONS, '👍🏽', '👩‍💻', '🇩🇪', '1️⃣']) {
+		for (const emoji of [...QUICK_REACTIONS, '👍🏽', '👩‍💻', '🇩🇪', '1️⃣', '🏴󠁧󠁢󠁥󠁮󠁧󠁿']) {
 			expect(parseEmoji(emoji)).toBe(emoji);
 		}
 	});
 
 	it('rejects text, digits and overlong input', () => {
-		for (const raw of ['', 'abc', '1', '#', '<script>', '👍a', '👍'.repeat(17), null, 5]) {
+		for (const raw of [
+			'',
+			'abc',
+			'1',
+			'#',
+			'<script>',
+			'👍a',
+			'👍'.repeat(17),
+			'\u200d',
+			'\ufe0f',
+			'\u{e0067}',
+			null,
+			5
+		]) {
 			expect(parseEmoji(raw)).toBeNull();
 		}
 	});

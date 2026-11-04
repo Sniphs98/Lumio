@@ -65,6 +65,8 @@ Pushing a version tag starts the release workflow (`.github/workflows/release.ym
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
+Every commit on `main` that passes CI is also published as `edge` and `sha-<commit>`, for trying out unreleased changes (`LUMIO_VERSION=edge`). Pull requests build the image too and test it behind the example nginx config, see [deploy/reverse-proxy](deploy/reverse-proxy/README.md#testing-a-setup).
+
 `v1.2.3` is published as `1.2.3`, `1.2`, `1` and `latest`; for `0.x` versions the major tag is skipped. Pre-releases such as `v0.2.0-beta.1` only get their own tag and are marked as pre-release.
 
 ### AI coding tools
@@ -97,6 +99,8 @@ Everyone also has a personal friend link on the Home tab. Whoever opens it becom
 
 Open these ports in your firewall: `80/tcp`, `443/tcp+udp` (HTTPS), `7881/tcp`, `3478/udp` and `50000-60000/udp` (LiveKit media). Missing UDP ports are the most common reason calls do not connect.
 
+Already running nginx, Traefik or another reverse proxy? Use `docker-compose.proxy.yml`, which leaves out Caddy and publishes the app on `127.0.0.1:3000`. Setup, example configs and what the proxy has to forward are in [deploy/reverse-proxy](deploy/reverse-proxy/README.md).
+
 Browsers only allow microphone, camera and screen access on HTTPS (or `localhost`), so calls need the HTTPS setup above. Screen sharing works in desktop browsers and the desktop app; most mobile browsers can join calls but cannot share their screen.
 
 ### Updating
@@ -126,6 +130,12 @@ To make switching easier, people can join and sign in with their Discord account
 3. Set `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` in `.env` to the application's client ID and secret.
 
 The login, invite and friend link pages then show **Continue with Discord**. New users still need an invite or friend link (except the first user, who becomes the owner); Lumio takes their Discord display name and email address, but not their avatar. Members who already have a password connect Discord on their **Account** page, and can disconnect it there again.
+
+### Emojis and GIFs
+
+The smiley button in the composer opens an emoji picker with search, categories and your recently used emojis; the same picker adds reactions to messages. It works without any setup.
+
+Searching and sending GIFs needs an API key of a GIF service, so it is off by default. Set `GIPHY_API_KEY` (free key from the [GIPHY Developer Portal](https://developers.giphy.com)) or `TENOR_API_KEY` (a Google Cloud key with the [Tenor API](https://developers.google.com/tenor) enabled) in `.env`; Giphy wins when both are set. The composer then gets a **GIFs** tab. GIFs are loaded through Lumio, so Giphy and Tenor only see the server, not who reads a chat. GIFs that were sent keep showing if the key is removed later.
 
 ### Tracing
 

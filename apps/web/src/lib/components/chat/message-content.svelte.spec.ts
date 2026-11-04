@@ -25,4 +25,19 @@ describe('MessageContent', () => {
 		render(MessageContent, { content: '<b>not html</b>', mentions: [] });
 		await expect.element(page.getByText('<b>not html</b>')).toBeVisible();
 	});
+
+	it('shows a message that is only a GIF address as the GIF, loaded through Lumio', async () => {
+		const url = 'https://media.tenor.com/abc/cat.gif';
+		render(MessageContent, { content: url, mentions: [] });
+		const img = page.getByRole('img', { name: 'GIF' });
+		await expect.element(img).toBeInTheDocument();
+		expect(img.element().getAttribute('src')).toBe(
+			`/api/gifs/media?url=${encodeURIComponent(url)}`
+		);
+	});
+
+	it('keeps GIF addresses within text as text', async () => {
+		render(MessageContent, { content: 'see https://media.tenor.com/abc/cat.gif', mentions: [] });
+		await expect.element(page.getByText('see https://media.tenor.com/abc/cat.gif')).toBeVisible();
+	});
 });

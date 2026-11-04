@@ -14,6 +14,7 @@
 	import { onMount, tick, untrack } from 'svelte';
 	import { formatBytes, MAX_ATTACHMENTS_PER_MESSAGE } from '#lib/attachments.ts';
 	import AttachmentView from '#lib/components/chat/attachment-view.svelte';
+	import ComposerPicker from '#lib/components/chat/composer-picker.svelte';
 	import EmojiPicker from '#lib/components/chat/emoji-picker.svelte';
 	import MentionSuggestions from '#lib/components/chat/mention-suggestions.svelte';
 	import MessageContent from '#lib/components/chat/message-content.svelte';
@@ -34,6 +35,7 @@
 		type ChatMessage,
 		type ChatUser
 	} from '#lib/chat.ts';
+	import { gifInContent, type GifResult } from '#lib/gifs.ts';
 	import { activeMention, contentToText, encodeMentions, suggestMentions } from '#lib/mentions.ts';
 	import type { Reaction } from '#lib/reactions.ts';
 	import { cn } from '#lib/utils.ts';
@@ -63,6 +65,8 @@
 		canReact?: boolean;
 		/** Whether the user may delete other people's messages, not only their own. */
 		canManageMessages?: boolean;
+		/** The GIF service of the server; without one, the composer only offers emojis. */
+		gifProvider?: 'giphy' | 'tenor' | null;
 		/** Called whenever the chat is marked as read up to its latest message. */
 		onread?: () => void;
 	};
@@ -81,6 +85,7 @@
 		mentionable = [],
 		canReact = false,
 		canManageMessages = false,
+		gifProvider = null,
 		onread
 	}: Props = $props();
 
@@ -188,6 +193,32 @@
 			messages = setReactions(messages, messageId, result.data.reactions as Reaction[]);
 		} else if (result.type === 'failure') {
 			actionError = String(result.data?.error ?? 'Could not add the reaction.');
+		}
+	}
+
+	/** Puts an emoji at the caret, or over the selected text. */
+	function insertEmoji(emoji: string) {
+		const start = textarea?.selectionStart ?? content.length;
+		const end = textarea?.selectionEnd ?? content.length;
+		if (content.length - (end - start) + emoji.length > MAX_MESSAGE_LENGTH) return;
+		content = content.slice(0, start) + emoji + content.slice(end);
+		const caret = start + emoji.length;
+		tick().then(() => textarea?.setSelectionRange(caret, caret));
+	}
+
+	/** Sends a GIF as its own message, answering the message being replied to. */
+	async function sendGif(gif: GifResult) {
+		actionError = '';
+		const fields: Record<string, string> = { content: gif.url };
+		if (replyingTo) fields.replyTo = replyingTo.id;
+		sending = true;
+		const result = await postAction('send', fields).finally(() => (sending = false));
+		if (result.type === 'success' && result.data?.message) {
+			replyingTo = null;
+			await receive(result.data.message as ChatMessage);
+			await scrollToBottom();
+		} else if (result.type === 'failure') {
+			actionError = String(result.data?.error ?? 'Could not send the GIF.');
 		}
 	}
 
@@ -432,7 +463,9 @@
 						<CornerUpLeft class="size-3 shrink-0" />
 						<span class="shrink-0 font-semibold">@{reply.author.name}</span>
 						<span class="truncate">
-							{contentToText(reply.content, reply.mentions) || 'Sent a file'}
+							{gifInContent(reply.content)
+								? 'GIF'
+								: contentToText(reply.content, reply.mentions) || 'Sent a file'}
 						</span>
 					</button>
 				{/if}
@@ -679,6 +712,12 @@
 					placeholder="Message {label}"
 					aria-label="Message {label}"
 					class="max-h-40 min-h-9 flex-1 resize-none"
+				/>
+				<ComposerPicker
+					{gifProvider}
+					onemoji={insertEmoji}
+					ongif={sendGif}
+					onclose={() => textarea?.focus()}
 				/>
 				<Button type="submit" size="icon" disabled={!canSubmit} aria-label="Send">
 					<SendHorizontal />

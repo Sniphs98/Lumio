@@ -217,4 +217,47 @@ test.describe('with LiveKit', () => {
 		await anna.context.close();
 		await ben.context.close();
 	});
+
+	test('a screen share is only received by those who choose to watch it', async ({ browser }) => {
+		const anna = await newUser(browser, 'Anna');
+		const ben = await newUser(browser, 'Ben');
+		await openLounge(anna.page);
+		await openLounge(ben.page);
+		for (const { page } of [anna, ben]) {
+			await page.getByRole('button', { name: 'Join voice' }).click();
+			await expect(page.getByRole('region', { name: 'Call' }).getByRole('status')).toHaveText(
+				'Voice connected'
+			);
+		}
+
+		// The fake screen from the browser flags in playwright.config.ts.
+		await anna.page.getByRole('button', { name: 'Share screen' }).first().click();
+		await anna.page.getByRole('menuitem', { name: '1080p, 30 fps' }).click();
+		const annaStage = anna.page.getByRole('list', { name: 'Participants' });
+		await expect(
+			annaStage.getByRole('listitem', { name: "Anna's screen" }).locator('video')
+		).toBeVisible();
+
+		const benStage = ben.page.getByRole('list', { name: 'Participants' });
+		const stream = benStage.getByRole('listitem', { name: "Anna's screen" });
+		await expect(stream).toContainText('Anna is sharing their screen.');
+		await expect(stream.locator('video')).toHaveCount(0);
+
+		await stream.getByRole('button', { name: 'Watch stream' }).click();
+		await expect(stream).toHaveAttribute('aria-current', 'true');
+		await expect
+			.poll(() => stream.locator('video').evaluate((v: HTMLVideoElement) => v.videoWidth))
+			.toBeGreaterThan(0);
+
+		await stream.hover();
+		await stream.getByRole('button', { name: 'Stop watching' }).click();
+		await expect(stream.locator('video')).toHaveCount(0);
+		await expect(stream.getByRole('button', { name: 'Watch stream' })).toBeVisible();
+
+		await anna.page.getByRole('button', { name: 'Stop sharing' }).first().click();
+		await expect(stream).toBeHidden();
+
+		await anna.context.close();
+		await ben.context.close();
+	});
 });
