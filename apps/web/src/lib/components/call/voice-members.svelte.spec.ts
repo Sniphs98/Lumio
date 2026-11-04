@@ -5,7 +5,7 @@ import VoiceMembers from './voice-members.svelte';
 
 describe('VoiceMembers', () => {
 	it('lists who is in a voice channel with mute, screen share and speaking state', async () => {
-		render(VoiceMembers, {
+		await render(VoiceMembers, {
 			label: 'In Lounge',
 			members: [
 				{ id: 'anna', name: 'Anna', muted: false, streaming: false, speaking: true },
@@ -15,16 +15,16 @@ describe('VoiceMembers', () => {
 
 		const list = page.getByRole('list', { name: 'In Lounge' });
 		const items = list.getByRole('listitem');
-		await expect.element(items.nth(0)).toHaveTextContent('Anna');
+		await expect.element(items.nth(0)).toMatchTextContent('Anna');
 		await expect.element(items.nth(0).getByLabelText('Muted')).not.toBeInTheDocument();
 		await expect.element(items.nth(0)).toHaveAttribute('data-speaking', 'true');
 		await expect.element(items.nth(1)).toHaveAttribute('data-speaking', 'false');
-		await expect.element(items.nth(1)).toHaveTextContent(/Ben\s*LIVE/);
+		await expect.element(items.nth(1)).toMatchTextContent(/Ben\s*LIVE/);
 		await expect.element(items.nth(1).getByLabelText('Muted')).toBeInTheDocument();
 	});
 
 	it('shows who this user muted for themselves', async () => {
-		render(VoiceMembers, {
+		await render(VoiceMembers, {
 			label: 'In Lounge',
 			members: [
 				{ id: 'anna', name: 'Anna', muted: false, streaming: false },

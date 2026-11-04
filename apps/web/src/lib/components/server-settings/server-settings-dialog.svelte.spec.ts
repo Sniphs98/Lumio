@@ -17,7 +17,7 @@ const bans: NonNullable<ServerSettings['bans']> = [
 
 describe('ServerSettingsDialog', () => {
 	it('opens on the overview next to the section list', async () => {
-		render(ServerSettingsDialog, { open: true, settings: { general, bans } });
+		await render(ServerSettingsDialog, { open: true, settings: { general, bans } });
 		const nav = page.getByRole('navigation', { name: 'Server settings sections' });
 		await expect
 			.element(nav.getByRole('button', { name: 'Overview' }))
@@ -31,7 +31,7 @@ describe('ServerSettingsDialog', () => {
 	});
 
 	it('switches to the file limits', async () => {
-		render(ServerSettingsDialog, { open: true, settings: { general, bans } });
+		await render(ServerSettingsDialog, { open: true, settings: { general, bans } });
 		await page.getByRole('button', { name: 'Files & storage' }).click();
 		await expect.element(page.getByRole('heading', { name: 'Files & storage' })).toBeVisible();
 		await expect.element(page.getByLabelText('Largest file (MB)')).toHaveValue(2048);
@@ -39,14 +39,18 @@ describe('ServerSettingsDialog', () => {
 	});
 
 	it('lists the bans', async () => {
-		render(ServerSettingsDialog, { open: true, section: 'bans', settings: { general, bans } });
+		await render(ServerSettingsDialog, {
+			open: true,
+			section: 'bans',
+			settings: { general, bans }
+		});
 		const list = page.getByRole('region', { name: 'Banned' });
-		await expect.element(list.getByRole('listitem')).toHaveTextContent(/Troll.*Spam/);
+		await expect.element(list.getByRole('listitem')).toMatchTextContent(/Troll.*Spam/);
 		await expect.element(list.getByRole('button', { name: 'Unban' })).toBeVisible();
 	});
 
 	it('only shows moderators the bans', async () => {
-		render(ServerSettingsDialog, { open: true, settings: { general: null, bans: [] } });
+		await render(ServerSettingsDialog, { open: true, settings: { general: null, bans: [] } });
 		const nav = page.getByRole('navigation', { name: 'Server settings sections' });
 		await expect.element(nav.getByRole('button', { name: 'Bans' })).toBeVisible();
 		await expect.element(nav.getByRole('button', { name: 'Overview' })).not.toBeInTheDocument();

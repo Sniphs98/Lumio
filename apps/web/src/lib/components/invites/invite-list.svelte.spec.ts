@@ -17,12 +17,12 @@ const invite = {
 
 describe('InviteList', () => {
 	it('shows an empty state', async () => {
-		render(InviteList, { invites: [], showCreator: false });
+		await render(InviteList, { invites: [], showCreator: false });
 		await expect.element(page.getByText('No active invite links.')).toBeVisible();
 	});
 
 	it('shows the link with its uses and expiry', async () => {
-		render(InviteList, { invites: [invite], showCreator: false });
+		await render(InviteList, { invites: [invite], showCreator: false });
 
 		await expect.element(page.getByText(invite.url)).toBeVisible();
 		await expect.element(page.getByText('2 of 5 used · Never expires')).toBeVisible();
@@ -35,7 +35,7 @@ describe('InviteList', () => {
 	});
 
 	it('names the creator for admins and hides revoke where it is not allowed', async () => {
-		render(InviteList, { invites: [{ ...invite, canRevoke: false }], showCreator: true });
+		await render(InviteList, { invites: [{ ...invite, canRevoke: false }], showCreator: true });
 
 		await expect.element(page.getByText('Anna · 2 of 5 used · Never expires')).toBeVisible();
 		await expect
@@ -44,7 +44,7 @@ describe('InviteList', () => {
 	});
 
 	it('marks links that do not let guests join', async () => {
-		render(InviteList, { invites: [{ ...invite, allowGuests: false }], showCreator: false });
+		await render(InviteList, { invites: [{ ...invite, allowGuests: false }], showCreator: false });
 		await expect
 			.element(page.getByText('2 of 5 used · Never expires · Accounts only'))
 			.toBeVisible();

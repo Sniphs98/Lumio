@@ -27,17 +27,17 @@ const user = { name: 'anna', image: null, isGuest: false };
 
 describe('UserPanel', () => {
 	it('shows who is signed in and links to the account', async () => {
-		render(UserPanel, { user, audio: fakeAudio() });
+		await render(UserPanel, { user, audio: fakeAudio() });
 		const panel = page.getByRole('region', { name: 'You' });
 		await expect
 			.element(panel.getByRole('link', { name: /anna/ }))
 			.toHaveAttribute('href', '/account');
-		await expect.element(panel).toHaveTextContent('Online');
+		await expect.element(panel).toMatchTextContent('Online');
 	});
 
 	it('mutes and deafens', async () => {
 		const audio = fakeAudio();
-		render(UserPanel, { user, audio });
+		await render(UserPanel, { user, audio });
 		await page.getByRole('button', { name: 'Mute' }).click();
 		await page.getByRole('button', { name: 'Deafen' }).click();
 		expect(audio.toggleMute).toHaveBeenCalledOnce();
@@ -45,24 +45,24 @@ describe('UserPanel', () => {
 	});
 
 	it('names the buttons in a tooltip', async () => {
-		render(UserPanel, { user, audio: fakeAudio() });
+		await render(UserPanel, { user, audio: fakeAudio() });
 		await page.getByRole('button', { name: 'Deafen' }).hover();
 		await expect.element(page.getByText('Deafen', { exact: true })).toBeVisible();
 	});
 
 	it('shows when muted or deafened', async () => {
-		render(UserPanel, { user, audio: fakeAudio({ muted: true, deafened: true }) });
+		await render(UserPanel, { user, audio: fakeAudio({ muted: true, deafened: true }) });
 		await expect
 			.element(page.getByRole('button', { name: 'Unmute' }))
 			.toHaveAttribute('aria-pressed', 'true');
 		await expect
 			.element(page.getByRole('button', { name: 'Undeafen' }))
 			.toHaveAttribute('aria-pressed', 'true');
-		await expect.element(page.getByRole('region', { name: 'You' })).toHaveTextContent('Deafened');
+		await expect.element(page.getByRole('region', { name: 'You' })).toMatchTextContent('Deafened');
 	});
 
 	it('opens the settings on Audio & Mic', async () => {
-		render(UserPanel, { user, audio: fakeAudio() });
+		await render(UserPanel, { user, audio: fakeAudio() });
 		await page.getByRole('button', { name: 'Settings' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Settings' });
 		await expect.element(dialog).toBeVisible();

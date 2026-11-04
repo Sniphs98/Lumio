@@ -16,7 +16,7 @@ const props = {
 
 describe('PictureForm', () => {
 	it('offers to upload a picture while there is none', async () => {
-		render(PictureForm, { ...props, image: null });
+		await render(PictureForm, { ...props, image: null });
 
 		await expect.element(page.getByRole('button', { name: 'Upload picture' })).toBeVisible();
 		await expect
@@ -26,7 +26,7 @@ describe('PictureForm', () => {
 	});
 
 	it('shows the picture with buttons to change and remove it', async () => {
-		const screen = render(PictureForm, { ...props, image: picture });
+		const screen = await render(PictureForm, { ...props, image: picture });
 
 		await expect.element(page.getByRole('button', { name: 'Change picture' })).toBeVisible();
 		await expect
@@ -36,7 +36,7 @@ describe('PictureForm', () => {
 	});
 
 	it('only accepts picture formats', async () => {
-		render(PictureForm, { ...props, image: null });
+		await render(PictureForm, { ...props, image: null });
 
 		await expect
 			.element(page.getByLabelText('Choose a profile picture'))

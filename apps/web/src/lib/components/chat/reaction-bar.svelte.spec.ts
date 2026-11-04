@@ -17,7 +17,7 @@ const reactions = [
 describe('ReactionBar', () => {
 	it('shows counts, marks own reactions and toggles on click', async () => {
 		const ontoggle = vi.fn();
-		render(ReactionBar, { reactions, meId: 'me', canReact: true, ontoggle });
+		await render(ReactionBar, { reactions, meId: 'me', canReact: true, ontoggle });
 
 		const thumbs = page.getByRole('button', { name: '👍 2' });
 		await expect.element(thumbs).toHaveAttribute('aria-pressed', 'true');
@@ -32,7 +32,7 @@ describe('ReactionBar', () => {
 	});
 
 	it('only shows counts to users who may not react', async () => {
-		render(ReactionBar, { reactions, meId: 'me', canReact: false, ontoggle: () => {} });
+		await render(ReactionBar, { reactions, meId: 'me', canReact: false, ontoggle: () => {} });
 		await expect.element(page.getByRole('button', { name: '👍 2' })).toBeDisabled();
 	});
 });

@@ -10,7 +10,7 @@ const friends = [
 
 describe('FriendPicker', () => {
 	it('sends the ids of the picked friends with the form', async () => {
-		const { container } = render(FriendPicker, { friends, label: 'Friends to add' });
+		const { container } = await render(FriendPicker, { friends, label: 'Friends to add' });
 
 		await expect.element(page.getByRole('list', { name: 'Friends to add' })).toBeVisible();
 		await page.getByText('Cleo').click();

@@ -24,7 +24,7 @@ const empty = {
 
 describe('FriendsSidebar', () => {
 	it('shows the friend link to copy and reset instead of an email form', async () => {
-		render(FriendsSidebar, empty);
+		await render(FriendsSidebar, empty);
 
 		await expect
 			.element(page.getByRole('textbox', { name: 'Your friend link' }))
@@ -37,7 +37,7 @@ describe('FriendsSidebar', () => {
 	});
 
 	it('shows empty friends and groups lists', async () => {
-		render(FriendsSidebar, empty);
+		await render(FriendsSidebar, empty);
 
 		await expect.element(page.getByText('No friends added yet.')).toBeVisible();
 		await expect.element(page.getByText('No group chats yet.')).toBeVisible();
@@ -45,7 +45,7 @@ describe('FriendsSidebar', () => {
 	});
 
 	it('links friends to their direct messages and marks the open one', async () => {
-		render(FriendsSidebar, {
+		await render(FriendsSidebar, {
 			...empty,
 			friends: [ben, cleo],
 			directConversationIds: { ben: 'c-ben' },
@@ -61,7 +61,7 @@ describe('FriendsSidebar', () => {
 	});
 
 	it('offers accept and decline for incoming requests and cancel for sent ones', async () => {
-		render(FriendsSidebar, { ...empty, incoming: [cleo], outgoing: [dave] });
+		await render(FriendsSidebar, { ...empty, incoming: [cleo], outgoing: [dave] });
 
 		await expect.element(page.getByRole('button', { name: 'Accept Cleo' })).toBeVisible();
 		await expect.element(page.getByRole('button', { name: 'Decline Cleo' })).toBeVisible();
@@ -71,7 +71,7 @@ describe('FriendsSidebar', () => {
 	});
 
 	it('lists groups separately from friends', async () => {
-		render(FriendsSidebar, {
+		await render(FriendsSidebar, {
 			...empty,
 			friends: [ben],
 			groups: [{ id: 'g1', title: 'Raid night', iconUrl: null, memberCount: 3 }]
@@ -83,7 +83,7 @@ describe('FriendsSidebar', () => {
 	});
 
 	it('shows unread counts of direct and group chats, except the open one', async () => {
-		render(FriendsSidebar, {
+		await render(FriendsSidebar, {
 			...empty,
 			friends: [ben, cleo],
 			groups: [{ id: 'g1', title: 'Raid night', iconUrl: null, memberCount: 3 }],
@@ -97,25 +97,25 @@ describe('FriendsSidebar', () => {
 		});
 
 		await expect
-			.element(page.getByRole('link', { name: 'Ben' }).getByRole('status'))
+			.element(page.getByRole('link', { name: 'Ben', exact: false }).getByRole('status'))
 			.toHaveAccessibleName('2 unread messages');
 		await expect
-			.element(page.getByRole('link', { name: 'Cleo' }).getByRole('status'))
+			.element(page.getByRole('link', { name: 'Cleo', exact: false }).getByRole('status'))
 			.not.toBeInTheDocument();
 		await expect
-			.element(page.getByRole('link', { name: 'Raid night' }).getByRole('status'))
-			.toHaveTextContent('@1');
+			.element(page.getByRole('link', { name: 'Raid night', exact: false }).getByRole('status'))
+			.toMatchTextContent('@1');
 	});
 
 	it('links to creating a group', async () => {
-		render(FriendsSidebar, empty);
+		await render(FriendsSidebar, empty);
 		await expect
 			.element(page.getByRole('link', { name: 'Create group' }))
 			.toHaveAttribute('href', '/groups/new');
 	});
 
 	it('shows the result of the last friend action', async () => {
-		render(FriendsSidebar, { ...empty, error: 'You cannot add yourself.' });
-		await expect.element(page.getByRole('alert')).toHaveTextContent('You cannot add yourself.');
+		await render(FriendsSidebar, { ...empty, error: 'You cannot add yourself.' });
+		await expect.element(page.getByRole('alert')).toMatchTextContent('You cannot add yourself.');
 	});
 });

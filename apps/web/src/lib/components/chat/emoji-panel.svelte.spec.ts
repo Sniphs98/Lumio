@@ -8,7 +8,7 @@ describe('EmojiPanel', () => {
 
 	it('offers frequently used emojis and every category', async () => {
 		const onpick = vi.fn();
-		render(EmojiPanel, { onpick });
+		await render(EmojiPanel, { onpick });
 
 		await page.getByRole('button', { name: 'thumbs up' }).click();
 		expect(onpick).toHaveBeenCalledWith('👍');
@@ -20,7 +20,7 @@ describe('EmojiPanel', () => {
 
 	it('searches emojis and remembers the picked ones', async () => {
 		const onpick = vi.fn();
-		const { unmount } = render(EmojiPanel, {
+		const { unmount } = await render(EmojiPanel, {
 			onpick,
 			actionLabel: (label: string) => `React with ${label}`
 		});
@@ -33,7 +33,7 @@ describe('EmojiPanel', () => {
 		unmount();
 
 		// The next picker starts with the taco.
-		render(EmojiPanel, { onpick });
+		await render(EmojiPanel, { onpick });
 		const first = page.getByRole('group', { name: 'Frequently used' }).getByRole('button').first();
 		await expect.element(first).toHaveAccessibleName('taco');
 	});
