@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { gifProvider } from '#lib/server/gif-provider.ts';
+import { getGifProvider } from '#lib/server/gif-provider.ts';
 import { getInstance } from '#lib/server/instance.ts';
 import { getUnreadCounts } from '#lib/server/unread.ts';
 import type { LayoutServerLoad } from './$types';
@@ -10,7 +10,11 @@ export const load: LayoutServerLoad = async (event) => {
 
 	// Invalidated by the app layout when someone writes in a chat the user can see.
 	event.depends('app:unread');
-	const [inst, unread] = await Promise.all([getInstance(), getUnreadCounts(user.id)]);
+	const [inst, unread, gifProvider] = await Promise.all([
+		getInstance(),
+		getUnreadCounts(user.id),
+		getGifProvider()
+	]);
 
 	return {
 		user: {

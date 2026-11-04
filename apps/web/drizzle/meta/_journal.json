@@ -57,6 +57,13 @@
       "when": 1793805366747,
       "tag": "0007_images",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793824483786,
+      "tag": "0008_bumpy_power_pack",
+      "breakpoints": true
     }
   ]
 }

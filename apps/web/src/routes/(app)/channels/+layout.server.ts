@@ -4,6 +4,7 @@ import { hasPermission, Permission } from '#lib/permissions.ts';
 import { getMaxUploadSize, getUploadQuotas } from '#lib/server/attachments.ts';
 import { getServerPermissions, listChannels, listVisibleChannelIds } from '#lib/server/channels.ts';
 import { getFriendLists } from '#lib/server/friends.ts';
+import { getGifSettings } from '#lib/server/gif-provider.ts';
 import { getInstance } from '#lib/server/instance.ts';
 import { listBans, listMembersFor } from '#lib/server/moderation.ts';
 import { getVoiceState } from '#lib/server/voice.ts';
@@ -45,16 +46,18 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 };
 
 async function loadGeneralSettings() {
-	const [inst, maxUploadSize, quotas] = await Promise.all([
+	const [inst, maxUploadSize, quotas, gifs] = await Promise.all([
 		getInstance(),
 		getMaxUploadSize(),
-		getUploadQuotas()
+		getUploadQuotas(),
+		getGifSettings()
 	]);
 	return {
 		name: inst?.name ?? 'Lumio',
 		iconUrl: inst?.iconUrl ?? null,
 		isPublic: inst?.isPublic ?? false,
 		maxUploadSize,
-		quotas
+		quotas,
+		gifs
 	};
 }

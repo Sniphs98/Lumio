@@ -1,0 +1,1 @@
+ALTER TABLE "instance" ADD COLUMN "giphy_api_key" text;

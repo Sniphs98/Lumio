@@ -16,6 +16,7 @@
 	import AttachmentView from '#lib/components/chat/attachment-view.svelte';
 	import ComposerPicker from '#lib/components/chat/composer-picker.svelte';
 	import EmojiPicker from '#lib/components/chat/emoji-picker.svelte';
+	import GifPicker from '#lib/components/chat/gif-picker.svelte';
 	import MentionSuggestions from '#lib/components/chat/mention-suggestions.svelte';
 	import MessageContent from '#lib/components/chat/message-content.svelte';
 	import ReactionBar from '#lib/components/chat/reaction-bar.svelte';
@@ -469,36 +470,72 @@
 						</span>
 					</button>
 				{/if}
-				{#if startsGroup(i)}
-					<div class="relative flex items-baseline gap-2">
-						<UserAvatar user={message.author} size="default" class="absolute top-0.5 -left-11" />
-						<UserContextMenu
-							user={message.author}
-							onmention={canSend ? () => mentionUser(message.author) : undefined}
+				<!-- The actions show right next to the name and text; phones keep them at the right edge. -->
+				<div class="relative sm:w-fit sm:max-w-[calc(100%-7rem)]">
+					{#if startsGroup(i)}
+						<div class="relative flex items-baseline gap-2">
+							<UserAvatar user={message.author} size="default" class="absolute top-0.5 -left-11" />
+							<UserContextMenu
+								user={message.author}
+								onmention={canSend ? () => mentionUser(message.author) : undefined}
+							>
+								{#snippet child({ props })}
+									<span {...props} class="text-sm font-semibold">{message.author.name}</span>
+								{/snippet}
+							</UserContextMenu>
+							<time
+								datetime={message.createdAt}
+								class="text-xs text-muted-foreground"
+								title={mounted ? dayFormat.format(new Date(message.createdAt)) : undefined}
+							>
+								{mounted ? timeFormat.format(new Date(message.createdAt)) : ''}
+							</time>
+						</div>
+					{/if}
+					{#if message.content}
+						<MessageContent content={message.content} mentions={message.mentions} {meId} />
+					{/if}
+					{#if message.attachments.length > 0}
+						<ul class="grid gap-2 py-1" aria-label="Files">
+							{#each message.attachments as attachment (attachment.id)}
+								<li class="min-w-0"><AttachmentView {attachment} /></li>
+							{/each}
+						</ul>
+					{/if}
+					{#if canReact || canSend || canDelete(message)}
+						<div
+							class="pointer-events-none absolute -top-4 right-3 z-10 flex rounded-md border bg-background p-0.5 opacity-0 shadow-sm group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 has-data-[state=open]:pointer-events-auto has-data-[state=open]:opacity-100 sm:top-0 sm:right-auto sm:left-full sm:ml-2"
+							role="toolbar"
+							aria-label="Message actions"
 						>
-							{#snippet child({ props })}
-								<span {...props} class="text-sm font-semibold">{message.author.name}</span>
-							{/snippet}
-						</UserContextMenu>
-						<time
-							datetime={message.createdAt}
-							class="text-xs text-muted-foreground"
-							title={mounted ? dayFormat.format(new Date(message.createdAt)) : undefined}
-						>
-							{mounted ? timeFormat.format(new Date(message.createdAt)) : ''}
-						</time>
-					</div>
-				{/if}
-				{#if message.content}
-					<MessageContent content={message.content} mentions={message.mentions} {meId} />
-				{/if}
-				{#if message.attachments.length > 0}
-					<ul class="grid gap-2 py-1" aria-label="Files">
-						{#each message.attachments as attachment (attachment.id)}
-							<li class="min-w-0"><AttachmentView {attachment} /></li>
-						{/each}
-					</ul>
-				{/if}
+							{#if canReact}
+								<EmojiPicker onpick={(emoji) => react(message.id, emoji)} />
+							{/if}
+							{#if canSend}
+								<Button
+									variant="ghost"
+									size="icon"
+									class="size-7"
+									aria-label="Reply"
+									onclick={() => startReply(message)}
+								>
+									<Reply class="size-4" />
+								</Button>
+							{/if}
+							{#if canDelete(message)}
+								<Button
+									variant="ghost"
+									size="icon"
+									class="size-7 text-destructive hover:text-destructive"
+									aria-label="Delete message"
+									onclick={() => askDelete(message)}
+								>
+									<Trash2 class="size-4" />
+								</Button>
+							{/if}
+						</div>
+					{/if}
+				</div>
 				{#if message.reactions.length > 0}
 					<ReactionBar
 						reactions={message.reactions}
@@ -506,39 +543,6 @@
 						{canReact}
 						ontoggle={(emoji) => react(message.id, emoji)}
 					/>
-				{/if}
-				{#if canReact || canSend || canDelete(message)}
-					<div
-						class="pointer-events-none absolute -top-4 right-3 z-10 flex rounded-md border bg-background p-0.5 opacity-0 shadow-sm group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 has-data-[state=open]:pointer-events-auto has-data-[state=open]:opacity-100"
-						role="toolbar"
-						aria-label="Message actions"
-					>
-						{#if canReact}
-							<EmojiPicker onpick={(emoji) => react(message.id, emoji)} />
-						{/if}
-						{#if canSend}
-							<Button
-								variant="ghost"
-								size="icon"
-								class="size-7"
-								aria-label="Reply"
-								onclick={() => startReply(message)}
-							>
-								<Reply class="size-4" />
-							</Button>
-						{/if}
-						{#if canDelete(message)}
-							<Button
-								variant="ghost"
-								size="icon"
-								class="size-7 text-destructive hover:text-destructive"
-								aria-label="Delete message"
-								onclick={() => askDelete(message)}
-							>
-								<Trash2 class="size-4" />
-							</Button>
-						{/if}
-					</div>
 				{/if}
 			</li>
 		{/each}
@@ -713,12 +717,10 @@
 					aria-label="Message {label}"
 					class="max-h-40 min-h-9 flex-1 resize-none"
 				/>
-				<ComposerPicker
-					{gifProvider}
-					onemoji={insertEmoji}
-					ongif={sendGif}
-					onclose={() => textarea?.focus()}
-				/>
+				{#if gifProvider}
+					<GifPicker provider={gifProvider} onpick={sendGif} onclose={() => textarea?.focus()} />
+				{/if}
+				<ComposerPicker onemoji={insertEmoji} onclose={() => textarea?.focus()} />
 				<Button type="submit" size="icon" disabled={!canSubmit} aria-label="Send">
 					<SendHorizontal />
 				</Button>

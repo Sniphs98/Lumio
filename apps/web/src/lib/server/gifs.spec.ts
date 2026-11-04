@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchGif, gifProviderFrom, MAX_GIF_SIZE } from './gifs.ts';
+import { checkGiphyKey, fetchGif, gifProviderFrom, MAX_GIF_SIZE } from './gifs.ts';
 
 function jsonFetch(body: unknown) {
 	return vi.fn<typeof fetch>(async () => Response.json(body));
@@ -142,5 +142,24 @@ describe('fetchGif', () => {
 		expect(await fetchGif(gif, html)).toBeNull();
 		expect(await fetchGif(gif, huge)).toBeNull();
 		expect(await fetchGif(gif, redirect)).toBeNull();
+	});
+});
+
+describe('checkGiphyKey', () => {
+	it('tells working, refused and unreachable keys apart', async () => {
+		const ok = vi.fn<typeof fetch>(async () => Response.json({ data: [] }));
+		expect(await checkGiphyKey('key', ok)).toBe('ok');
+		expect(new URL(String(ok.mock.calls[0][0])).searchParams.get('api_key')).toBe('key');
+		expect(await checkGiphyKey('key', async () => new Response('', { status: 401 }))).toBe(
+			'invalid'
+		);
+		expect(await checkGiphyKey('key', async () => new Response('', { status: 500 }))).toBe(
+			'unreachable'
+		);
+		expect(
+			await checkGiphyKey('key', async () => {
+				throw new Error('offline');
+			})
+		).toBe('unreachable');
 	});
 });
