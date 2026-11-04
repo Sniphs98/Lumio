@@ -1,7 +1,7 @@
 # Services for local development. Run: docker compose -f docker-compose.dev.yml up -d
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: lumio
       POSTGRES_PASSWORD: lumio
