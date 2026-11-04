@@ -128,4 +128,5 @@
 	mentionable={data.mentionable}
 	canReact={data.canSend}
 	onread={() => unread.clear(data.conversation.id)}
+	gifProvider={data.gifProvider}
 />

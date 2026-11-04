@@ -48,6 +48,28 @@ test('Shift+Enter adds a line break instead of sending', async ({ browser }) => 
 	await context.close();
 });
 
+test('the emoji picker adds emojis at the caret', async ({ browser }) => {
+	const { context, page } = await newUser(browser, 'Erin');
+	const input = page.getByLabel('Message #general');
+
+	await input.fill('I like  a lot');
+	await input.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(7, 7));
+	// No GIF service is configured in tests, so the picker only has emojis.
+	await page.getByRole('button', { name: 'Emojis', exact: true }).click();
+	await page.getByLabel('Search emojis').fill('pizza');
+	await page.getByRole('button', { name: 'pizza', exact: true }).click();
+	await page.keyboard.press('Escape');
+	await expect(input).toHaveValue('I like 🍕 a lot');
+	await expect(input).toBeFocused();
+
+	await input.press('Enter');
+	await expect(
+		page.getByRole('list', { name: 'Messages' }).getByText('I like 🍕 a lot')
+	).toBeVisible();
+
+	await context.close();
+});
+
 test('on a phone the channel list and the chat are separate screens', async ({ browser }) => {
 	const context = await browser.newContext({ viewport: { width: 390, height: 800 } });
 	const page = await context.newPage();

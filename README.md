@@ -125,6 +125,12 @@ To make switching easier, people can join and sign in with their Discord account
 
 The login, invite and friend link pages then show **Continue with Discord**. New users still need an invite or friend link (except the first user, who becomes the owner); Lumio takes their Discord display name and email address, but not their avatar. Members who already have a password connect Discord on their **Account** page, and can disconnect it there again.
 
+### Emojis and GIFs
+
+The smiley button in the composer opens an emoji picker with search, categories and your recently used emojis; the same picker adds reactions to messages. It works without any setup.
+
+Searching and sending GIFs needs an API key of a GIF service, so it is off by default. Set `GIPHY_API_KEY` (free key from the [GIPHY Developer Portal](https://developers.giphy.com)) or `TENOR_API_KEY` (a Google Cloud key with the [Tenor API](https://developers.google.com/tenor) enabled) in `.env`; Giphy wins when both are set. The composer then gets a **GIFs** tab. GIFs are loaded through Lumio, so Giphy and Tenor only see the server, not who reads a chat. GIFs that were sent keep showing if the key is removed later.
+
 ### Tracing
 
 Lumio can send [OpenTelemetry](https://opentelemetry.io) traces, which help to find slow requests and errors. It is off by default and costs nothing while off. SvelteKit records a span for every request, `handle` hook, `load` function, form action and `+server` handler; failed ones are marked as errors with the exception attached. Database queries do not get their own spans yet.

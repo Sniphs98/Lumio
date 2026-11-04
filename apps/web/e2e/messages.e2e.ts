@@ -27,7 +27,7 @@ test('reactions and replies show up live for both people', async ({ browser }) =
 	// Anna reacts from the message's actions.
 	await pizza.hover();
 	await pizza.getByRole('button', { name: 'Add reaction' }).click();
-	await anna.page.getByRole('menuitem', { name: 'React with 👍' }).click();
+	await anna.page.getByRole('button', { name: 'React with thumbs up' }).click();
 	await expect(pizza.getByRole('button', { name: '👍 1' })).toHaveAttribute('aria-pressed', 'true');
 
 	// Ben sees it live and adds his own.
@@ -36,6 +36,13 @@ test('reactions and replies show up live for both people', async ({ browser }) =
 	await expect(benThumbs).toHaveAttribute('aria-pressed', 'false');
 	await benThumbs.click();
 	await expect(pizza.getByRole('button', { name: '👍 2' })).toBeVisible();
+
+	// Any emoji can be found with the picker's search.
+	await pizza.hover();
+	await pizza.getByRole('button', { name: 'Add reaction' }).click();
+	await anna.page.getByLabel('Search emojis').fill('party pop');
+	await anna.page.getByRole('button', { name: 'React with party popper' }).click();
+	await expect(benPizza.getByRole('button', { name: '🎉 1' })).toBeVisible();
 
 	// Anna replies; the reply quotes Ben's message and counts as mentioning him.
 	await pizza.hover();

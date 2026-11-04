@@ -29,6 +29,9 @@ services:
       # Optional sign in with Discord, off when empty. See "Sign in with Discord" in the README.
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      # Optional GIF search, off when empty. See "Emojis and GIFs" in the README.
+      GIPHY_API_KEY: ${GIPHY_API_KEY:-}
+      TENOR_API_KEY: ${TENOR_API_KEY:-}
     volumes:
       - uploads:/app/data/uploads
     depends_on:
