@@ -38,6 +38,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @lumio/web exec playwright install --with-deps chromium
       - run: pnpm lint
+      - run: .github/scripts/next-version.test.sh
       - run: pnpm check
       - run: pnpm test:unit
       - run: pnpm --filter @lumio/web exec node scripts/migrate.js
