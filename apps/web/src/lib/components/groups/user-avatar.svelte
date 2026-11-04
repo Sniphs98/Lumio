@@ -17,16 +17,21 @@
 	const shape = $derived(square ? 'rounded-[25%]' : undefined);
 </script>
 
-<!-- Profile picture, or the first letter of the name while there is none. -->
-<Avatar.Root
-	{size}
-	class={cn(square && 'rounded-[25%] after:rounded-[25%]', className)}
-	aria-hidden="true"
->
-	{#if user.image}
-		<Avatar.Image src={user.image} alt="" class={shape} />
-	{/if}
-	<Avatar.Fallback class={cn(shape, fallbackClass)}>
-		{user.name.slice(0, 1).toUpperCase()}
-	</Avatar.Fallback>
-</Avatar.Root>
+<!--
+	Profile picture, or the first letter of the name while there is none. Recreated when the
+	picture changes: the avatar keeps showing the picture it loaded first otherwise.
+-->
+{#key user.image}
+	<Avatar.Root
+		{size}
+		class={cn(square && 'rounded-[25%] after:rounded-[25%]', className)}
+		aria-hidden="true"
+	>
+		{#if user.image}
+			<Avatar.Image src={user.image} alt="" class={shape} />
+		{/if}
+		<Avatar.Fallback class={cn(shape, fallbackClass)}>
+			{user.name.slice(0, 1).toUpperCase()}
+		</Avatar.Fallback>
+	</Avatar.Root>
+{/key}

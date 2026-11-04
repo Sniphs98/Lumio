@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { friends, grantPermissions, newUser } from './helpers.ts';
+import { E2E_INVITE_CODE, friends, grantPermissions, newUser } from './helpers.ts';
 
 /** A 4×2 PNG: the browser crops it to a 2×2 square before uploading. */
 const png = {
@@ -80,7 +80,9 @@ test('files that are not pictures are refused', async ({ browser }) => {
 	await context.close();
 });
 
-test('the server icon shows on the server tab', async ({ browser }) => {
+test('the server icon shows on the tab, in the sidebar, as favicon and on invites', async ({
+	browser
+}) => {
 	const { page, context, email } = await newUser(browser, 'Dana');
 	// Manage server
 	await grantPermissions(email, 1n << 2n);
@@ -89,14 +91,34 @@ test('the server icon shows on the server tab', async ({ browser }) => {
 
 	const dialog = page.getByRole('dialog', { name: 'Server settings' });
 	const card = dialog.getByRole('region', { name: 'Server icon' });
+	const tabs = page.getByRole('navigation', { name: 'Instances' });
+	// Start without an icon, e.g. after an earlier run stopped halfway.
+	const remove = card.getByRole('button', { name: 'Remove server icon' });
+	if (await remove.isVisible()) {
+		await remove.click();
+		await expect(card.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+	}
 	await card.getByLabel('Choose a server icon').setInputFiles(png);
 	await expect(card.getByRole('button', { name: 'Change picture' })).toBeVisible();
 
-	const tabs = page.getByRole('navigation', { name: 'Instances' });
 	await expect(tabs.getByRole('link').nth(1).locator('img')).toHaveAttribute(
 		'src',
 		/^\/api\/images\//
 	);
+
+	const src = (await tabs.getByRole('link').nth(1).locator('img').getAttribute('src'))!;
+	await expect(page.locator('link[rel="icon"]').last()).toHaveAttribute('href', src);
+	await expect(
+		page.getByRole('complementary', { name: 'Channels' }).locator('header img')
+	).toHaveAttribute('src', src);
+
+	// People who are not signed in yet see it on the invite page, but no other pictures.
+	const visitor = await browser.newContext();
+	const invite = await visitor.newPage();
+	await invite.goto(`/invite/${E2E_INVITE_CODE}`);
+	await expect(invite.locator('main img')).toHaveAttribute('src', src);
+	await expect(invite.locator('main img')).toHaveJSProperty('naturalWidth', 2);
+	await visitor.close();
 
 	// Put things back for the other tests.
 	await card.getByRole('button', { name: 'Remove server icon' }).click();

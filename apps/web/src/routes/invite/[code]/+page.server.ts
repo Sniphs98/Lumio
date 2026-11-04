@@ -14,6 +14,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const [inst, invite] = await Promise.all([getInstance(), getValidInvite(params.code)]);
 	return {
 		instanceName: inst?.name ?? 'Lumio',
+		instanceIcon: inst?.iconUrl ?? null,
 		invite: invite ? { inviterName: invite.createdByName, allowGuests: invite.allowGuests } : null,
 		providers: enabledProviders,
 		socialError: socialErrorFromUrl(url)
