@@ -59,15 +59,27 @@ Run `pnpm --filter @lumio/web exec playwright install chromium` once to download
 
 ### Releases
 
-Pushing a version tag starts the release workflow (`.github/workflows/release.yml`): it runs the full CI, builds the image for amd64 and arm64, pushes it to `ghcr.io/sniphs98/lumio` and creates a GitHub release with generated notes.
+Every push to `main` is released automatically (`.github/workflows/release.yml`): once CI has passed, the workflow works out the next version, builds the image for amd64 and arm64, pushes it to `ghcr.io/sniphs98/lumio` and creates a GitHub release with a tag and generated notes.
+
+The version bump comes from the name of the merged pull request's branch:
+
+| Branch                                                            | Bump  | Example             |
+| ----------------------------------------------------------------- | ----- | ------------------- |
+| `major/…`, `breaking/…`                                           | major | `v0.4.2` → `v1.0.0` |
+| `feat/…`, `feature/…`, `minor/…`                                  | minor | `v0.4.2` → `v0.5.0` |
+| anything else (`fix/…`, `chore/…`, `dependabot/…`, direct pushes) | patch | `v0.4.2` → `v0.4.3` |
+
+A label on the pull request overrides the branch name, for branches whose name cannot be chosen: `release:major`, `release:minor`, `release:patch`, or `release:skip` to merge without a release. If several pull requests land before a release runs, the highest bump wins. The rules live in `.github/scripts/next-version.sh` and are tested by `next-version.test.sh` in CI.
+
+A version tag pushed by hand also starts a release, after running the full CI:
 
 ```sh
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-Every commit on `main` that passes CI is also published as `edge` and `sha-<commit>`, for trying out unreleased changes (`LUMIO_VERSION=edge`). Pull requests build the image too and test it behind the example nginx config, see [deploy/reverse-proxy](deploy/reverse-proxy/README.md#testing-a-setup).
+Every commit on `main` that passes CI is also published as `edge` and `sha-<commit>` (`LUMIO_VERSION=edge`), even when it is not released. Pull requests build the image too and test it behind the example nginx config, see [deploy/reverse-proxy](deploy/reverse-proxy/README.md#testing-a-setup).
 
-`v1.2.3` is published as `1.2.3`, `1.2`, `1` and `latest`; for `0.x` versions the major tag is skipped. Pre-releases such as `v0.2.0-beta.1` only get their own tag and are marked as pre-release.
+`v1.2.3` is published as `1.2.3`, `1.2`, `1` and `latest`; for `0.x` versions the major tag is skipped. Pre-releases such as `v0.2.0-beta.1` (only from hand-pushed tags) get just their own tag and are marked as pre-release.
 
 ### AI coding tools
 
