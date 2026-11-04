@@ -8,6 +8,7 @@
 	import UserPanel from '#lib/components/audio/user-panel.svelte';
 	import CallBar from '#lib/components/call/call-bar.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
+	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import ServerSettingsDialog from '#lib/components/server-settings/server-settings-dialog.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
@@ -98,6 +99,15 @@
 	)}
 	aria-label="Channels"
 >
+	<header class="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+		<UserAvatar
+			user={{ name: data.instance.name, image: data.instance.iconUrl }}
+			square
+			size="default"
+			fallbackClass="font-semibold"
+		/>
+		<h2 class="min-w-0 truncate font-semibold">{data.instance.name}</h2>
+	</header>
 	<div class="min-h-0 flex-1 overflow-y-auto p-3">
 		<div class="grid gap-0.5 pb-3">
 			<a

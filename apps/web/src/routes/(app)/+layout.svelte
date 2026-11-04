@@ -113,6 +113,13 @@
 	}
 </script>
 
+<svelte:head>
+	<!-- The server icon replaces the Lumio icon in the browser tab once the owner sets one. -->
+	{#if data.instance.iconUrl}
+		<link rel="icon" href={data.instance.iconUrl} />
+	{/if}
+</svelte:head>
+
 <div class="flex h-dvh flex-col bg-background text-foreground">
 	<TabBar
 		instanceName={data.instance.name}

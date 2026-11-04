@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import JoinForm from '#lib/components/join/join-form.svelte';
 	import { buttonVariants } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
@@ -16,6 +17,13 @@
 	<Card.Root class="w-full max-w-sm">
 		{#if data.invite}
 			<Card.Header>
+				{#if data.instanceIcon}
+					<UserAvatar
+						user={{ name: data.instanceName, image: data.instanceIcon }}
+						square
+						class="mb-2 size-14 data-[size=sm]:size-14"
+					/>
+				{/if}
 				<Card.Title>Join {data.instanceName}</Card.Title>
 				<Card.Description>
 					{data.invite.inviterName} invited you.
