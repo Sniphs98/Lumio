@@ -8,6 +8,7 @@
 	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import { groupTitle } from '#lib/groups.ts';
 	import { getUnreadContext } from '#lib/unread-context.ts';
+	import { cn } from '#lib/utils.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -20,6 +21,8 @@
 			: (data.conversation.others[0]?.name ?? 'Deleted user')
 	);
 	const inCall = $derived(call.isIn('conversation', data.conversation.id));
+	/** Whose stream is shown large; the call then takes more room above the chat. */
+	let focusedStream = $state<string | null>(null);
 	const callLabel = $derived(
 		call.ringing?.conversationId === data.conversation.id ? 'Join call' : 'Start call'
 	);
@@ -110,7 +113,8 @@
 {#if inCall}
 	<CallStage
 		participants={call.participants}
-		class="max-h-[45%] shrink-0 overflow-y-auto border-b"
+		bind:focused={focusedStream}
+		class={cn('shrink-0 overflow-y-auto border-b', focusedStream ? 'max-h-[70%]' : 'max-h-[45%]')}
 	/>
 {/if}
 

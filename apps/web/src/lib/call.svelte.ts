@@ -9,8 +9,10 @@ import {
 	type LocalAudioTrack,
 	type Participant,
 	type RemoteParticipant,
-	type RemoteTrack
+	type RemoteTrack,
+	type RemoteTrackPublication
 } from 'livekit-client';
+import { SvelteSet } from 'svelte/reactivity';
 import {
 	RING_TIMEOUT_MS,
 	roomName,
@@ -62,8 +64,21 @@ export type CallParticipant = {
 	speaking: boolean;
 	micMuted: boolean;
 	camera: AttachableTrack | null;
+	/** Sharing their screen, whether or not this user watches it. */
+	streaming: boolean;
+	/** Whether this user watches the stream. Always true for their own. */
+	watching: boolean;
+	/** The shared screen, only while this user watches it. */
 	screen: AttachableTrack | null;
 };
+
+/** Watching other people's screen shares. Lets component tests pass a fake. */
+export interface StreamControls {
+	/** Starts receiving someone's screen share and its audio. */
+	watchStream(identity: string): void;
+	/** Stops receiving someone's screen share, which saves bandwidth. */
+	stopWatching(identity: string): void;
+}
 
 /**
  * Mute, deafen and the audio settings, also usable outside of a call: the choice carries
@@ -114,7 +129,7 @@ export interface CallControls {
 	dismissError(): void;
 }
 
-export class Call implements CallControls, AudioControls, UserAudioControls {
+export class Call implements CallControls, AudioControls, UserAudioControls, StreamControls {
 	status = $state<CallStatus>('idle');
 	target = $state.raw<CallTarget | null>(null);
 	participants = $state.raw<CallParticipant[]>([]);
@@ -129,7 +144,10 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 	ringing = $state.raw<CallRingingEvent | null>(null);
 
 	#room: Room | null = null;
-	#sources: CallSource[] = [];
+	/** What the user may publish in this call. Reactive, so the call bar shows the buttons once known. */
+	#sources = $state.raw<CallSource[]>([]);
+	/** Whose screen shares this user watches. Like in Discord, nobody's by default. */
+	#watching = new SvelteSet<string>();
 	#audio: HTMLElement | null = null;
 	/** Mute state from before deafening, restored when undeafening. */
 	#mutedBeforeDeafen = false;
@@ -258,7 +276,8 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 				microphone = openMicrophone(captureOptions(this.settings));
 				microphone.catch(() => {});
 			}
-			await room.connect(url, token);
+			// Screen shares are only received once the user chooses to watch them.
+			await room.connect(url, token, { autoSubscribe: false });
 		} catch (e) {
 			void microphone?.then(
 				(track) => track.stop(),
@@ -275,6 +294,10 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 		this.status = 'connected';
 		sounds.play('call.join');
 		this.audioBlocked = !room.canPlaybackAudio;
+		// Tracks published before joining. Later ones come with `TrackPublished`.
+		for (const p of room.remoteParticipants.values()) {
+			for (const pub of p.trackPublications.values()) this.#subscribe(pub, p);
+		}
 		if (this.canPublish('microphone')) {
 			try {
 				if (microphone) {
@@ -382,6 +405,31 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 		this.#sync();
 	}
 
+	watchStream(identity: string): void {
+		this.#watching.add(identity);
+		this.#resubscribe(identity);
+	}
+
+	stopWatching(identity: string): void {
+		this.#watching.delete(identity);
+		this.#resubscribe(identity);
+	}
+
+	#resubscribe(identity: string) {
+		const participant = this.#room?.remoteParticipants.get(identity);
+		if (!participant) return;
+		for (const pub of participant.trackPublications.values()) this.#subscribe(pub, participant);
+		this.#sync();
+	}
+
+	/** Receives microphones and cameras always, screen shares only while watching them. */
+	#subscribe(pub: RemoteTrackPublication, participant: RemoteParticipant) {
+		const stream =
+			pub.source === Track.Source.ScreenShare || pub.source === Track.Source.ScreenShareAudio;
+		const wanted = !stream || this.#watching.has(participant.identity);
+		if (pub.isDesired !== wanted) pub.setSubscribed(wanted);
+	}
+
 	async startAudio(): Promise<void> {
 		await this.#room?.startAudio();
 		this.audioBlocked = this.#room ? !this.#room.canPlaybackAudio : false;
@@ -414,8 +462,9 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 				sounds.play('participant.join');
 				this.#sync();
 			})
-			.on(RoomEvent.ParticipantDisconnected, () => {
+			.on(RoomEvent.ParticipantDisconnected, (participant) => {
 				if (this.#room !== room) return;
+				this.#watching.delete(participant.identity);
 				sounds.play('participant.leave');
 				this.#sync();
 			})
@@ -425,7 +474,17 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 			.on(RoomEvent.TrackUnmuted, sync)
 			.on(RoomEvent.LocalTrackPublished, sync)
 			.on(RoomEvent.LocalTrackUnpublished, sync)
-			.on(RoomEvent.TrackUnpublished, sync)
+			.on(RoomEvent.TrackPublished, (pub, participant) => {
+				if (this.#room !== room) return;
+				this.#subscribe(pub, participant);
+				this.#sync();
+			})
+			.on(RoomEvent.TrackUnpublished, (pub, participant) => {
+				if (this.#room !== room) return;
+				// A stream that ends is not watched again on its own when it starts again.
+				if (pub.source === Track.Source.ScreenShare) this.#watching.delete(participant.identity);
+				this.#sync();
+			})
 			.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
 				if (this.#room !== room) return;
 				if (track.kind === Track.Kind.Audio) this.#playAudio(track, participant);
@@ -520,20 +579,28 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 		this.cameraOn = local.isCameraEnabled;
 		this.screenSharing = local.isScreenShareEnabled;
 		const all: Participant[] = [local, ...room.remoteParticipants.values()];
-		this.participants = all.map((p) => ({
-			identity: p.identity,
-			name: p.name || p.identity,
-			isLocal: p === local,
-			speaking: p.isSpeaking,
-			micMuted: !p.isMicrophoneEnabled,
-			camera: videoOf(p, Track.Source.Camera),
-			screen: videoOf(p, Track.Source.ScreenShare)
-		}));
+		this.participants = all.map((p) => {
+			const isLocal = p === local;
+			const share = p.getTrackPublication(Track.Source.ScreenShare);
+			const streaming = Boolean(share && !share.isMuted);
+			return {
+				identity: p.identity,
+				name: p.name || p.identity,
+				isLocal,
+				speaking: p.isSpeaking,
+				micMuted: !p.isMicrophoneEnabled,
+				camera: videoOf(p, Track.Source.Camera),
+				streaming,
+				watching: streaming && (isLocal || this.#watching.has(p.identity)),
+				screen: videoOf(p, Track.Source.ScreenShare)
+			};
+		});
 	}
 
 	#reset() {
 		this.#room = null;
 		this.#sources = [];
+		this.#watching.clear();
 		this.#audio?.remove();
 		this.#audio = null;
 		this.status = 'idle';
