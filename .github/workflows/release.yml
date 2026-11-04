@@ -122,20 +122,62 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: read
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+      SHA: ${{ needs.version.outputs.sha }}
     steps:
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # The image as files for the release, for machines that cannot pull from ghcr.io:
+      # docker load -i lumio-<version>-linux-amd64.tar.gz
+      - name: Export the image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:${TAG#v}"
+          mkdir dist
+          # With the containerd image store, docker save needs the platform too.
+          save_flags=()
+          for arch in amd64 arm64; do
+            docker pull --quiet --platform "linux/$arch" "$image"
+            if docker save --help | grep -q -- --platform; then
+              save_flags=(--platform "linux/$arch")
+            fi
+            docker save "${save_flags[@]}" "$image" | gzip > "dist/lumio-${TAG#v}-linux-$arch.tar.gz"
+            docker rmi "$image"
+          done
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+          ls -lh dist
+      - name: Write release notes
+        run: |
+          repo=${GITHUB_REPOSITORY,,}
+          image="ghcr.io/$repo"
+          cat > notes.md <<NOTES
+          ## Docker image
+
+          \`\`\`sh
+          docker pull $image:${TAG#v}
+          \`\`\`
+
+          With docker-compose.yml, set \`LUMIO_VERSION=${TAG#v}\` in \`.env\` and run \`docker compose up -d\`. All tags are listed on the [package page]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/pkgs/container/${repo#*/}).
+
+          Without access to ghcr.io, download the image for your platform below and load it with \`docker load -i lumio-${TAG#v}-linux-amd64.tar.gz\`.
+
+          NOTES
+          cat notes.md
       # A release made with the workflow token creates its tag without starting this
       # workflow again for the tag push.
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.version.outputs.tag }}
-          SHA: ${{ needs.version.outputs.sha }}
         run: |
-          flags="--generate-notes"
+          flags="--generate-notes --notes-file notes.md"
           if [ "$GITHUB_REF_TYPE" = tag ]; then
             flags="$flags --verify-tag"
           else
             flags="$flags --target $SHA"
           fi
           case "$TAG" in *-*) flags="$flags --prerelease" ;; esac
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" $flags
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" $flags dist/*

@@ -59,7 +59,7 @@ Run `pnpm --filter @lumio/web exec playwright install chromium` once to download
 
 ### Releases
 
-Every push to `main` is released automatically (`.github/workflows/release.yml`): once CI has passed, the workflow works out the next version, builds the image for amd64 and arm64, pushes it to `ghcr.io/sniphs98/lumio` and creates a GitHub release with a tag and generated notes.
+Every push to `main` is released automatically (`.github/workflows/release.yml`): once CI has passed, the workflow works out the next version, builds the image for amd64 and arm64, pushes it to `ghcr.io/sniphs98/lumio` and creates a GitHub release with a tag and generated notes. The release notes show the `docker pull` command, and the image is attached for amd64 and arm64 (`docker load -i lumio-<version>-linux-amd64.tar.gz`) for machines that cannot reach ghcr.io.
 
 The version bump comes from the name of the merged pull request's branch:
 
