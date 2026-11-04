@@ -12,6 +12,7 @@ import {
 	type RemoteTrack
 } from 'livekit-client';
 import {
+	participantImage,
 	RING_TIMEOUT_MS,
 	roomName,
 	SCREEN_SHARE_QUALITY,
@@ -58,6 +59,8 @@ export type AttachableTrack = {
 export type CallParticipant = {
 	identity: string;
 	name: string;
+	/** Their profile picture. */
+	image?: string | null;
 	isLocal: boolean;
 	speaking: boolean;
 	micMuted: boolean;
@@ -523,6 +526,7 @@ export class Call implements CallControls, AudioControls, UserAudioControls {
 		this.participants = all.map((p) => ({
 			identity: p.identity,
 			name: p.name || p.identity,
+			image: participantImage(p.attributes),
 			isLocal: p === local,
 			speaking: p.isSpeaking,
 			micMuted: !p.isMicrophoneEnabled,

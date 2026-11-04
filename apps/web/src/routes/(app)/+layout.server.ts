@@ -18,7 +18,7 @@ export const load: LayoutServerLoad = async (event) => {
 			image: user.image ?? null,
 			isGuest: user.isAnonymous === true
 		},
-		instance: { name: inst?.name ?? 'Lumio' },
+		instance: { name: inst?.name ?? 'Lumio', iconUrl: inst?.iconUrl ?? null },
 		unread
 	};
 };

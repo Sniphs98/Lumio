@@ -204,6 +204,8 @@ export const conversation = pgTable('conversation', {
 	 * Unique, so two users always share exactly one direct conversation.
 	 */
 	directKey: text('direct_key').unique(),
+	/** Only used for group conversations: its picture, see `image`. */
+	iconUrl: text('icon_url'),
 	...timestamps
 });
 
@@ -282,6 +284,19 @@ export const attachment = pgTable(
 		index('attachment_uploader_idx').on(t.uploaderId)
 	]
 );
+
+/**
+ * A picture: a profile picture (`user.image`), the server icon (`instance.iconUrl`) or a group
+ * picture (`conversation.iconUrl`). Those columns hold its address, see `#lib/images.ts`. The file
+ * lives in the upload store under `images/<id>`. A picture is deleted when it is replaced or removed.
+ */
+export const image = pgTable('image', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	uploaderId: text('uploader_id').references(() => user.id, { onDelete: 'set null' }),
+	mimeType: text('mime_type').notNull(),
+	size: integer('size').notNull(),
+	...timestamps
+});
 
 export const reaction = pgTable(
 	'reaction',

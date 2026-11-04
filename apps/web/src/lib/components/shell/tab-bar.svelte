@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { House, MessagesSquare, Plus, UserRound } from '@lucide/svelte';
+	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
@@ -10,6 +11,8 @@
 
 	type Props = {
 		instanceName: string;
+		/** The server icon, if the owner set one. */
+		instanceIcon?: string | null;
 		isGuest?: boolean;
 		/** Unread counts, summed up on each tab. */
 		unread?: UnreadCounts;
@@ -19,6 +22,7 @@
 
 	let {
 		instanceName,
+		instanceIcon = null,
 		isGuest = false,
 		unread = { channels: {}, conversations: {} },
 		openChatId
@@ -52,7 +56,15 @@
 		<UnreadBadge unread={homeUnread} />
 	</a>
 	<a href={resolve('/(app)/channels')} class={tabClass(instanceActive)}>
-		<MessagesSquare class="size-4" />
+		{#if instanceIcon}
+			<UserAvatar
+				user={{ name: instanceName, image: instanceIcon }}
+				square
+				class="size-5 data-[size=sm]:size-5"
+			/>
+		{:else}
+			<MessagesSquare class="size-4" />
+		{/if}
 		<span class="truncate">{instanceName}</span>
 		<UnreadBadge unread={instanceUnread} />
 	</a>

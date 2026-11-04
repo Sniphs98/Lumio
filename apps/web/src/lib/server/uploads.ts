@@ -1,9 +1,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { DeleteObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+	DeleteObjectCommand,
+	GetObjectCommand,
+	PutObjectCommand,
+	S3Client
+} from '@aws-sdk/client-s3';
 import { FileStore } from '@tus/file-store';
 import { S3Store } from '@tus/s3-store';
 import { Server, type DataStore } from '@tus/server';
@@ -45,6 +51,10 @@ type Storage = {
 	/** Reads a finished file, optionally only the bytes `start` to `end` (inclusive). */
 	read(id: string, range?: { start: number; end: number }): Promise<ReadableStream<Uint8Array>>;
 	remove(id: string): Promise<void>;
+	/** Stores a small file in one piece, bypassing the upload protocol, e.g. a picture. */
+	put(key: string, data: Uint8Array, contentType: string): Promise<void>;
+	/** Deletes a file stored with `put`. */
+	delete(key: string): Promise<void>;
 };
 
 function fileStorage(directory: string): Storage {
@@ -59,7 +69,15 @@ function fileStorage(directory: string): Storage {
 			const stream = createReadStream(join(root, id), range);
 			return Readable.toWeb(stream) as ReadableStream<Uint8Array>;
 		},
-		remove: (id) => datastore.remove(id)
+		remove: (id) => datastore.remove(id),
+		async put(key, data) {
+			const path = join(root, key);
+			await mkdir(dirname(path), { recursive: true });
+			await writeFile(path, data);
+		},
+		async delete(key) {
+			await rm(join(root, key), { force: true });
+		}
 	};
 }
 
@@ -95,6 +113,14 @@ function s3Storage(bucket: string): Storage {
 		async remove(id) {
 			await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: id }));
 			await datastore.remove(id).catch(() => {});
+		},
+		async put(key, data, contentType) {
+			await client.send(
+				new PutObjectCommand({ Bucket: bucket, Key: key, Body: data, ContentType: contentType })
+			);
+		},
+		async delete(key) {
+			await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 		}
 	};
 }

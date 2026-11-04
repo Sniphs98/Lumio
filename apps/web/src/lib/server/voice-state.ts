@@ -4,13 +4,21 @@ import {
 	type ParticipantInfo,
 	type Room
 } from 'livekit-server-sdk';
-import { parseRoomName, type VoiceEvent, type VoiceMember, type VoiceState } from '#lib/calls.ts';
+import {
+	parseRoomName,
+	participantImage,
+	type VoiceEvent,
+	type VoiceMember,
+	type VoiceState
+} from '#lib/calls.ts';
 
 export function voiceMember(p: ParticipantInfo): VoiceMember {
 	const mic = p.tracks.find((t) => t.source === TrackSource.MICROPHONE);
+	const image = participantImage(p.attributes);
 	return {
 		id: p.identity,
 		name: p.name || p.identity,
+		...(image && { image }),
 		muted: !mic || mic.muted,
 		streaming: p.tracks.some((t) => t.source === TrackSource.SCREEN_SHARE && !t.muted)
 	};

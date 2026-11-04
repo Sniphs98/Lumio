@@ -1,4 +1,5 @@
 /** Shared call types and rules, used on the server and in the browser. */
+import { imageIdFromUrl, imageUrl } from '#lib/images.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 
 /** A call happens in a voice channel or in a direct or group conversation. */
@@ -73,6 +74,8 @@ export type CallRingingEvent = {
 export type VoiceMember = {
 	id: string;
 	name: string;
+	/** Their profile picture. */
+	image?: string | null;
 	muted: boolean;
 	/** Sharing their screen. */
 	streaming: boolean;
@@ -96,6 +99,18 @@ export function applyVoiceEvent(state: VoiceState, event: VoiceEvent): VoiceStat
 	if (event.members.length > 0) next[event.channelId] = event.members;
 	else delete next[event.channelId];
 	return next;
+}
+
+/** Name of the LiveKit participant attribute that holds the profile picture, set in the token. */
+export const IMAGE_ATTRIBUTE = 'image';
+
+/**
+ * The profile picture of a LiveKit participant. Only pictures stored by Lumio are used, so a
+ * picture never loads from another server.
+ */
+export function participantImage(attributes: Record<string, string> | undefined): string | null {
+	const id = imageIdFromUrl(attributes?.[IMAGE_ATTRIBUTE]);
+	return id ? imageUrl(id) : null;
 }
 
 /** Two-letter initials for avatars, e.g. `Anna Berg` becomes `AB`. */

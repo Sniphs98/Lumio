@@ -16,7 +16,7 @@
 		friends: FriendUser[];
 		incoming: FriendUser[];
 		outgoing: FriendUser[];
-		groups: { id: string; title: string; memberCount: number }[];
+		groups: { id: string; title: string; iconUrl: string | null; memberCount: number }[];
 		/** Friend id to the id of the direct conversation with them, if there is one. */
 		directConversationIds: Record<string, string>;
 		/** Conversation shown next to the sidebar, if any. */
@@ -224,7 +224,11 @@
 						)}
 						aria-current={group.id === activeConversationId ? 'page' : undefined}
 					>
-						<Users class="size-4 shrink-0" />
+						{#if group.iconUrl}
+							<UserAvatar user={{ name: group.title, image: group.iconUrl }} square />
+						{:else}
+							<Users class="size-4 shrink-0" />
+						{/if}
 						<span class="min-w-0 flex-1 truncate">{group.title}</span>
 						{#if group.id !== activeConversationId}
 							<UnreadBadge unread={unread[group.id] ?? NO_UNREAD} />

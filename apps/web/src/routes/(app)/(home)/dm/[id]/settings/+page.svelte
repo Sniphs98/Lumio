@@ -4,6 +4,7 @@
 	import { ArrowLeft, CircleAlert, LogOut, Settings, UserMinus } from '@lucide/svelte';
 	import FriendPicker from '#lib/components/groups/friend-picker.svelte';
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
+	import PictureForm from '#lib/components/images/picture-form.svelte';
 	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
@@ -67,6 +68,23 @@
 					<Button type="submit" variant="secondary">Rename</Button>
 				</form>
 				{@render failure(form?.renameError)}
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root role="region" aria-labelledby="picture-heading">
+			<Card.Header>
+				<Card.Title><h2 id="picture-heading">Picture</h2></Card.Title>
+				<Card.Description>Every member can change it.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<PictureForm
+					uploadAction="?/icon"
+					removeAction="?/removeIcon"
+					image={data.group.iconUrl}
+					name={title}
+					label="group picture"
+					square
+				/>
 			</Card.Content>
 		</Card.Root>
 

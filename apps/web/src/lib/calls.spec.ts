@@ -3,6 +3,7 @@ import {
 	allowedSources,
 	applyVoiceEvent,
 	initials,
+	participantImage,
 	parseRoomName,
 	roomName,
 	type VoiceMember
@@ -53,6 +54,20 @@ describe('initials', () => {
 		expect(initials('Anna Maria Berg')).toBe('AB');
 		expect(initials('ben')).toBe('BE');
 		expect(initials('  ')).toBe('?');
+	});
+});
+
+describe('participantImage', () => {
+	const url = '/api/images/0f8b6c1e-2d3a-4b5c-8d9e-0a1b2c3d4e5f';
+
+	it('reads the profile picture from the participant attributes', () => {
+		expect(participantImage({ image: url })).toBe(url);
+	});
+
+	it('ignores missing pictures and pictures from other servers', () => {
+		expect(participantImage(undefined)).toBeNull();
+		expect(participantImage({})).toBeNull();
+		expect(participantImage({ image: 'https://tracker.example/pixel.png' })).toBeNull();
 	});
 });
 

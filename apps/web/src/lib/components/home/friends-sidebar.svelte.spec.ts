@@ -74,7 +74,7 @@ describe('FriendsSidebar', () => {
 		render(FriendsSidebar, {
 			...empty,
 			friends: [ben],
-			groups: [{ id: 'g1', title: 'Raid night', memberCount: 3 }]
+			groups: [{ id: 'g1', title: 'Raid night', iconUrl: null, memberCount: 3 }]
 		});
 
 		await expect
@@ -86,7 +86,7 @@ describe('FriendsSidebar', () => {
 		render(FriendsSidebar, {
 			...empty,
 			friends: [ben, cleo],
-			groups: [{ id: 'g1', title: 'Raid night', memberCount: 3 }],
+			groups: [{ id: 'g1', title: 'Raid night', iconUrl: null, memberCount: 3 }],
 			directConversationIds: { ben: 'c-ben', cleo: 'c-cleo' },
 			activeConversationId: 'c-cleo',
 			unread: {

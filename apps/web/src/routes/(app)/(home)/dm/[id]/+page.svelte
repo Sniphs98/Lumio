@@ -4,6 +4,7 @@
 	import { call } from '#lib/call.svelte.ts';
 	import CallStage from '#lib/components/call/call-stage.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
+	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import { groupTitle } from '#lib/groups.ts';
@@ -46,7 +47,13 @@
 		<ArrowLeft />
 	</a>
 	{#if data.conversation.type === 'group'}
-		<Users class="size-4 shrink-0 text-muted-foreground" />
+		{#if data.conversation.iconUrl}
+			<UserAvatar user={{ name: title, image: data.conversation.iconUrl }} square />
+		{:else}
+			<Users class="size-4 shrink-0 text-muted-foreground" />
+		{/if}
+	{:else if data.conversation.others[0]}
+		<UserAvatar user={data.conversation.others[0]} />
 	{/if}
 	<h1 class="min-w-0 flex-1 truncate font-semibold">{title}</h1>
 	{#if data.conversation.type === 'group'}

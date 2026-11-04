@@ -24,12 +24,14 @@ function participant(
 		joinedAt = 1n,
 		tracks = [] as TrackInfo[],
 		state = ParticipantInfo_State.ACTIVE,
-		hidden = false
+		hidden = false,
+		attributes = {} as Record<string, string>
 	} = {}
 ) {
 	return new ParticipantInfo({
 		identity,
 		name,
+		attributes,
 		joinedAt,
 		tracks,
 		state,
@@ -60,6 +62,19 @@ describe('voiceStateFromRooms', () => {
 				{ id: 'carl', name: 'carl', muted: true, streaming: false }
 			]
 		});
+	});
+
+	it('includes profile pictures', () => {
+		const image = '/api/images/0f8b6c1e-2d3a-4b5c-8d9e-0a1b2c3d4e5f';
+		const state = voiceStateFromRooms([
+			{
+				name: roomName('channel', lounge),
+				participants: [participant('anna', 'Anna', { tracks: [mic(false)], attributes: { image } })]
+			}
+		]);
+		expect(state[lounge]).toEqual([
+			{ id: 'anna', name: 'Anna', image, muted: false, streaming: false }
+		]);
 	});
 
 	it('leaves out conversation calls, empty rooms, hidden and disconnected participants', () => {

@@ -4,6 +4,7 @@
 	import type { SubmitFunction } from '$app/forms';
 	import { ArrowLeft, CircleAlert, LogOut, UserRound } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
+	import PictureForm from '#lib/components/images/picture-form.svelte';
 	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.ts';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
@@ -65,6 +66,25 @@
 
 	<div class="min-h-0 flex-1 overflow-y-auto">
 		<div class="mx-auto grid max-w-md grid-cols-[minmax(0,1fr)] gap-6 p-4">
+			<Card.Root role="region" aria-labelledby="picture-heading">
+				<Card.Header>
+					<Card.Title><h2 id="picture-heading">Profile picture</h2></Card.Title>
+					<Card.Description>
+						Shown next to your name in chats, member lists and calls. Pictures are cropped to a
+						square.
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<PictureForm
+						uploadAction="?/picture"
+						removeAction="?/removePicture"
+						image={data.user.image}
+						name={data.user.name}
+						label="profile picture"
+					/>
+				</Card.Content>
+			</Card.Root>
+
 			{#if data.user.isGuest}
 				<Card.Root role="region" aria-labelledby="create-account-heading">
 					<Card.Header>
