@@ -11,7 +11,7 @@ Lumio runs in the browser (desktop and mobile, installable as a PWA), and there 
 | Part                         | Choice                                                                                               |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Web app                      | [SvelteKit](https://svelte.dev/docs/kit) + [shadcn-svelte](https://shadcn-svelte.com) + Tailwind CSS |
-| Auth                         | [Better Auth](https://www.better-auth.com) (email and password)                                      |
+| Auth                         | [Better Auth](https://www.better-auth.com) (email and password, optional Discord, Google and Steam)  |
 | Database                     | PostgreSQL + [Drizzle ORM](https://orm.drizzle.team)                                                 |
 | Voice, video, screen sharing | [LiveKit](https://livekit.io) (self-hosted SFU)                                                      |
 | Desktop                      | Electron, a thin shell around the web app                                                            |
@@ -133,15 +133,32 @@ Files are stored on the server in the `uploads` Docker volume. To keep them in S
 
 Profile pictures, the server icon and group pictures live in the same place, under `images/`. Browsers crop them to a square and scale them down to 512 × 512 before uploading (GIFs are kept as they are, up to 8 MB).
 
-### Sign in with Discord
+### Sign in with Discord, Google or Steam
 
-To make switching easier, people can join and sign in with their Discord account. It is off by default. To turn it on:
+People can join and sign in with their Discord, Google or Steam account. Each service is off by default and is turned on with its own credentials in `.env`; services without them show no button. After changing `.env`, restart the app with `docker compose up -d`.
+
+**Discord**
 
 1. Create an application in the [Discord Developer Portal](https://discord.com/developers/applications).
 2. Under **OAuth2**, add the redirect `https://<LUMIO_DOMAIN>/api/auth/callback/discord`.
-3. Set `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` in `.env` to the application's client ID and secret.
+3. Set `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to the application's client ID and secret.
 
-The login, invite and friend link pages then show **Continue with Discord**. New users still need an invite or friend link (except the first user, who becomes the owner); Lumio takes their Discord display name and email address, but not their avatar. Members who already have a password connect Discord on their **Account** page, and can disconnect it there again.
+**Google**
+
+1. In the [Google Cloud Console](https://console.cloud.google.com), create a project (or pick one) and set up the **OAuth consent screen** (Google Auth Platform): app name, support email, and your domain under **Authorized domains**. Publish the app, otherwise only test users you list can sign in.
+2. Under **Clients** (APIs & Services → Credentials), create an **OAuth client ID** of type **Web application**. Add `https://<LUMIO_DOMAIN>` as an authorized JavaScript origin and `https://<LUMIO_DOMAIN>/api/auth/callback/google` as an authorized redirect URI.
+3. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the client's ID and secret.
+
+**Steam**
+
+Steam uses OpenID 2.0, not OAuth, so there is no application or redirect to register. Lumio only needs a Steam Web API key to read the display name:
+
+1. Sign in on the [Steam Web API key page](https://steamcommunity.com/dev/apikey) (the Steam account needs to have spent at least 5 USD in the Steam store) and register a key with `<LUMIO_DOMAIN>` as the domain name.
+2. Set `STEAM_API_KEY` to that key.
+
+The login, invite and friend link pages then show **Continue with Discord**, **Continue with Google** or **Continue with Steam**. New users still need an invite or friend link (except the first user, who becomes the owner). Lumio takes their display name and, from Discord and Google, their email address, but never their avatar. Steam shares no email address, so Steam users get a placeholder that is never shown.
+
+Members connect more services, or disconnect them, under **Connected accounts** on their **Account** page. A service is never connected because an email address matches, only from that page, and the last way to sign in cannot be disconnected.
 
 ### Emojis and GIFs
 

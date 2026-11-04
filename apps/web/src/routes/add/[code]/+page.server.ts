@@ -1,11 +1,11 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { discordErrorMessage } from '#lib/discord.ts';
 import { parseGuestName } from '#lib/guests.ts';
-import { discordEnabled, signInWithDiscord } from '#lib/server/discord.ts';
 import { friendLinkAdmitsNewUsers, getFriendLinkOwner } from '#lib/server/friend-links.ts';
 import { areFriends, befriendThroughLink } from '#lib/server/friends.ts';
 import { signInAsGuest, signUpWithAccount } from '#lib/server/guests.ts';
 import { getInstance } from '#lib/server/instance.ts';
+import { enabledProviders, requestedProvider, signInWith } from '#lib/server/social.ts';
+import { socialErrorFromUrl } from '#lib/social.ts';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 /** A personal friend link: members become friends with its owner, newcomers join first. */
@@ -25,8 +25,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		state: (await friendLinkAdmitsNewUsers(owner.id))
 			? ('newcomer' as const)
 			: ('sign-in' as const),
-		discord: discordEnabled,
-		discordError: discordErrorMessage(url.searchParams.get('error'))
+		providers: enabledProviders,
+		socialError: socialErrorFromUrl(url)
 	};
 };
 
@@ -82,10 +82,10 @@ export const actions: Actions = {
 		if (failure) return failure;
 		redirect(302, `/friends/${owner.id}`);
 	},
-	/** New users join with Discord, then come back here to add the friend. */
-	discord: async (event) => {
+	/** New users join with Discord, Google or Steam, then come back here to add the friend. */
+	social: async (event) => {
 		await linkOwner(event.params.code);
-		return signInWithDiscord(event, {
+		return signInWith(event, await requestedProvider(event), {
 			callbackURL: `/add/${event.params.code}`,
 			errorCallbackURL: `/add/${event.params.code}`,
 			admission: { kind: 'friend', code: event.params.code }

@@ -3,6 +3,7 @@
 	import JoinForm from '#lib/components/join/join-form.svelte';
 	import { buttonVariants } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
+	import { providerList } from '#lib/social.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -22,14 +23,16 @@
 					{data.invite.allowGuests
 						? 'Join as a guest with just a name, or create an account.'
 						: 'Create an account to join.'}
-					{#if data.discord}You can also use your Discord account.{/if}
+					{#if data.providers.length}
+						You can also use your {providerList(data.providers)} account.
+					{/if}
 				</Card.Description>
 			</Card.Header>
 			<Card.Content>
 				<JoinForm
 					allowGuests={data.invite.allowGuests}
-					message={form?.message ?? data.discordError}
-					discord={data.discord}
+					message={form?.message ?? data.socialError}
+					providers={data.providers}
 				/>
 			</Card.Content>
 		{:else}

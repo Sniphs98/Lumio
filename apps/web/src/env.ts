@@ -47,6 +47,20 @@ export const variables = defineEnvVars({
 		description: 'Client secret of the Discord application.',
 		schema: optional
 	},
+	GOOGLE_CLIENT_ID: {
+		description:
+			'Optional client ID of a Google OAuth client. Together with `GOOGLE_CLIENT_SECRET` it turns on signing in with Google.',
+		schema: optional
+	},
+	GOOGLE_CLIENT_SECRET: {
+		description: 'Client secret of the Google OAuth client.',
+		schema: optional
+	},
+	STEAM_API_KEY: {
+		description:
+			'Optional Steam Web API key. Turns on signing in with Steam; the key is used to read the display name.',
+		schema: optional
+	},
 	GIPHY_API_KEY: {
 		description:
 			'Optional Giphy API key. Turns on searching and sending GIFs in chats. Wins over `TENOR_API_KEY`.',

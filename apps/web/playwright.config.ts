@@ -17,9 +17,12 @@ export default defineConfig({
 		env: {
 			// The tests sign up many users from one address.
 			AUTH_RATE_LIMIT: 'off',
-			// Shows the Discord buttons. The tests stop at Discord's page, which they replace.
+			// Shows the Discord, Google and Steam buttons. The tests stop before leaving Lumio.
 			DISCORD_CLIENT_ID: 'e2e-discord-client',
-			DISCORD_CLIENT_SECRET: 'e2e-discord-secret'
+			DISCORD_CLIENT_SECRET: 'e2e-discord-secret',
+			GOOGLE_CLIENT_ID: 'e2e-google-client',
+			GOOGLE_CLIENT_SECRET: 'e2e-google-secret',
+			STEAM_API_KEY: 'e2e-steam-key'
 		},
 		reuseExistingServer: !process.env.CI
 	},

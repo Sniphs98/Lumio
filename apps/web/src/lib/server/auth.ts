@@ -2,7 +2,10 @@ import {
 	ORIGIN,
 	BETTER_AUTH_SECRET,
 	DISCORD_CLIENT_ID,
-	DISCORD_CLIENT_SECRET
+	DISCORD_CLIENT_SECRET,
+	GOOGLE_CLIENT_ID,
+	GOOGLE_CLIENT_SECRET,
+	STEAM_API_KEY
 } from '$app/env/private';
 import { betterAuth } from 'better-auth/minimal';
 import { APIError } from 'better-auth/api';
@@ -10,22 +13,24 @@ import { anonymous } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
-import { DISCORD_ERRORS } from '#lib/discord.ts';
 import { parseGuestName } from '#lib/guests.ts';
 import { db } from '#lib/server/db/index.ts';
 import { setUpInstanceIfNeeded } from '#lib/server/instance.ts';
 import { admitNewUser } from '#lib/server/invites.ts';
 import { isBanned } from '#lib/server/moderation.ts';
+import { steam } from '#lib/server/steam.ts';
+import { SOCIAL_ERRORS } from '#lib/social.ts';
 
 /**
  * Display names follow the same rules everywhere (trimmed, at most 32 characters), also when
- * set through the Better Auth HTTP API, e.g. `/api/auth/update-user`, or taken from Discord.
+ * set through the Better Auth HTTP API, e.g. `/api/auth/update-user`, or taken from Discord,
+ * Google or Steam.
  * Throws for invalid names.
  */
 function checkedName(name: unknown): string {
 	const parsed = parseGuestName(name);
 	if (!parsed.ok) {
-		throw new APIError('BAD_REQUEST', { message: parsed.error, code: DISCORD_ERRORS.invalidName });
+		throw new APIError('BAD_REQUEST', { message: parsed.error, code: SOCIAL_ERRORS.invalidName });
 	}
 	return parsed.name;
 }
@@ -44,18 +49,26 @@ export const auth = betterAuth({
 	secret: BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, { provider: 'pg' }),
 	emailAndPassword: { enabled: true },
-	// Optional, see "Sign in with Discord" in the README.
-	socialProviders:
-		DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET
+	// All optional, see "Sign in with Discord, Google or Steam" in the README. Steam is a plugin
+	// below, since it uses OpenID 2.0 instead of OAuth.
+	socialProviders: {
+		...(DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET
 			? { discord: { clientId: DISCORD_CLIENT_ID, clientSecret: DISCORD_CLIENT_SECRET } }
-			: {},
+			: {}),
+		...(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
+			? { google: { clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET } }
+			: {})
+	},
 	account: {
 		accountLinking: {
-			// Discord is only connected to an existing account from its account page, never
+			// Other services are only connected to an existing account from its account page, never
 			// because the email addresses match: Lumio does not verify email addresses.
 			disableImplicitLinking: true,
-			// Many people use a different email address on Discord.
-			allowDifferentEmails: true
+			// Many people use a different email address on Discord or Google.
+			allowDifferentEmails: true,
+			// Steam shares no email address, so Better Auth cannot see a verified one. Connecting
+			// it is still safe: only the signed-in member can, from their account page.
+			trustedProviders: ['steam']
 		}
 	},
 	session: {
@@ -72,12 +85,12 @@ export const auth = betterAuth({
 					const asGuest = (user as { isAnonymous?: boolean }).isAnonymous === true;
 					const name = checkedName(user.name);
 					const error = await admitNewUser(currentLocals()?.admission, asGuest);
-					// The code lets a failed Discord sign-up show why, see `#lib/discord.ts`.
+					// The code lets a failed sign-up through another service show why, see `#lib/social.ts`.
 					if (error) {
-						throw new APIError('FORBIDDEN', { message: error, code: DISCORD_ERRORS.notAdmitted });
+						throw new APIError('FORBIDDEN', { message: error, code: SOCIAL_ERRORS.notAdmitted });
 					}
 					// Profile pictures are uploaded to Lumio from the account page. An image URL from the
-					// sign-up request (or Discord) would load from another server for everyone who sees
+					// sign-up request (or Discord or Google) would load from another server for everyone who sees
 					// the user, revealing their IP addresses.
 					return { data: { ...user, name, image: null } };
 				},
@@ -104,7 +117,7 @@ export const auth = betterAuth({
 					if (await isBanned(session.userId)) {
 						throw new APIError('FORBIDDEN', {
 							message: 'You are banned from this Lumio.',
-							code: DISCORD_ERRORS.banned
+							code: SOCIAL_ERRORS.banned
 						});
 					}
 				}
@@ -118,6 +131,8 @@ export const auth = betterAuth({
 			generateName: () => currentLocals()?.guestName ?? 'Guest',
 			disableDeleteAnonymousUser: true
 		}),
+		// Off without an API key: its endpoints then refuse, and no button is shown.
+		steam({ apiKey: STEAM_API_KEY }),
 		sveltekitCookies(getRequestEvent) // make sure this is the last plugin in the array
 	]
 });

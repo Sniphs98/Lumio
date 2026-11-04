@@ -1,10 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { discordErrorMessage } from '#lib/discord.ts';
 import { parseGuestName } from '#lib/guests.ts';
-import { discordEnabled, signInWithDiscord } from '#lib/server/discord.ts';
 import { signInAsGuest, signUpWithAccount } from '#lib/server/guests.ts';
 import { getInstance } from '#lib/server/instance.ts';
 import { getValidInvite } from '#lib/server/invites.ts';
+import { enabledProviders, requestedProvider, signInWith } from '#lib/server/social.ts';
+import { socialErrorFromUrl } from '#lib/social.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
@@ -15,8 +15,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	return {
 		instanceName: inst?.name ?? 'Lumio',
 		invite: invite ? { inviterName: invite.createdByName, allowGuests: invite.allowGuests } : null,
-		discord: discordEnabled,
-		discordError: discordErrorMessage(url.searchParams.get('error'))
+		providers: enabledProviders,
+		socialError: socialErrorFromUrl(url)
 	};
 };
 
@@ -47,8 +47,8 @@ export const actions: Actions = {
 		if (!result.ok) return fail(400, { message: result.error });
 		redirect(302, '/channels');
 	},
-	discord: (event) =>
-		signInWithDiscord(event, {
+	social: async (event) =>
+		signInWith(event, await requestedProvider(event), {
 			callbackURL: '/channels',
 			errorCallbackURL: `/invite/${event.params.code}`,
 			admission: { kind: 'invite', code: event.params.code }

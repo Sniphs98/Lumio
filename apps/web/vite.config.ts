@@ -30,8 +30,13 @@ export default defineConfig({
 					'worker-src': ['self', 'blob:'],
 					'object-src': ['none'],
 					'base-uri': ['self'],
-					// Signing in with Discord posts a form that redirects to Discord.
-					'form-action': ['self', 'https://discord.com'],
+					// Signing in with Discord, Google or Steam posts a form that redirects there.
+					'form-action': [
+						'self',
+						'https://discord.com',
+						'https://accounts.google.com',
+						'https://steamcommunity.com'
+					],
 					'frame-ancestors': ['none']
 				}
 			},

@@ -3,24 +3,25 @@
 	import { goto } from '$app/navigation';
 	import type { SubmitFunction } from '$app/forms';
 	import { CircleAlert } from '@lucide/svelte';
-	import DiscordButton from '#lib/components/discord/discord-button.svelte';
+	import SocialButtons from '#lib/components/social/social-buttons.svelte';
 	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import * as Tabs from '#lib/components/ui/tabs/index.ts';
 	import { NAME_MAX_LENGTH, saveGuest, startVisit, type StoredGuest } from '#lib/guests.ts';
+	import type { SocialProvider } from '#lib/social.ts';
 
 	type Props = {
 		/** Whether this link lets people join as a guest with only a name. */
 		allowGuests: boolean;
 		/** Error of the last attempt, shown under the form. */
 		message?: string | null;
-		/** Whether this Lumio lets people join with Discord, through the page's `discord` action. */
-		discord?: boolean;
+		/** Services this Lumio lets people join with, through the page's `social` action. */
+		providers?: SocialProvider[];
 	};
 
-	let { allowGuests, message, discord = false }: Props = $props();
+	let { allowGuests, message, providers = [] }: Props = $props();
 
 	let mode = $state<'guest' | 'account'>('guest');
 	const current = $derived(allowGuests ? mode : 'account');
@@ -45,9 +46,7 @@
 </script>
 
 <div class="grid gap-4">
-	{#if discord}
-		<DiscordButton action="?/discord" />
-	{/if}
+	<SocialButtons action="?/social" {providers} />
 	{#if allowGuests}
 		<Tabs.Root bind:value={mode}>
 			<Tabs.List class="w-full">
