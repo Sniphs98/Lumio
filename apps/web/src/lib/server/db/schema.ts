@@ -52,6 +52,11 @@ export const instance = pgTable('instance', {
 	memberUploadQuota: bigint('member_upload_quota', { mode: 'number' })
 		.notNull()
 		.default(5 * 1024 ** 3),
+	/**
+	 * Giphy API key entered in the server settings, turns on GIF search. The `GIPHY_API_KEY`
+	 * and `TENOR_API_KEY` environment variables win over it. Never sent to browsers.
+	 */
+	giphyApiKey: text('giphy_api_key'),
 	/** Total size of the files a guest may have shared, in bytes. */
 	guestUploadQuota: bigint('guest_upload_quota', { mode: 'number' })
 		.notNull()

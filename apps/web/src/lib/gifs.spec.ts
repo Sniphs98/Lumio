@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gifInContent, gifMediaPath, isGifUrl } from './gifs.ts';
+import { gifInContent, gifMediaPath, isGifUrl, parseGiphyKey } from './gifs.ts';
 
 describe('isGifUrl', () => {
 	it('accepts files of Giphy and Tenor', () => {
@@ -42,5 +42,24 @@ describe('gifInContent', () => {
 		expect(gifMediaPath('https://media.tenor.com/a b.gif')).toBe(
 			'/api/gifs/media?url=https%3A%2F%2Fmedia.tenor.com%2Fa%20b.gif'
 		);
+	});
+});
+
+describe('parseGiphyKey', () => {
+	it('accepts a trimmed key and rejects anything else', () => {
+		expect(parseGiphyKey('  AbCdEfGhIjKlMnOpQrStUvWxYz012345 ')).toEqual({
+			ok: true,
+			key: 'AbCdEfGhIjKlMnOpQrStUvWxYz012345'
+		});
+		for (const raw of [
+			'',
+			'   ',
+			'short',
+			'has spaces in the middle of it ok',
+			'x'.repeat(65),
+			null
+		]) {
+			expect(parseGiphyKey(raw).ok).toBe(false);
+		}
 	});
 });

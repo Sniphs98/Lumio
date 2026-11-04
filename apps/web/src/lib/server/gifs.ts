@@ -172,3 +172,17 @@ export async function fetchGif(url: string, fetcher: Fetch = fetch): Promise<Res
 	if (length) headers.set('Content-Length', String(length));
 	return new Response(limited, { headers });
 }
+
+/** Asks Giphy whether a key works, before the server settings save it. */
+export async function checkGiphyKey(
+	key: string,
+	fetcher: Fetch = fetch
+): Promise<'ok' | 'invalid' | 'unreachable'> {
+	const url = new URL('https://api.giphy.com/v1/gifs/trending');
+	url.searchParams.set('api_key', key);
+	url.searchParams.set('limit', '1');
+	const response = await fetcher(url, { signal: AbortSignal.timeout(8000) }).catch(() => null);
+	if (!response) return 'unreachable';
+	if (response.ok) return 'ok';
+	return response.status === 401 || response.status === 403 ? 'invalid' : 'unreachable';
+}

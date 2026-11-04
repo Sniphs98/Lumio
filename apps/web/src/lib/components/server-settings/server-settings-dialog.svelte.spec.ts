@@ -8,7 +8,8 @@ const general: NonNullable<ServerSettings['general']> = {
 	name: 'Game night',
 	isPublic: false,
 	maxUploadSize: 2 * 1024 ** 3,
-	quotas: { enabled: true, member: 5 * 1024 ** 3, guest: 1024 ** 3 }
+	quotas: { enabled: true, member: 5 * 1024 ** 3, guest: 1024 ** 3 },
+	gifs: { hasKey: false, fromEnv: false }
 };
 
 const bans: NonNullable<ServerSettings['bans']> = [
@@ -36,6 +37,41 @@ describe('ServerSettingsDialog', () => {
 		await expect.element(page.getByRole('heading', { name: 'Files & storage' })).toBeVisible();
 		await expect.element(page.getByLabelText('Largest file (MB)')).toHaveValue(2048);
 		await expect.element(page.getByLabelText('Members (GB)')).toHaveValue(5);
+	});
+
+	it('lets the owner paste a GIPHY key, unless the server sets one', async () => {
+		await render(ServerSettingsDialog, {
+			open: true,
+			section: 'chat',
+			settings: { general, bans }
+		});
+		await expect.element(page.getByLabelText('GIPHY API key')).toHaveAttribute('type', 'password');
+		await expect
+			.element(page.getByRole('link', { name: 'GIPHY developer dashboard' }))
+			.toBeVisible();
+		await expect
+			.element(page.getByRole('button', { name: 'Turn off GIFs' }))
+			.not.toBeInTheDocument();
+	});
+
+	it('only offers turning GIFs off once a key is saved, and hides the form for server keys', async () => {
+		const withKey = { ...general, gifs: { hasKey: true, fromEnv: false } };
+		const { unmount } = await render(ServerSettingsDialog, {
+			open: true,
+			section: 'chat',
+			settings: { general: withKey, bans }
+		});
+		await expect.element(page.getByRole('button', { name: 'Turn off GIFs' })).toBeVisible();
+		unmount();
+
+		const fromEnv = { ...general, gifs: { hasKey: true, fromEnv: true } };
+		await render(ServerSettingsDialog, {
+			open: true,
+			section: 'chat',
+			settings: { general: fromEnv, bans }
+		});
+		await expect.element(page.getByText(/environment variable/)).toBeVisible();
+		await expect.element(page.getByLabelText('GIPHY API key')).not.toBeInTheDocument();
 	});
 
 	it('lists the bans', async () => {

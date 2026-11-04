@@ -147,7 +147,7 @@ The login, invite and friend link pages then show **Continue with Discord**. New
 
 The smiley button in the composer opens an emoji picker with search, categories and your recently used emojis; the same picker adds reactions to messages. It works without any setup.
 
-Searching and sending GIFs needs an API key of a GIF service, so it is off by default. Set `GIPHY_API_KEY` (free key from the [GIPHY Developer Portal](https://developers.giphy.com)) or `TENOR_API_KEY` (a Google Cloud key with the [Tenor API](https://developers.google.com/tenor) enabled) in `.env`; Giphy wins when both are set. The composer then gets a **GIFs** tab. GIFs are loaded through Lumio, so Giphy and Tenor only see the server, not who reads a chat. GIFs that were sent keep showing if the key is removed later.
+Searching and sending GIFs needs a GIPHY API key, so it is off by default. The owner (and anyone with **Manage server**) creates a free key on the [GIPHY developer dashboard](https://developers.giphy.com/dashboard/) and pastes it under **Server settings → GIFs**; Lumio checks it with GIPHY before saving it. Alternatively set `GIPHY_API_KEY` or `TENOR_API_KEY` (a Google Cloud key with the [Tenor API](https://developers.google.com/tenor) enabled) in `.env`; these win over the settings, and Giphy wins when both are set. The composer then gets a **GIF** button. GIFs are loaded through Lumio, so Giphy and Tenor only see the server, not who reads a chat. GIFs that were sent keep showing if the key is removed later.
 
 ### Tracing
 

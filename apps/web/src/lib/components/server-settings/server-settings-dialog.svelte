@@ -2,7 +2,7 @@
 	import type { UploadQuotas } from '#lib/attachments.ts';
 
 	/** The sections of the server settings. New sections are added here and below. */
-	export type ServerSettingsSection = 'overview' | 'files' | 'bans';
+	export type ServerSettingsSection = 'overview' | 'files' | 'chat' | 'bans';
 
 	export type BannedUser = { userId: string; name: string; reason: string | null; createdAt: Date };
 
@@ -15,6 +15,8 @@
 			isPublic: boolean;
 			maxUploadSize: number;
 			quotas: UploadQuotas;
+			/** Whether GIF search is set up, and whether by the environment. */
+			gifs: { hasKey: boolean; fromEnv: boolean };
 		} | null;
 		/** Needs Ban members. */
 		bans: BannedUser[] | null;
@@ -23,11 +25,12 @@
 
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { Ban, HardDrive, SlidersHorizontal } from '@lucide/svelte';
+	import { Ban, HardDrive, ImagePlay, SlidersHorizontal } from '@lucide/svelte';
 	import SettingsShell, {
 		type SettingsShellSection
 	} from '#lib/components/settings/settings-shell.svelte';
 	import BansSection from './bans-section.svelte';
+	import ChatSection from './chat-section.svelte';
 	import FilesSection from './files-section.svelte';
 	import OverviewSection from './overview-section.svelte';
 
@@ -48,6 +51,7 @@
 			[
 				settings.general && { id: 'overview', label: 'Overview', icon: SlidersHorizontal },
 				settings.general && { id: 'files', label: 'Files & storage', icon: HardDrive },
+				settings.general && { id: 'chat', label: 'GIFs', icon: ImagePlay },
 				settings.bans && { id: 'bans', label: 'Bans', icon: Ban }
 			] satisfies (SettingsShellSection<ServerSettingsSection> | null)[]
 		).filter((s) => s !== null)
@@ -69,6 +73,8 @@
 				maxUploadSize={settings.general.maxUploadSize}
 				quotas={settings.general.quotas}
 			/>
+		{:else if id === 'chat' && settings.general}
+			<ChatSection {action} gifs={settings.general.gifs} />
 		{:else if id === 'bans' && settings.bans}
 			<BansSection {action} bans={settings.bans} />
 		{/if}

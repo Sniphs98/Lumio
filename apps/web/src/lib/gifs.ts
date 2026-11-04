@@ -54,3 +54,15 @@ export function gifInContent(content: string): string | null {
 export function gifMediaPath(url: string): string {
 	return `/api/gifs/media?url=${encodeURIComponent(url)}`;
 }
+
+/** Checks a Giphy API key typed into the server settings. Returns the key, or an error text. */
+export function parseGiphyKey(
+	raw: unknown
+): { ok: true; key: string } | { ok: false; error: string } {
+	const key = typeof raw === 'string' ? raw.trim() : '';
+	if (key === '') return { ok: false, error: 'Paste the API key of your GIPHY app.' };
+	if (!/^[A-Za-z0-9]{16,64}$/.test(key)) {
+		return { ok: false, error: 'That does not look like a GIPHY API key.' };
+	}
+	return { ok: true, key };
+}

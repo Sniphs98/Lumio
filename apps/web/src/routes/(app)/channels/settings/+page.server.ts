@@ -1,9 +1,12 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { parseMaxUploadSize, parseUploadQuotas } from '#lib/attachments.ts';
+import { parseGiphyKey } from '#lib/gifs.ts';
 import { parseServerName } from '#lib/instance.ts';
 import { hasPermission, Permission } from '#lib/permissions.ts';
 import { setMaxUploadSize, setUploadQuotas } from '#lib/server/attachments.ts';
 import { getServerPermissions } from '#lib/server/channels.ts';
+import { gifKeyFromEnv, setGiphyApiKey } from '#lib/server/gif-provider.ts';
+import { checkGiphyKey } from '#lib/server/gifs.ts';
 import { storeImage } from '#lib/server/images.ts';
 import { setInstanceIcon, setInstanceName, setInstancePublic } from '#lib/server/instance.ts';
 import { unbanMember } from '#lib/server/moderation.ts';
@@ -80,6 +83,29 @@ export const actions: Actions = {
 		if (!parsed.ok) return fail(400, { error: parsed.error });
 
 		await setUploadQuotas(parsed.quotas);
+		return { saved: true };
+	},
+	gifs: async ({ locals, request }) => {
+		await requirePermission(locals.user?.id, Permission.ManageServer);
+		if (gifKeyFromEnv) {
+			return fail(400, {
+				error: 'The GIF key is set on the server (GIPHY_API_KEY or TENOR_API_KEY).'
+			});
+		}
+		const form = await request.formData();
+		if (form.get('remove') === 'on') {
+			await setGiphyApiKey(null);
+			return { saved: true };
+		}
+		const parsed = parseGiphyKey(form.get('giphyApiKey'));
+		if (!parsed.ok) return fail(400, { error: parsed.error });
+
+		const check = await checkGiphyKey(parsed.key);
+		if (check === 'invalid') return fail(400, { error: 'GIPHY does not accept this API key.' });
+		if (check === 'unreachable') {
+			return fail(502, { error: 'Could not reach GIPHY to check the key. Try again later.' });
+		}
+		await setGiphyApiKey(parsed.key);
 		return { saved: true };
 	},
 	unban: async ({ locals, request }) => {
