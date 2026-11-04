@@ -3,11 +3,13 @@
 	import { ArrowLeft, Hash, MessageSquare, Phone, Volume2 } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
 	import { isJoinable } from '#lib/channels.ts';
+	import CallControls from '#lib/components/call/call-controls.svelte';
 	import CallStage from '#lib/components/call/call-stage.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import { getUnreadContext } from '#lib/unread-context.ts';
+	import { cn } from '#lib/utils.ts';
 	import { getVoiceContext } from '#lib/voice-context.ts';
 	import type { PageProps } from './$types';
 
@@ -22,8 +24,11 @@
 	const inCall = $derived(joinable && call.isIn('channel', data.channel.id));
 	const label = $derived(joinable ? data.channel.name : `#${data.channel.name}`);
 
-	// In voice channels the chat sits below the voice view; scrolling down reaches it.
-	let chatSection = $state<HTMLElement>();
+	// In voice channels the chat opens next to the voice view with a button, on phones
+	// instead of it. It stays mounted while closed, so no message is missed.
+	let chatOpen = $state(false);
+	const showChat = $derived(!joinable || chatOpen);
+	const toggleChat = () => (chatOpen = !chatOpen);
 
 	function joinVoice() {
 		call.join({
@@ -57,11 +62,12 @@
 	{/if}
 	{#if joinable}
 		<Button
-			variant="ghost"
+			variant={chatOpen ? 'secondary' : 'ghost'}
 			size="sm"
 			class="ml-auto shrink-0"
-			aria-label="Go to chat"
-			onclick={() => chatSection?.scrollIntoView({ behavior: 'smooth' })}
+			aria-label={chatOpen ? 'Hide chat' : 'Show chat'}
+			aria-pressed={chatOpen}
+			onclick={toggleChat}
 		>
 			<MessageSquare />
 			<span class="hidden sm:inline">Chat</span>
@@ -85,6 +91,7 @@
 		canReact={data.canReact}
 		canManageMessages={data.canManageMessages}
 		onread={() => unread.clear(data.channel.id)}
+		visible={showChat}
 		gifProvider={data.gifProvider}
 	/>
 {/snippet}
@@ -92,6 +99,7 @@
 {#snippet voiceView()}
 	{#if inCall}
 		<CallStage participants={call.participants} class="min-h-0 flex-1 overflow-y-auto" />
+		<CallControls {call} {chatOpen} ontogglechat={toggleChat} class="mb-3 shrink-0" />
 	{:else}
 		<div class="m-auto flex flex-col items-center gap-3 p-6 text-center">
 			<span class="flex size-16 items-center justify-center rounded-full bg-muted">
@@ -123,12 +131,19 @@
 {/snippet}
 
 {#if joinable}
-	<!-- The voice view fills the screen; the chat below it is 3/4 as tall. -->
-	<div class="min-h-0 flex-1 overflow-y-auto">
-		<section class="flex h-full flex-col" aria-label="Voice">
+	<div class="flex min-h-0 flex-1">
+		<section
+			class={cn('min-w-0 flex-1 flex-col', chatOpen ? 'hidden md:flex' : 'flex')}
+			aria-label="Voice"
+		>
 			{@render voiceView()}
 		</section>
-		<section bind:this={chatSection} class="flex h-3/4 flex-col border-t">
+		<section
+			class={cn(
+				'min-w-0 flex-1 flex-col md:w-96 md:flex-none md:border-l xl:w-[28rem]',
+				chatOpen ? 'flex' : 'hidden'
+			)}
+		>
 			{@render chat()}
 		</section>
 	</div>

@@ -231,7 +231,10 @@ test.describe('with LiveKit', () => {
 		}
 
 		// The fake screen from the browser flags in playwright.config.ts.
-		await anna.page.getByRole('button', { name: 'Share screen' }).first().click();
+		// The call controls below the call view hold every action, the chat button too.
+		const controls = anna.page.getByRole('toolbar', { name: 'Call controls' });
+		await expect(controls.getByRole('button', { name: 'Show chat' })).toBeVisible();
+		await controls.getByRole('button', { name: 'Share screen' }).click();
 		await anna.page.getByRole('menuitem', { name: '1080p, 30 fps' }).click();
 		const annaStage = anna.page.getByRole('list', { name: 'Participants' });
 		await expect(
@@ -254,7 +257,7 @@ test.describe('with LiveKit', () => {
 		await expect(stream.locator('video')).toHaveCount(0);
 		await expect(stream.getByRole('button', { name: 'Watch stream' })).toBeVisible();
 
-		await anna.page.getByRole('button', { name: 'Stop sharing' }).first().click();
+		await controls.getByRole('button', { name: 'Stop sharing' }).click();
 		await expect(stream).toBeHidden();
 
 		await anna.context.close();

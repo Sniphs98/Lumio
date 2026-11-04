@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { ArrowLeft, Phone, PhoneOff, Settings, Users } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
+	import CallControls from '#lib/components/call/call-controls.svelte';
 	import CallStage from '#lib/components/call/call-stage.svelte';
 	import ChatView from '#lib/components/chat/chat-view.svelte';
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
@@ -118,11 +119,17 @@
 </header>
 
 {#if inCall}
-	<CallStage
-		participants={call.participants}
-		bind:focused={focusedStream}
-		class={cn('shrink-0 overflow-y-auto border-b', focusedStream ? 'max-h-[70%]' : 'max-h-[45%]')}
-	/>
+	<section
+		class={cn('flex shrink-0 flex-col border-b', focusedStream ? 'max-h-[70%]' : 'max-h-[45%]')}
+		aria-label="Voice"
+	>
+		<CallStage
+			participants={call.participants}
+			bind:focused={focusedStream}
+			class="min-h-0 overflow-y-auto"
+		/>
+		<CallControls {call} class="mb-2 shrink-0" />
+	</section>
 {/if}
 
 <ChatView

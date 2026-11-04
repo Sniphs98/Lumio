@@ -90,25 +90,25 @@ test('on a phone the channel list and the chat are separate screens', async ({ b
 	await context.close();
 });
 
-test('voice channels have the same chat below the voice view', async ({ browser }) => {
+test('voice channels open the same chat with a button', async ({ browser }) => {
 	const alice = await newUser(browser, 'Alice');
 	const bob = await newUser(browser, 'Bob');
 
 	await alice.page.getByRole('link', { name: 'Lounge' }).click();
 	await expect(alice.page.getByRole('heading', { name: 'Lounge', level: 1 })).toBeVisible();
-	// The voice view fills the screen; the chat comes after scrolling down.
+	// The voice view fills the page; the chat opens next to it with the chat button.
 	await expect(alice.page.getByRole('button', { name: 'Join voice' })).toBeInViewport();
 	const input = alice.page.getByLabel('Message Lounge');
-	await expect(input).not.toBeInViewport();
-	await alice.page.getByRole('button', { name: 'Go to chat' }).click();
+	await expect(input).toBeHidden();
+	await alice.page.getByRole('button', { name: 'Show chat' }).click();
 	await expect(input).toBeInViewport();
+	await expect(alice.page.getByRole('button', { name: 'Join voice' })).toBeInViewport();
 
-	// The chat is 3/4 as tall as the voice view.
 	const [voiceBox, chatBox] = await Promise.all([
 		alice.page.getByRole('region', { name: 'Voice' }).boundingBox(),
 		alice.page.getByRole('region', { name: 'Chat' }).boundingBox()
 	]);
-	expect(chatBox!.height / voiceBox!.height).toBeCloseTo(0.75, 1);
+	expect(chatBox!.x).toBeGreaterThanOrEqual(voiceBox!.x + voiceBox!.width - 1);
 
 	const text = `Voice chat from Alice ${Date.now()}`;
 	await input.fill(text);
@@ -120,7 +120,9 @@ test('voice channels have the same chat below the voice view', async ({ browser 
 	const loungeUnread = channels.getByRole('link', { name: /^Lounge/ }).getByRole('status');
 	await expect(loungeUnread).toBeVisible();
 	await channels.getByRole('link', { name: /^Lounge/ }).click();
-	await expect(bob.page.getByRole('list', { name: 'Messages' }).getByText(text)).toBeAttached();
+	await expect(bob.page.getByRole('heading', { name: 'Lounge', level: 1 })).toBeVisible();
+	await bob.page.getByRole('button', { name: 'Show chat' }).click();
+	await expect(bob.page.getByRole('list', { name: 'Messages' }).getByText(text)).toBeVisible();
 	await expect(loungeUnread).toBeHidden();
 
 	// Text channels are only a chat, without a join button.
@@ -132,7 +134,7 @@ test('voice channels have the same chat below the voice view', async ({ browser 
 	await bob.context.close();
 });
 
-test('on a phone the voice channel chat is reached by scrolling down', async ({ browser }) => {
+test('on a phone the voice channel chat replaces the voice view', async ({ browser }) => {
 	const context = await browser.newContext({ viewport: { width: 390, height: 800 } });
 	const page = await context.newPage();
 	await signUp(page, 'Erin');
@@ -140,8 +142,11 @@ test('on a phone the voice channel chat is reached by scrolling down', async ({ 
 	await page.getByRole('link', { name: 'Lounge' }).click();
 
 	await expect(page.getByRole('button', { name: 'Join voice' })).toBeInViewport();
-	await page.getByLabel('Message Lounge').scrollIntoViewIfNeeded();
+	await page.getByRole('button', { name: 'Show chat' }).click();
 	await expect(page.getByLabel('Message Lounge')).toBeInViewport();
+	await expect(page.getByRole('button', { name: 'Join voice' })).toBeHidden();
+	await page.getByRole('button', { name: 'Hide chat' }).click();
+	await expect(page.getByRole('button', { name: 'Join voice' })).toBeInViewport();
 	const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
 	expect(scrollWidth).toBeLessThanOrEqual(390);
 	await context.close();
