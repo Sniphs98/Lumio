@@ -70,6 +70,8 @@
 		gifProvider?: 'giphy' | 'tenor' | null;
 		/** Called whenever the chat is marked as read up to its latest message. */
 		onread?: () => void;
+		/** False while the chat is kept around but hidden: it then does not count as read. */
+		visible?: boolean;
 	};
 
 	let {
@@ -87,7 +89,8 @@
 		canReact = false,
 		canManageMessages = false,
 		gifProvider = null,
-		onread
+		onread,
+		visible = true
 	}: Props = $props();
 
 	// Starts from the server-loaded history and resets when the chat changes.
@@ -246,7 +249,7 @@
 	let lastRead = '';
 	function markRead() {
 		const last = messages.at(-1);
-		if (!last || last.id === lastRead || document.visibilityState !== 'visible') return;
+		if (!last || last.id === lastRead || !visible || document.visibilityState !== 'visible') return;
 		lastRead = last.id;
 		onread?.();
 		postAction('read', { messageId: last.id }).catch(() => (lastRead = ''));
@@ -255,6 +258,15 @@
 	$effect(() => {
 		void messages;
 		untrack(markRead);
+	});
+
+	// A hidden chat cannot scroll; once shown, it starts at the latest message.
+	$effect(() => {
+		if (!visible) return;
+		untrack(() => {
+			markRead();
+			void scrollToBottom();
+		});
 	});
 
 	function startReply(message: ChatMessage) {
