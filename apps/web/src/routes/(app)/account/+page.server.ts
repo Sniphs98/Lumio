@@ -1,12 +1,13 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { discordErrorMessage } from '#lib/discord.ts';
 import { parseAccountDetails } from '#lib/guests.ts';
 import { db } from '#lib/server/db/index.ts';
 import { account, user } from '#lib/server/db/schema.ts';
-import { connectDiscord, disconnectDiscord, discordEnabled } from '#lib/server/discord.ts';
+import { connect, disconnect, enabledProviders } from '#lib/server/social.ts';
+import { STEAM_EMAIL_DOMAIN } from '#lib/server/steam-openid.ts';
 import { upgradeGuest } from '#lib/server/guests.ts';
 import { setProfilePicture, storeImage } from '#lib/server/images.ts';
+import { isSocialProvider, SOCIAL_PROVIDERS, socialErrorFromUrl } from '#lib/social.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -21,18 +22,25 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			.from(account)
 			.where(eq(account.userId, locals.user.id))
 	]);
-	const providers = new Set(accounts.map((a) => a.providerId));
+	const connected = new Set(accounts.map((a) => a.providerId));
+	const hasPlaceholderEmail =
+		!row || row.isAnonymous || row.email.endsWith(`@${STEAM_EMAIL_DOMAIN}`);
 	return {
-		// Guests get a placeholder address from Better Auth, which is never shown.
-		email: row?.isAnonymous ? null : (row?.email ?? null),
-		discord: {
-			enabled: discordEnabled,
-			connected: providers.has('discord'),
-			// Discord can only be disconnected while there is another way to sign in.
-			hasPassword: providers.has('credential'),
-			// Set when connecting fails, see `connectDiscord`.
-			error: discordErrorMessage(url.searchParams.get('error'))
-		}
+		// Guests get a placeholder address from Better Auth, Steam users one from Lumio, which is
+		// never shown.
+		email: hasPlaceholderEmail ? null : row.email,
+		// Services this Lumio offers, and ones connected before the owner turned them off.
+		services: SOCIAL_PROVIDERS.filter((p) => enabledProviders.includes(p) || connected.has(p)).map(
+			(provider) => ({
+				provider,
+				enabled: enabledProviders.includes(provider),
+				connected: connected.has(provider)
+			})
+		),
+		// A service can only be disconnected while there is another way to sign in.
+		signInMethods: connected.size,
+		// Set when connecting fails, see `connect`.
+		socialError: socialErrorFromUrl(url)
 	};
 };
 
@@ -61,13 +69,18 @@ export const actions: Actions = {
 		if (!result.ok) return fail(400, { message: result.error });
 		return { upgraded: true };
 	},
-	connectDiscord: async (event) => {
+	/** Sends the member to Discord, Google or Steam to connect their account there. */
+	connect: async (event) => {
 		if (!event.locals.user || event.locals.user.isAnonymous) error(401, 'Not signed in');
-		return connectDiscord(event);
+		const provider = (await event.request.formData()).get('provider');
+		if (!isSocialProvider(provider)) error(400, 'Unknown service');
+		return connect(event, provider);
 	},
-	disconnectDiscord: async (event) => {
+	disconnect: async (event) => {
 		if (!event.locals.user || event.locals.user.isAnonymous) error(401, 'Not signed in');
-		const message = await disconnectDiscord(event.locals.user.id);
-		return message ? fail(400, { discordMessage: message }) : { discordDisconnected: true };
+		const provider = (await event.request.formData()).get('provider');
+		if (!isSocialProvider(provider)) error(400, 'Unknown service');
+		const message = await disconnect(event.locals.user.id, provider);
+		return message ? fail(400, { socialMessage: message }) : { disconnected: provider };
 	}
 };

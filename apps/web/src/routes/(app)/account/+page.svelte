@@ -5,14 +5,17 @@
 	import { ArrowLeft, CircleAlert, LogOut, UserRound } from '@lucide/svelte';
 	import { call } from '#lib/call.svelte.ts';
 	import PictureForm from '#lib/components/images/picture-form.svelte';
+	import ProviderIcon from '#lib/components/social/provider-icon.svelte';
 	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.ts';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
+	import * as Item from '#lib/components/ui/item/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import { forgetGuest, NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '#lib/guests.ts';
+	import { PROVIDER_NAMES, providerList } from '#lib/social.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -156,61 +159,90 @@
 						<dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
 							<dt class="text-muted-foreground">Name</dt>
 							<dd class="truncate">{data.user.name}</dd>
-							<dt class="text-muted-foreground">Email</dt>
-							<dd class="truncate">{data.email}</dd>
+							{#if data.email}
+								<dt class="text-muted-foreground">Email</dt>
+								<dd class="truncate">{data.email}</dd>
+							{/if}
 						</dl>
 					</Card.Content>
 				</Card.Root>
 
-				{#if data.discord.enabled || data.discord.connected}
-					{@const discordMessage = form?.discordMessage ?? data.discord.error}
-					<Card.Root role="region" aria-labelledby="discord-heading">
+				{#if data.services.length > 0}
+					{@const socialMessage = form?.socialMessage ?? data.socialError}
+					<Card.Root role="region" aria-labelledby="services-heading">
 						<Card.Header>
-							<Card.Title class="flex items-center gap-2">
-								<h2 id="discord-heading">Discord</h2>
-								{#if data.discord.connected}<Badge variant="secondary">Connected</Badge>{/if}
-							</Card.Title>
+							<Card.Title><h2 id="services-heading">Connected accounts</h2></Card.Title>
 							<Card.Description>
-								{#if data.discord.connected}
-									You can sign in with your Discord account.
-								{:else}
-									Connect your Discord account to sign in with it.
-								{/if}
+								Connect {providerList(data.services.map((s) => s.provider))} to sign in with it.
 							</Card.Description>
 						</Card.Header>
-						{#if discordMessage}
-							<Card.Content>
+						<Card.Content class="grid gap-4">
+							{#if socialMessage}
 								<Alert.Root variant="destructive">
 									<CircleAlert />
-									<Alert.Description>{discordMessage}</Alert.Description>
+									<Alert.Description>{socialMessage}</Alert.Description>
 								</Alert.Root>
-							</Card.Content>
-						{/if}
-						<Card.Footer>
-							{#if !data.discord.connected}
-								<!-- No `use:enhance`: the action redirects to Discord. -->
-								<form method="post" action="?/connectDiscord" class="w-full sm:w-fit">
-									<Button type="submit" variant="outline" class="w-full sm:w-fit">
-										Connect Discord
-									</Button>
-								</form>
-							{:else if data.discord.hasPassword}
-								<form
-									method="post"
-									action="?/disconnectDiscord"
-									use:enhance
-									class="w-full sm:w-fit"
-								>
-									<Button type="submit" variant="outline" class="w-full sm:w-fit">
-										Disconnect Discord
-									</Button>
-								</form>
-							{:else}
+							{/if}
+							<div class="grid gap-2" role="list">
+								{#each data.services as service (service.provider)}
+									{@const name = PROVIDER_NAMES[service.provider]}
+									<Item.Root
+										variant="outline"
+										size="sm"
+										class="flex-nowrap py-2 pr-2"
+										role="listitem"
+										aria-label={name}
+									>
+										<Item.Media>
+											<ProviderIcon provider={service.provider} class="size-5" />
+										</Item.Media>
+										<Item.Content class="min-w-0">
+											<Item.Title>{name}</Item.Title>
+											{#if service.connected}
+												<Item.Description>
+													<Badge variant="secondary">Connected</Badge>
+												</Item.Description>
+											{/if}
+										</Item.Content>
+										<Item.Actions>
+											{#if !service.connected}
+												<!-- No `use:enhance`: the action redirects to the service. -->
+												<form method="post" action="?/connect">
+													<Button
+														type="submit"
+														name="provider"
+														value={service.provider}
+														variant="outline"
+														size="sm"
+														aria-label="Connect {name}"
+													>
+														Connect
+													</Button>
+												</form>
+											{:else if data.signInMethods > 1}
+												<form method="post" action="?/disconnect" use:enhance>
+													<Button
+														type="submit"
+														name="provider"
+														value={service.provider}
+														variant="ghost"
+														size="sm"
+														aria-label="Disconnect {name}"
+													>
+														Disconnect
+													</Button>
+												</form>
+											{/if}
+										</Item.Actions>
+									</Item.Root>
+								{/each}
+							</div>
+							{#if data.signInMethods === 1 && data.services.some((s) => s.connected)}
 								<p class="text-sm text-muted-foreground">
-									Discord is your only way to sign in, so it stays connected.
+									This is your only way to sign in, so it stays connected.
 								</p>
 							{/if}
-						</Card.Footer>
+						</Card.Content>
 					</Card.Root>
 				{/if}
 			{/if}

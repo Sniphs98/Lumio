@@ -4,7 +4,7 @@ import { building } from '$app/env';
 import { LIVEKIT_URL } from '$app/env/private';
 import { allowLiveKit, liveKitOrigins } from '#lib/server/csp.ts';
 import { auth } from '#lib/server/auth.ts';
-import { DISCORD_CALLBACK_PATH, readAdmission, clearAdmissionCookie } from '#lib/server/discord.ts';
+import { CALLBACK_PATHS, readAdmission, clearAdmissionCookie } from '#lib/server/social.ts';
 import { cleanUpUploads } from '#lib/server/uploads.ts';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 
@@ -21,8 +21,9 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 		event.locals.session = session.session;
 		event.locals.user = session.user;
 	}
-	// A sign-up through Discord comes back here with the invite or friend link it started from.
-	if (event.url.pathname !== DISCORD_CALLBACK_PATH) {
+	// A sign-up through another service comes back here with the invite or friend link it
+	// started from.
+	if (!CALLBACK_PATHS.includes(event.url.pathname)) {
 		return svelteKitHandler({ event, resolve, auth, building });
 	}
 	event.locals.admission = readAdmission(event);

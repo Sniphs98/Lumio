@@ -75,8 +75,8 @@
 				<Card.Content>
 					<JoinForm
 						allowGuests
-						message={form?.message ?? data.discordError}
-						discord={data.discord}
+						message={form?.message ?? data.socialError}
+						providers={data.providers}
 					/>
 				</Card.Content>
 			{/if}

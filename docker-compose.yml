@@ -30,9 +30,13 @@ services:
       S3_ENDPOINT: ${S3_ENDPOINT:-}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
-      # Optional sign in with Discord, off when empty. See "Sign in with Discord" in the README.
+      # Optional sign in with Discord, Google and Steam, each off when empty.
+      # See "Sign in with Discord, Google or Steam" in the README.
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
       # Optional GIF search, off when empty. See "Emojis and GIFs" in the README.
       GIPHY_API_KEY: ${GIPHY_API_KEY:-}
       TENOR_API_KEY: ${TENOR_API_KEY:-}
