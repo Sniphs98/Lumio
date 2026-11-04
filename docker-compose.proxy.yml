@@ -1,0 +1,38 @@
+# Production setup for a server that already runs a reverse proxy (nginx, Traefik, Caddy, ...).
+# Same as docker-compose.yml, but without the bundled Caddy: your proxy terminates HTTPS and
+# forwards to the app and to LiveKit. See deploy/reverse-proxy/README.md.
+#
+#   docker compose -f docker-compose.proxy.yml up -d
+#
+# Tip: put COMPOSE_FILE=docker-compose.proxy.yml in .env, then plain `docker compose` works.
+services:
+  app:
+    extends:
+      file: docker-compose.yml
+      service: app
+    # Only reachable from this machine by default. If your proxy runs in a Docker container,
+    # either join its network (see deploy/reverse-proxy/traefik.compose.yml) or set LUMIO_BIND
+    # to an address the container can reach, e.g. 172.17.0.1.
+    ports:
+      - '${LUMIO_BIND:-127.0.0.1}:${LUMIO_PORT:-3000}:3000'
+
+  postgres:
+    extends:
+      file: docker-compose.yml
+      service: postgres
+
+  # LiveKit listens for signaling on port 7880; let your proxy forward LIVEKIT_DOMAIN there.
+  # Media still goes directly to it: open 7881/tcp, 3478/udp and 50000-60000/udp.
+  livekit:
+    extends:
+      file: docker-compose.yml
+      service: livekit
+
+  jaeger:
+    extends:
+      file: docker-compose.yml
+      service: jaeger
+
+volumes:
+  postgres:
+  uploads:

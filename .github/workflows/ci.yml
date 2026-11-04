@@ -49,3 +49,22 @@ jobs:
             --dev --bind 0.0.0.0 --keys "devkey: devsecret_change_me_devsecret_change_me"
           timeout 60 sh -c 'until curl -sf http://localhost:7880 > /dev/null; do sleep 1; done'
       - run: pnpm test:e2e
+
+  # Builds the Docker image and runs it behind the example nginx config, as a self-hoster would.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          load: true
+          # The name docker-compose.yml uses, so the test starts this image instead of pulling one.
+          tags: ghcr.io/sniphs98/lumio:ci
+          cache-from: type=gha
+      - name: Test behind a reverse proxy
+        run: .github/scripts/reverse-proxy-test.sh
+        env:
+          LUMIO_IMAGE: ghcr.io/sniphs98/lumio:ci
