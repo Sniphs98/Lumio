@@ -22,7 +22,7 @@ describe('TabBar', () => {
 	it('shows the server icon on the instance tab', async () => {
 		const icon =
 			'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-		render(TabBar, { instanceName: 'Gaming', instanceIcon: icon });
+		await render(TabBar, { instanceName: 'Gaming', instanceIcon: icon });
 
 		const tab = page.getByRole('link', { name: 'Gaming' });
 		await expect.element(tab).toBeVisible();
