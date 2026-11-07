@@ -50,7 +50,7 @@
 		"livekit-client": "^2.23.0",
 		"livekit-server-sdk": "^2.19.2",
 		"playwright": "^1.60.0",
-		"postgres": "^3.4.9",
+		"postgres": "^4.0.0",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
 		"prettier-plugin-tailwindcss": "^0.8.0",
