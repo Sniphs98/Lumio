@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Mic, Square } from '@lucide/svelte';
+	import { CircleAlert, Mic, Square } from '@lucide/svelte';
 	import {
 		audioDevices,
 		captureOptions,
@@ -8,6 +8,7 @@
 		type AudioSettings
 	} from '#lib/audio-settings.ts';
 	import type { AudioControls } from '#lib/call.svelte.ts';
+	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import { Progress } from '#lib/components/ui/progress/index.ts';
@@ -131,8 +132,8 @@
 	checked: boolean,
 	onCheckedChange: (checked: boolean) => void
 )}
-	<label
-		class="-mx-2 flex items-start justify-between gap-4 rounded-md p-2 transition-colors hover:bg-muted/60"
+	<Label
+		class="-mx-2 items-start justify-between gap-4 rounded-md p-2 leading-normal font-normal transition-colors hover:bg-muted/60"
 	>
 		<span class="grid gap-1">
 			<span id="{id}-label" class="text-sm leading-none font-medium">{label}</span>
@@ -145,7 +146,7 @@
 			aria-labelledby="{id}-label"
 			aria-describedby="{id}-description"
 		/>
-	</label>
+	</Label>
 {/snippet}
 
 <!-- Everything about microphones, speakers and sounds. Shown in the settings dialog. -->
@@ -211,7 +212,10 @@
 			</div>
 			<Progress value={level} aria-label="Microphone level" />
 			{#if testError}
-				<p class="text-xs text-destructive" role="alert">{testError}</p>
+				<Alert.Root variant="destructive">
+					<CircleAlert />
+					<Alert.Description>{testError}</Alert.Description>
+				</Alert.Root>
 			{:else if testing}
 				<p class="text-xs text-muted-foreground">Say something: the bar moves when you speak.</p>
 			{/if}

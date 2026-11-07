@@ -45,7 +45,16 @@ export async function joinAsGuest(page: Page, link: string, name: string) {
 
 /** The personal friend link shown on the Home tab. */
 export async function friendLinkOf(page: Page) {
-	return page.getByRole('textbox', { name: 'Your friend link' }).inputValue();
+	const link = page.getByRole('textbox', { name: 'Your friend link' });
+	// Once someone has friends, the link sits in a dialog behind the + next to the list.
+	const open = page.getByRole('button', { name: 'Add friends' });
+	await expect(link.or(open)).toBeVisible();
+	if (await link.isVisible()) return link.inputValue();
+
+	await open.click();
+	const value = await link.inputValue();
+	await page.keyboard.press('Escape');
+	return value;
 }
 
 /** Opens someone's friend link as a signed-in member, adds them and lands in the chat. */

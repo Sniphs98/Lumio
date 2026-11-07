@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import { describeUnread, formatCount, type UnreadCount } from '#lib/unread.ts';
 	import { cn } from '#lib/utils.ts';
 
@@ -8,16 +9,23 @@
 
 <!-- Number of unread messages; red when one of them mentions the user. -->
 {#if unread.count > 0}
-	<Badge
-		class={cn(
-			'ml-auto h-4 min-w-4 px-1 text-[0.625rem] leading-none font-semibold tabular-nums',
-			unread.mentions > 0 ? 'bg-destructive text-white' : 'bg-foreground/80 text-background',
-			className
-		)}
-		role="status"
-		aria-label={describeUnread(unread)}
-		title={describeUnread(unread)}
-	>
-		{unread.mentions > 0 ? `@${formatCount(unread.mentions)}` : formatCount(unread.count)}
-	</Badge>
+	<Tooltip.Root>
+		<Tooltip.Trigger tabindex={-1}>
+			{#snippet child({ props })}
+				<Badge
+					{...props}
+					class={cn(
+						'ml-auto h-4 min-w-4 px-1 text-[0.625rem] leading-none font-semibold tabular-nums',
+						unread.mentions > 0 ? 'bg-destructive text-white' : 'bg-foreground/80 text-background',
+						className
+					)}
+					role="status"
+					aria-label={describeUnread(unread)}
+				>
+					{unread.mentions > 0 ? `@${formatCount(unread.mentions)}` : formatCount(unread.count)}
+				</Badge>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content>{describeUnread(unread)}</Tooltip.Content>
+	</Tooltip.Root>
 {/if}

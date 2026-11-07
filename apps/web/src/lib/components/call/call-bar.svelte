@@ -16,7 +16,7 @@
 	import { SCREEN_SHARE_QUALITY, type ScreenShareQuality } from '#lib/calls.ts';
 	import type { CallControls, CallTarget } from '#lib/call.svelte.ts';
 	import { getCallPanels } from '#lib/call-panels.svelte.ts';
-	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.ts';
 	import { cn } from '#lib/utils.ts';
 
@@ -75,7 +75,13 @@
 </script>
 
 {#snippet targetLink(target: CallTarget)}
-	<a href={targetHref(target)} class="flex min-w-0 flex-1 flex-col rounded-md px-1 hover:bg-muted">
+	<a
+		href={targetHref(target)}
+		class={buttonVariants({
+			variant: 'ghost',
+			class: 'h-auto min-w-0 flex-1 flex-col items-stretch gap-0 px-1 py-0 font-normal'
+		})}
+	>
 		<span
 			class={cn(
 				'flex items-center gap-1.5 text-xs font-semibold',

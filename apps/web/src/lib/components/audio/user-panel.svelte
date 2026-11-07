@@ -5,7 +5,7 @@
 	import type { AudioControls } from '#lib/call.svelte.ts';
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import SettingsDialog from '#lib/components/settings/settings-dialog.svelte';
-	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import { cn } from '#lib/utils.ts';
 
@@ -82,7 +82,10 @@
 <section class="flex shrink-0 items-center gap-1 border-t bg-muted/40 p-2" aria-label="You">
 	<a
 		href={resolve('/(app)/account')}
-		class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
+		class={buttonVariants({
+			variant: 'ghost',
+			class: 'h-auto min-w-0 flex-1 justify-start gap-2 px-1 py-0.5 font-normal'
+		})}
 	>
 		<UserAvatar
 			{user}

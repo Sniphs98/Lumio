@@ -36,6 +36,20 @@ describe('FriendsSidebar', () => {
 			.not.toBeInTheDocument();
 	});
 
+	it('moves the friend link into a dialog once there are friends', async () => {
+		await render(FriendsSidebar, { ...empty, friends: [ben] });
+
+		const link = page.getByRole('textbox', { name: 'Your friend link' });
+		await expect.element(link).not.toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Add friends' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Add friends' });
+		await expect
+			.element(dialog.getByRole('textbox', { name: 'Your friend link' }))
+			.toHaveValue('https://lumio.example/add/abc123');
+		await expect.element(dialog.getByRole('button', { name: 'Reset friend link' })).toBeVisible();
+	});
+
 	it('shows empty friends and groups lists', async () => {
 		await render(FriendsSidebar, empty);
 

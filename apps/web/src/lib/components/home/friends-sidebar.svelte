@@ -1,16 +1,19 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { Check, Plus, RefreshCw, Users, X } from '@lucide/svelte';
+	import { Check, CircleAlert, Plus, RefreshCw, Users, X } from '@lucide/svelte';
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import CopyButton from '#lib/components/invites/copy-button.svelte';
+	import { navItemClass } from '#lib/components/shell/nav-item.ts';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
+	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
+	import * as Item from '#lib/components/ui/item/index.ts';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import type { FriendUser } from '#lib/friends.ts';
 	import { NO_UNREAD, type UnreadCount } from '#lib/unread.ts';
-	import { cn } from '#lib/utils.ts';
 
 	type Props = {
 		friends: FriendUser[];
@@ -44,15 +47,15 @@
 	}: Props = $props();
 
 	const heading = 'px-2 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase';
-	const row = 'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm';
+	const requestRowClass = 'flex-nowrap gap-2 px-2 py-1';
+	const friendLinkHint =
+		'Send your friend link. Whoever opens it becomes your friend, and newcomers can join as a guest.';
+
+	let addFriendsOpen = $state(false);
 </script>
 
-<section class="border-b p-3" aria-labelledby="add-friend-heading">
-	<h2 id="add-friend-heading" class={heading}>Add friends</h2>
-	<p class="px-2 pb-2 text-sm text-muted-foreground">
-		Send your friend link. Whoever opens it becomes your friend, and newcomers can join as a guest.
-	</p>
-	<div class="flex items-center gap-1 px-2">
+{#snippet friendLink()}
+	<div class="flex items-center gap-1">
 		<Input
 			readonly
 			value={friendLinkUrl}
@@ -81,53 +84,107 @@
 			</Tooltip.Root>
 		</form>
 	</div>
-	{#if error}
-		<p class="px-2 pt-2 text-sm text-destructive" role="alert">{error}</p>
-	{:else if notice}
-		<p class="px-2 pt-2 text-sm text-muted-foreground" role="status">{notice}</p>
-	{/if}
-</section>
+{/snippet}
+
+{#if error}
+	<div class="px-3 pt-3">
+		<Alert.Root variant="destructive">
+			<CircleAlert />
+			<Alert.Description>{error}</Alert.Description>
+		</Alert.Root>
+	</div>
+{:else if notice}
+	<p class="px-5 pt-3 text-sm text-muted-foreground" role="status">{notice}</p>
+{/if}
+
+<!-- Once there are friends, the link moves into a dialog behind the + next to the list. -->
+{#if friends.length === 0}
+	<section class="border-b p-3" aria-labelledby="add-friend-heading">
+		<h2 id="add-friend-heading" class={heading}>Add friends</h2>
+		<p class="px-2 pb-2 text-sm text-muted-foreground">{friendLinkHint}</p>
+		<div class="px-2">{@render friendLink()}</div>
+	</section>
+{:else}
+	<Dialog.Root bind:open={addFriendsOpen}>
+		<Dialog.Content class="sm:max-w-md">
+			<Dialog.Header>
+				<Dialog.Title>Add friends</Dialog.Title>
+				<Dialog.Description>{friendLinkHint}</Dialog.Description>
+			</Dialog.Header>
+			{@render friendLink()}
+		</Dialog.Content>
+	</Dialog.Root>
+{/if}
 
 {#if incoming.length > 0}
 	<section class="p-3" aria-labelledby="incoming-heading">
 		<h2 id="incoming-heading" class={heading}>Friend requests</h2>
 		<ul class="grid gap-0.5">
 			{#each incoming as user (user.id)}
-				<li class={row}>
-					<UserAvatar {user} />
-					<span class="min-w-0 flex-1 truncate">{user.name}</span>
-					<form method="post" action="/?/accept" use:enhance>
-						<input type="hidden" name="userId" value={user.id} />
-						<Button
-							type="submit"
-							size="icon"
-							variant="ghost"
-							class="size-7"
-							aria-label="Accept {user.name}"
-						>
-							<Check />
-						</Button>
-					</form>
-					<form method="post" action="/?/remove" use:enhance>
-						<input type="hidden" name="userId" value={user.id} />
-						<Button
-							type="submit"
-							size="icon"
-							variant="ghost"
-							class="size-7"
-							aria-label="Decline {user.name}"
-						>
-							<X />
-						</Button>
-					</form>
-				</li>
+				<Item.Root size="xs" class={requestRowClass}>
+					{#snippet child({ props })}
+						<li {...props}>
+							<Item.Media><UserAvatar {user} /></Item.Media>
+							<Item.Content class="min-w-0">
+								<Item.Title class="block w-full truncate font-normal">{user.name}</Item.Title>
+							</Item.Content>
+							<Item.Actions class="gap-0">
+								<form method="post" action="/?/accept" use:enhance>
+									<input type="hidden" name="userId" value={user.id} />
+									<Button
+										type="submit"
+										size="icon"
+										variant="ghost"
+										class="size-7"
+										aria-label="Accept {user.name}"
+									>
+										<Check />
+									</Button>
+								</form>
+								<form method="post" action="/?/remove" use:enhance>
+									<input type="hidden" name="userId" value={user.id} />
+									<Button
+										type="submit"
+										size="icon"
+										variant="ghost"
+										class="size-7"
+										aria-label="Decline {user.name}"
+									>
+										<X />
+									</Button>
+								</form>
+							</Item.Actions>
+						</li>
+					{/snippet}
+				</Item.Root>
 			{/each}
 		</ul>
 	</section>
 {/if}
 
 <section class="p-3" aria-labelledby="friends-heading">
-	<h2 id="friends-heading" class={heading}>Friends</h2>
+	<div class="flex items-center justify-between pr-1">
+		<h2 id="friends-heading" class={heading}>Friends</h2>
+		{#if friends.length > 0}
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					{#snippet child({ props })}
+						<Button
+							{...props}
+							variant="ghost"
+							size="icon"
+							class="-mt-2 size-6 text-muted-foreground"
+							aria-label="Add friends"
+							onclick={() => (addFriendsOpen = true)}
+						>
+							<Plus />
+						</Button>
+					{/snippet}
+				</Tooltip.Trigger>
+				<Tooltip.Content>Add friends</Tooltip.Content>
+			</Tooltip.Root>
+		{/if}
+	</div>
 	{#if friends.length === 0}
 		<p class="px-2 text-sm text-muted-foreground">No friends added yet.</p>
 	{:else}
@@ -139,11 +196,7 @@
 				<li>
 					<a
 						href={resolve('/(app)/(home)/friends/[userId]', { userId: user.id })}
-						class={cn(
-							row,
-							'hover:bg-muted',
-							active ? 'bg-muted text-foreground' : 'text-muted-foreground'
-						)}
+						class={navItemClass(active)}
 						aria-current={active ? 'page' : undefined}
 					>
 						<UserAvatar {user} />
@@ -163,22 +216,32 @@
 		<h2 id="outgoing-heading" class={heading}>Sent requests</h2>
 		<ul class="grid gap-0.5">
 			{#each outgoing as user (user.id)}
-				<li class="{row} text-muted-foreground">
-					<UserAvatar {user} />
-					<span class="min-w-0 flex-1 truncate">{user.name}</span>
-					<form method="post" action="/?/remove" use:enhance>
-						<input type="hidden" name="userId" value={user.id} />
-						<Button
-							type="submit"
-							size="icon"
-							variant="ghost"
-							class="size-7"
-							aria-label="Cancel request to {user.name}"
-						>
-							<X />
-						</Button>
-					</form>
-				</li>
+				<Item.Root size="xs" class={requestRowClass}>
+					{#snippet child({ props })}
+						<li {...props}>
+							<Item.Media><UserAvatar {user} /></Item.Media>
+							<Item.Content class="min-w-0">
+								<Item.Title class="block w-full truncate font-normal text-muted-foreground">
+									{user.name}
+								</Item.Title>
+							</Item.Content>
+							<Item.Actions>
+								<form method="post" action="/?/remove" use:enhance>
+									<input type="hidden" name="userId" value={user.id} />
+									<Button
+										type="submit"
+										size="icon"
+										variant="ghost"
+										class="size-7"
+										aria-label="Cancel request to {user.name}"
+									>
+										<X />
+									</Button>
+								</form>
+							</Item.Actions>
+						</li>
+					{/snippet}
+				</Item.Root>
 			{/each}
 		</ul>
 	</section>
@@ -215,13 +278,7 @@
 				<li>
 					<a
 						href={resolve('/(app)/(home)/dm/[id]', { id: group.id })}
-						class={cn(
-							row,
-							'hover:bg-muted',
-							group.id === activeConversationId
-								? 'bg-muted text-foreground'
-								: 'text-muted-foreground'
-						)}
+						class={navItemClass(group.id === activeConversationId)}
 						aria-current={group.id === activeConversationId ? 'page' : undefined}
 					>
 						{#if group.iconUrl}

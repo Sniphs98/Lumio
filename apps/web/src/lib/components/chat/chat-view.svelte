@@ -2,6 +2,7 @@
 	import { deserialize, enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import {
+		CircleAlert,
 		CornerUpLeft,
 		FileText,
 		Paperclip,
@@ -22,6 +23,7 @@
 	import ReactionBar from '#lib/components/chat/reaction-bar.svelte';
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
 	import UserContextMenu from '#lib/components/users/user-context-menu.svelte';
+	import * as Alert from '#lib/components/ui/alert/index.ts';
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Progress } from '#lib/components/ui/progress/index.ts';
@@ -467,20 +469,27 @@
 			>
 				{#if message.replyTo}
 					{@const reply = message.replyTo}
-					<button
-						type="button"
-						class="flex max-w-full min-w-0 items-center gap-1 pt-0.5 text-xs text-muted-foreground hover:text-foreground"
-						title="Jump to the message"
-						onclick={() => jumpTo(reply.id)}
-					>
-						<CornerUpLeft class="size-3 shrink-0" />
-						<span class="shrink-0 font-semibold">@{reply.author.name}</span>
-						<span class="truncate">
-							{gifInContent(reply.content)
-								? 'GIF'
-								: contentToText(reply.content, reply.mentions) || 'Sent a file'}
-						</span>
-					</button>
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<Button
+									{...props}
+									variant="link"
+									class="h-auto max-w-full min-w-0 justify-start gap-1 p-0 pt-0.5 text-xs font-normal text-muted-foreground hover:text-foreground hover:no-underline has-[>svg]:px-0"
+									onclick={() => jumpTo(reply.id)}
+								>
+									<CornerUpLeft class="size-3 shrink-0" />
+									<span class="shrink-0 font-semibold">@{reply.author.name}</span>
+									<span class="truncate">
+										{gifInContent(reply.content)
+											? 'GIF'
+											: contentToText(reply.content, reply.mentions) || 'Sent a file'}
+									</span>
+								</Button>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content>Jump to the message</Tooltip.Content>
+					</Tooltip.Root>
 				{/if}
 				<!-- The actions show right next to the name and text; phones keep them at the right edge. -->
 				<div class="relative sm:w-fit sm:max-w-[calc(100%-7rem)]">
@@ -495,13 +504,24 @@
 									<span {...props} class="text-sm font-semibold">{message.author.name}</span>
 								{/snippet}
 							</UserContextMenu>
-							<time
-								datetime={message.createdAt}
-								class="text-xs text-muted-foreground"
-								title={mounted ? dayFormat.format(new Date(message.createdAt)) : undefined}
-							>
-								{mounted ? timeFormat.format(new Date(message.createdAt)) : ''}
-							</time>
+							<Tooltip.Root>
+								<Tooltip.Trigger tabindex={-1}>
+									{#snippet child({ props })}
+										<time
+											{...props}
+											datetime={message.createdAt}
+											class="text-xs text-muted-foreground"
+										>
+											{mounted ? timeFormat.format(new Date(message.createdAt)) : ''}
+										</time>
+									{/snippet}
+								</Tooltip.Trigger>
+								{#if mounted}
+									<Tooltip.Content>
+										{dayFormat.format(new Date(message.createdAt))}
+									</Tooltip.Content>
+								{/if}
+							</Tooltip.Root>
 						</div>
 					{/if}
 					{#if message.content}
@@ -562,7 +582,10 @@
 
 	<footer class="shrink-0 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
 		{#if actionError}
-			<p class="pb-2 text-sm text-destructive" role="alert">{actionError}</p>
+			<Alert.Root variant="destructive" class="mb-2">
+				<CircleAlert />
+				<Alert.Description>{actionError}</Alert.Description>
+			</Alert.Root>
 		{/if}
 		{#if canSend}
 			{#if suggestions.length > 0}
@@ -570,6 +593,7 @@
 					id="mention-suggestions"
 					users={suggestions}
 					active={mentionIndex}
+					onactive={(i) => (mentionIndex = i)}
 					onpick={pickMention}
 				/>
 			{/if}
@@ -738,7 +762,10 @@
 				</Button>
 			</form>
 			{#if uploadError || error}
-				<p class="pt-2 text-sm text-destructive" role="alert">{uploadError || error}</p>
+				<Alert.Root variant="destructive" class="mt-2">
+					<CircleAlert />
+					<Alert.Description>{uploadError || error}</Alert.Description>
+				</Alert.Root>
 			{/if}
 		{:else}
 			<p class="text-center text-sm text-muted-foreground">{cannotSendText}</p>

@@ -9,6 +9,7 @@
 	import CallBar from '#lib/components/call/call-bar.svelte';
 	import VoiceMembers from '#lib/components/call/voice-members.svelte';
 	import UserAvatar from '#lib/components/groups/user-avatar.svelte';
+	import { navItemClass } from '#lib/components/shell/nav-item.ts';
 	import ServerSettingsDialog from '#lib/components/server-settings/server-settings-dialog.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import UnreadBadge from '#lib/components/unread/unread-badge.svelte';
@@ -112,10 +113,7 @@
 		<div class="grid gap-0.5 pb-3">
 			<a
 				href={resolve('/(app)/channels/members')}
-				class={cn(
-					'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-					membersOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
-				)}
+				class={navItemClass(membersOpen)}
 				aria-current={membersOpen ? 'page' : undefined}
 			>
 				<Users class="size-4 shrink-0" />
@@ -124,10 +122,7 @@
 			{#if data.canInvite}
 				<a
 					href={resolve('/(app)/channels/invites')}
-					class={cn(
-						'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-						invitesOpen ? 'bg-muted text-foreground' : 'text-muted-foreground'
-					)}
+					class={navItemClass(invitesOpen)}
 					aria-current={invitesOpen ? 'page' : undefined}
 				>
 					<UserPlus class="size-4 shrink-0" />
@@ -137,7 +132,7 @@
 			{#if data.serverSettings}
 				<Button
 					variant="ghost"
-					class="h-auto justify-start gap-2 px-2 py-1.5 font-normal text-muted-foreground"
+					class={navItemClass(false)}
 					onclick={() => (serverSettingsOpen = true)}
 				>
 					<Settings class="size-4 shrink-0" />
@@ -153,10 +148,7 @@
 				<li>
 					<a
 						href={resolve('/(app)/channels/[id]', { id: c.id })}
-						class={cn(
-							'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-							page.params.id === c.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
-						)}
+						class={navItemClass(page.params.id === c.id)}
 						aria-current={page.params.id === c.id ? 'page' : undefined}
 					>
 						<Hash class="size-4 shrink-0" />
@@ -177,10 +169,7 @@
 				<li>
 					<a
 						href={resolve('/(app)/channels/[id]', { id: c.id })}
-						class={cn(
-							'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
-							page.params.id === c.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
-						)}
+						class={navItemClass(page.params.id === c.id)}
 						aria-current={page.params.id === c.id ? 'page' : undefined}
 					>
 						<Volume2 class="size-4 shrink-0" />
