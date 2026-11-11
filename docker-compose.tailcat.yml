@@ -1,0 +1,73 @@
+# Optional: let guests join through tailcat (https://github.com/tailscale/tailcat), without a
+# public IP address or open ports. Guests use the Lumio desktop app with the server's tailcat
+# address. Add this file on top of docker-compose.yml (or docker-compose.proxy.yml):
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.tailcat.yml
+#
+# See deploy/tailcat/README.md for the setup, including generating the tailcat key once.
+services:
+  # Serves two ports of this machine to tailcat clients: 443 (the reverse proxy, which routes
+  # to the app and to LiveKit signaling) and the TURN port, which carries call media over TCP.
+  # Nothing else on this machine or its network is reachable through it.
+  tailcat:
+    image: ghcr.io/tailscale/tailcat:${TAILCAT_VERSION:-v0.7.0}
+    restart: unless-stopped
+    network_mode: host
+    command: ['serve', '443,${LUMIO_TURN_PORT:-3479}']
+    volumes:
+      # Keys (~/.config/tailcat) and the cached relay map, so the address survives restarts.
+      - tailcat:/home/nonroot
+
+  # TURN over plain TCP for guests: the tunnel only carries TCP, so WebRTC relays the call
+  # through this server. It only listens on localhost, where only the tailcat server reaches
+  # it, and only hands out relays to clients with credentials from LiveKit. The relays use the
+  # server's LAN address, which LiveKit announces next to its public one.
+  turn:
+    image: coturn/coturn:4.6
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - --listening-ip=127.0.0.1
+      - --relay-ip=${LUMIO_TURN_RELAY_IP:?Set LUMIO_TURN_RELAY_IP in .env to this server's LAN IP address}
+      - --listening-port=${LUMIO_TURN_PORT:-3479}
+      - --min-port=49160
+      - --max-port=49200
+      - --no-udp
+      - --no-tls
+      - --no-dtls
+      - --no-cli
+      - --fingerprint
+      - --no-multicast-peers
+      - --use-auth-secret
+      - --static-auth-secret=${LUMIO_TURN_SECRET:?Set LUMIO_TURN_SECRET in .env, see deploy/tailcat/README.md}
+      - --realm=lumio
+      - --log-file=stdout
+
+  # Same as deploy/livekit.yaml, plus the TURN server above. LiveKit gives every participant
+  # credentials for it; the TURN address is 127.0.0.1, which is where the desktop app forwards
+  # the TURN port through the tunnel. Browsers that are not on tailcat cannot reach it there and
+  # keep using the normal media ports. The LAN addresses stay announced next to the public
+  # one, so the TURN server on this machine reaches LiveKit without going through the router.
+  livekit:
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        rtc:
+          tcp_port: 7881
+          port_range_start: 50000
+          port_range_end: 60000
+          use_external_ip: true
+          advertise_internal_ip: true
+          turn_servers:
+            - host: 127.0.0.1
+              port: ${LUMIO_TURN_PORT:-3479}
+              protocol: tcp
+              secret: ${LUMIO_TURN_SECRET:?Set LUMIO_TURN_SECRET in .env}
+        turn:
+          enabled: true
+          udp_port: 3478
+        logging:
+          level: info
+
+volumes:
+  tailcat:
