@@ -7,7 +7,8 @@
 	"main": "src/main.js",
 	"scripts": {
 		"dev": "electron .",
-		"dist": "electron-builder"
+		"dist": "electron-builder",
+		"test": "node --test \"src/*.test.js\""
 	},
 	"devDependencies": {
 		"electron": "^44.10.0",
@@ -16,7 +17,7 @@
 	"build": {
 		"appId": "app.lumio.desktop",
 		"productName": "Lumio",
-		"files": ["src/**/*"],
+		"files": ["src/**/*", "!src/**/*.test.js"],
 		"linux": { "target": ["AppImage"] },
 		"win": { "target": ["nsis"] },
 		"mac": { "target": ["dmg"] }

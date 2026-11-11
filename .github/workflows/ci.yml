@@ -41,6 +41,7 @@ jobs:
       - run: .github/scripts/next-version.test.sh
       - run: pnpm check
       - run: pnpm test:unit
+      - run: pnpm --filter @lumio/desktop test
       - run: pnpm --filter @lumio/web exec node scripts/migrate.js
       # LiveKit for the call tests, same as in docker-compose.dev.yml. Service containers
       # cannot take a command, so it is started here.

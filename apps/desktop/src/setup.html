@@ -15,28 +15,52 @@
 				font: 14px system-ui, sans-serif;
 			}
 			form { display: grid; gap: 12px; width: 320px; }
+			label { display: grid; gap: 6px; }
 			input, button { padding: 10px 12px; border-radius: 8px; border: 1px solid #27272a; font: inherit; }
 			input { background: #18181b; color: inherit; }
 			button { background: #fafafa; color: #09090b; cursor: pointer; }
+			button:disabled { opacity: 0.6; cursor: wait; }
 			p { color: #a1a1aa; margin: 0; }
-			.error { color: #f87171; }
+			.error { color: #f87171; white-space: pre-wrap; overflow-wrap: anywhere; }
 		</style>
 	</head>
 	<body>
 		<form id="setup">
 			<h1>Connect to a Lumio server</h1>
-			<p>Enter the address of your server, e.g. https://chat.example.com</p>
-			<input id="url" type="url" required placeholder="https://" autofocus />
-			<button type="submit">Connect</button>
-			<p id="error" class="error"></p>
+			<label>
+				Server address or invite link
+				<input id="url" type="url" required placeholder="https://chat.example.com" autofocus />
+			</label>
+			<label>
+				Tailcat address (optional)
+				<input id="tailcat" type="text" spellcheck="false" autocomplete="off" placeholder="tc..." />
+			</label>
+			<p>Only needed when the server owner gave you one. It requires tailcat on this computer.</p>
+			<button id="connect" type="submit">Connect</button>
+			<p id="error" class="error" role="alert"></p>
 		</form>
 		<script>
+			const params = new URLSearchParams(location.search);
+			document.getElementById('url').value = params.get('url') ?? '';
+			document.getElementById('tailcat').value = params.get('tailcat') ?? '';
+			document.getElementById('error').textContent = params.get('error') ?? '';
+
 			document.getElementById('setup').addEventListener('submit', async (e) => {
 				e.preventDefault();
+				const button = document.getElementById('connect');
+				const error = document.getElementById('error');
+				button.disabled = true;
+				error.textContent = '';
 				try {
-					await window.lumio.setServerUrl(document.getElementById('url').value);
+					await window.lumio.setServer(
+						document.getElementById('url').value,
+						document.getElementById('tailcat').value
+					);
 				} catch (err) {
-					document.getElementById('error').textContent = err.message;
+					// Electron prefixes errors from the main process with where they came from.
+					error.textContent = err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+				} finally {
+					button.disabled = false;
 				}
 			});
 		</script>

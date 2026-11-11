@@ -113,6 +113,8 @@ Open these ports in your firewall: `80/tcp`, `443/tcp+udp` (HTTPS), `7881/tcp`, 
 
 Already running nginx, Traefik or another reverse proxy? Use `docker-compose.proxy.yml`, which leaves out Caddy and publishes the app on `127.0.0.1:3000`. Setup, example configs and what the proxy has to forward are in [deploy/reverse-proxy](deploy/reverse-proxy/README.md).
 
+No public IP address, e.g. a server at home behind CGNAT? Guests can join through a [tailcat](https://github.com/tailscale/tailcat) tunnel with the desktop app. This is experimental, see [deploy/tailcat](deploy/tailcat/README.md).
+
 Browsers only allow microphone, camera and screen access on HTTPS (or `localhost`), so calls need the HTTPS setup above. Screen sharing works in desktop browsers and the desktop app; most mobile browsers can join calls but cannot share their screen.
 
 ### Updating
